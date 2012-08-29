@@ -1,0 +1,113 @@
+/* style overrides for the DBC kickoff pages */
+
+#page-wrapper.kickoff{
+  width: 780px;
+  background: #FFF url("/sites/all/themes/dbc/images/kickoff-sidebar-bg.png") no-repeat top left;
+  color: #444;
+}
+
+/* bump our sidebar width to accomodate background of circling cycles */
+.kickoff #content {
+  width: 540px;
+  margin-left: 240px; /* LTR */ /* The width of .region-sidebar-first. */
+  margin-right: -780px; /* LTR */ /* Negative value of #content's width + left margin. */
+}
+
+.kickoff #content .section {
+  padding-right: 10px;
+}
+
+.kickoff #block-system-main {
+  margin-bottom: 0px;
+}
+
+.kickoff #site-name {
+  padding: 0px 10px;
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+.kickoff #site-name a {
+  font-size: 72px;
+  font-weight: bold;
+  line-height: 72px;
+  color: #F74728;
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+.kickoff #site-slogan {
+  margin-left: 240px;
+  font-size: 20px;
+  line-height: 26px;
+  color: #F74728;
+  padding-right: 10px;
+}
+
+.kickoff #navigation .section {
+  padding-left: 240px;
+}
+
+.kickoff .region-sidebar-first {
+  width: 240px;
+  margin-right: -240px;
+}
+
+/* only show kickoff menu on kickoff pages */
+#navigation #block-menu-menu-kickoff { display: none; }
+.kickoff #navigation #block-menu-menu-kickoff { display: block; }
+
+#navigation #block-menu-menu-kickoff ul.menu li {
+  border: 2px solid #F74728;
+  padding: 0px 5px;
+  margin: 0px 5px;
+  list-style-type: none !important;
+  list-style-image: none;
+  border-radius: 4px;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+}
+
+#navigation #block-menu-menu-kickoff ul.menu li a {
+  text-decoration: none;
+}
+
+#navigation #block-menu-menu-kickoff h2 {
+  display: none;
+}
+
+#navigation #block-menu-menu-kickoff ul.menu li.menu-447 {
+  border-color: #fca42c;
+}
+
+#navigation #block-menu-menu-kickoff ul.menu li.menu-449 {
+  border-color: #39bef2;
+}
+
+#navigation #block-menu-menu-kickoff ul.menu li.menu-443 {
+  border-color: #23a161;
+}
+
+#navigation #block-menu-menu-kickoff ul.menu li.menu-448 {
+  border-color: #374a99;
+}
+
+.kickoff div.content div.submitted {
+  display: none;
+}
+
+.kickoff .form-item label {
+  font-weight: normal;
+}
+
+.kickoff strong {
+  /*color: #F74728;*/
+}
+
+.kickoff div.region-footer {
+  background-color: white;
+}
+
+.kickoff div.region-footer .content {
+  padding: 0px 10px;
+}

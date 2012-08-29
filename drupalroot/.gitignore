@@ -1,0 +1,12 @@
+# Ignore configuration files that may contain sensitive information.
+sites/*/settings*.php
+
+# Ignore paths that contain user-generated content.
+sites/*/files
+sites/*/private
+
+# I don't think /images is actually used, and is not Drupal default structure
+/images
+
+# Ignore civicrm setting for now
+sites/*/civicrm.settings.php

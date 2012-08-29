@@ -1,0 +1,3 @@
+RewriteEngine On
+RewriteRule ^$ http://www.facebook.com/durhambicyclecoalition
+
