@@ -10,3 +10,6 @@ sites/*/private
 
 # Ignore civicrm setting for now
 sites/*/civicrm.settings.php
+
+# Ignore civicrm templates
+sites/default/files/civicrm/templates_c/
