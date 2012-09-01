@@ -244,10 +244,10 @@ function _webform_civicrm_webform_frontend_form_alter(&$form, &$form_state) {
         $con = $data['contact'][$i];
         if (!empty($con['relationship']) && (($con['contact'][1]['contact_type'] == 'individual' && !empty($id['cid'][$i])) || $i == $c)) {
           foreach ($con['relationship'] as $target => $rel) {
-            if ($rel['relationship_type_id'] == 'ce_b' && !empty($id['cid'][$target])) {
+            if (webform_civicrm_aval($rel, 'relationship_type_id') == 'ce_b' && !empty($id['cid'][$target])) {
               $employee = $id['cid'][$target];
             }
-            elseif ($rel['relationship_type_id'] == 'ce_a' && $target == $c) {
+            elseif (webform_civicrm_aval($rel, 'relationship_type_id') == 'ce_a' && $target == $c) {
               $employee = $id['cid'][$i];
             }
             if ($employee) {
@@ -525,6 +525,10 @@ function webform_civicrm_process_submission($node, &$submission, $op) {
           $data[$ent][$c][$table][$n][$name] = $val;
         }
       }
+    }
+    // Hack for activity assignee contactRef set in back-end
+    if ($val = webform_civicrm_aval($data, 'activity:1:activity:1:assignee_contact_id') && $val[0] === '#') {
+      $contact_ref['civicrm_1_activity_1_activity_assignee_contact_id'] = substr($val, 1);
     }
     // Create/update contacts
     foreach ($data['contact'] as $c => $contact) {

@@ -175,16 +175,25 @@ function webform_civicrm_field_options($field, $context, $data) {
       if ($name === 'event_id') {
         $param = $data['reg_options'];
       }
-      if (($name === 'assignee_contact_id' && !($param = webform_civicrm_aval($data, 'activity:1:assignee_group')))
-      || (webform_civicrm_aval($field, 'data_type') === 'ContactReference' && !($param = webform_civicrm_aval($field, 'extra:civicrm_group')))) {
-        foreach ($data['contact'] as $num => $contact) {
-          $ret['#' . $num] =  t('Contact !num', array('!num' => $num));
+      // If this is a contract reference or assignee field, set group id as param
+      if (webform_civicrm_aval($field, 'data_type') === 'ContactReference') {
+        if ($name === 'assignee_contact_id') {
+          $param = webform_civicrm_aval($data, 'activity:1:assignee_group');
+        }
+        else {
+          $param = webform_civicrm_aval($field, 'extra:civicrm_group');
+        }
+        // List webform contacts if no group specified
+        if (!$param) {
+          foreach ($data['contact'] as $num => $contact) {
+            $ret['#' . $num] =  t('Contact !num', array('!num' => $num));
+          }
         }
       }
-      else {
+      if (!$ret) {
         $ret = webform_civicrm_get_options($lists[$name], $param);
-        // Format money data correctly
-        if (!empty($field['data_type']) && $field['data_type'] == 'Money') {
+        // Hack to format money data correctly
+        if (!empty($field['data_type']) && $field['data_type'] === 'Money') {
           $old = $ret;
           $ret = array();
           foreach ($old as $key => $val) {
@@ -881,8 +890,11 @@ function webform_civicrm_user_cid($id = NULL, $type = 'uf') {
     $id = $user->uid;
   }
   // Lookup current domain for multisite support
-  $domain = webform_civicrm_api('domain', 'get', array('current_domain' => 1, 'return.id' => 1));
-  $domain = webform_civicrm_aval($domain, 'id', 1);
+  static $domain = 0;
+  if (!$domain) {
+    $domain = webform_civicrm_api('domain', 'get', array('current_domain' => 1, 'return.id' => 1));
+    $domain = webform_civicrm_aval($domain, 'id', 1);
+  }
   $result = webform_civicrm_api('uf_match', 'get', array($type . '_id' => $id));
   if (!empty($result['values'])) {
     foreach ($result['values'] as $val) {
