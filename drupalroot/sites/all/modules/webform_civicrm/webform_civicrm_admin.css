@@ -3,41 +3,29 @@ form .web-civi-checkbox-set {
   position:relative;
 }
 
-form .web-civi-checkbox-set .form-item {
+form .web-civi-checkbox-set .form-item,
+#webform-civicrm-configure-form .contact-type-select {
   float:left;
-  margin-left:1em;
-  min-width:15em;
-}
-
-.web-civi-checkbox-set .form-item div.description {
-  max-width: 20em;
+  width:18em;
+  padding-right:1.5em;
 }
 
 form #web-civi-help {
   float:right;
 }
 
-form .form-item-activity-targets div.form-item.form-type-checkbox,
-form div.form-item-activity-assignee-group,
-#civicrm-ajax-act-case-activity-fields-assignee {
-  float:left;
-  margin-right:1em;
-}
-
-.web-civi-checkbox-set + div,
-form .form-item-activity-targets + div,
-#civicrm-ajax-act-case-activity-fields-assignee + div {
+.web-civi-checkbox-set + div {
   clear:both;
 }
 
 form .hidden,
-.js #no-js-button-wrapper,
-.web-civi-js-select,
-#civi-contact-match-off {
+.js #no-js-button-wrapper {
   display:none;
 }
 
-#webform-civicrm-configure-form .form-item label {
+#webform-civicrm-configure-form .form-type-checkbox label,
+#webform-civicrm-configure-form .number-of .form-item label,
+#webform-civicrm-configure-form .form-item-number-of-contacts label {
   display:inline;
 }
 
@@ -45,11 +33,6 @@ th div.form-type-radio {
   display:inline;
   margin:0;
   padding:0;
-}
-
-.js fieldset:hover > div > .web-civi-js-select,
-.js fieldset:hover > .web-civi-js-select {
-  display:block;
 }
 
 .web-civi-js-select {
@@ -60,6 +43,12 @@ th div.form-type-radio {
   background-color:white;
   top:-10px;
   border:1px solid #CCCCCC;
+  display:none;
+}
+
+.js fieldset:hover > div > .web-civi-js-select,
+.js fieldset:hover > .web-civi-js-select {
+  display:block;
 }
 
 .web-civi-js-select a:hover {
@@ -76,7 +65,43 @@ th div.form-type-radio {
   display:block;
 }
 
-.participant_event_id {
-  float:none;
-  clear:both;
+form .civi-icon {
+  background-image:url('icons.png');
+  background-repeat:no-repeat;
+  display:inline-block;
+  width:16px;
+  height:16px;
+  margin-right:4px;
+}
+
+form .civi-icon.individual {
+  background-position:-16px 0;
+}
+
+form .civi-icon.household {
+  background-position:-31px 0;
+}
+
+form .civi-icon.organization {
+  background-position:-48px 0;
+}
+
+form .civi-icon.activity {
+  background-position:-63px 0;
+}
+
+form .civi-icon.participant {
+  background-position:-80px 0;
+}
+
+form .civi-icon.prefs {
+  background-position:-98px 0;
+}
+
+form .civi-icon.message {
+  background-position:-118px 0;
+}
+
+form .civi-icon.text {
+  background-position:-137px 0;
 }
