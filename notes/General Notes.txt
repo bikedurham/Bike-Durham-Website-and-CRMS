@@ -1,0 +1,9 @@
+2012-Nov-27
+
+Spent a long time troubleshooting an issue with the menu not showing up for the admin user (Drupal uid = 1).
+It turned out the culprit was using drush sqlsan to sanitize emails and passwords.  This caused a mismatch when 
+civicrm tries to match with the Drupal uid (I believe the email field caused this).  This then resulted in no
+contactid matching when doing a session lookup.  For some reason this allowed normal administrative tasks, but
+no administrative menu.  This was discussed with little help on IRC.  No troubleshooting documentation was provided online
+by me, though given Civi's extremely poor online documenation when it comes to troubleshooting, it would be nice.
+- Chris Russo
