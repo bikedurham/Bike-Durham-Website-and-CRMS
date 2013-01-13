@@ -37,7 +37,10 @@ var wfCivi = (function ($, D) {
     resetFields(num, nid, true, 'hide', toHide, 500);
     if (cid && fetch) {
       $('#webform-client-form-'+nid).addClass('contact-loading');
-      $.get(path, {cid: cid, load: 'full'}, function(data) {
+      var params = getCids(nid);
+      params.load = 'full';
+      params.cid = cid;
+      $.get(path, params, function(data) {
         fillValues(data, nid);
         $('#webform-client-form-'+nid).removeClass('contact-loading');
       }, 'json');
@@ -79,6 +82,32 @@ var wfCivi = (function ($, D) {
     return ret;
   };
 
+  pub.contactImage = function(field, url) {
+    var container = $('div.civicrm-enabled[id$=' + field.replace(/_/g, '-').toLowerCase() + ']');
+    if (container.length > 0) {
+      if ($('.file', container).length > 0) {
+        if ($('.file', container).is(':visible')) {
+          $('.file', container).hide();
+          url = $('.file', container).find('a').attr('href');
+        }
+        else {
+          return;
+        }
+      }
+      else {
+        $(':visible', container).hide();
+        container.append('<input type="submit" class="form-submit ajax-processed civicrm-remove-image" value="' + Drupal.t('Change Image') + '" onclick="wfCivi.clearImage(\'' + field + '\'); return false;">');
+      }
+      container.prepend('<img class="civicrm-contact-image" alt="' + Drupal.t('Contact Image') + '" src="' + url + '" />');
+    }
+  }
+
+  pub.clearImage = function(field) {
+    var container = $('div.civicrm-enabled[id$=' + field.replace(/_/g, '-').toLowerCase() + ']');
+    $('.civicrm-remove-image, .civicrm-contact-image', container).remove();
+    $('input[type=file], input[type=submit]', container).show();
+  }
+
   /**
    * Private methods.
    */
@@ -93,7 +122,8 @@ var wfCivi = (function ($, D) {
       var n = name.split('-');
       if (n[0] === 'civicrm' && n[1] == num && n[2] === 'contact' && n[5] !== 'existing') {
         if (clear) {
-          $(':input', ele).not(':radio, :checkbox').val('');
+          $(':input', ele).not(':radio, :checkbox, :button, :submit').val('');
+          $('.civicrm-remove-image', ele).click();
           $('input:checkbox, input:radio', ele).each(function() {
             $(this).attr('checked', '');
           });
@@ -119,6 +149,13 @@ var wfCivi = (function ($, D) {
 
   function fillValues(data, nid) {
     for (var fid in data) {
+      // Handle contact image
+      if (fid.slice(-9) == 'image-URL') {
+        if (data[fid].length > 0) {
+          pub.contactImage(fid, data[fid]);
+        }
+        continue;
+      }
       // First try to find a single element - works for textfields and selects
       var ele = $('#webform-client-form-'+nid+' :input.civicrm-enabled[id$="'+fid+'"]');
       if (ele.length > 0) {
@@ -241,6 +278,18 @@ var wfCivi = (function ($, D) {
     }
   }
 
+  function getCids(nid) {
+    var cids = $('#webform-client-form-'+nid).data('civicrm-ids') || {};
+    $('#webform-client-form-'+nid+' .civicrm-enabled:input[name$="_contact_1_contact_existing]"]').each(function() {
+      var cid = $(this).val();
+      if (cid) {
+        var n = parseName($(this).attr('name')).split('_');
+        cids['cid' + n[1]] = cid;
+      }
+    });
+    return cids;
+  }
+
   D.behaviors.webform_civicrmForm = {
     attach: function (context) {
       if (!stateProvinceCache['default'] && D.settings.webform_civicrm) {
@@ -294,6 +343,11 @@ var wfCivi = (function ($, D) {
         if ($(this).val() !== '') {
           sharedAddress(this, 'hide');
         }
+      });
+
+      // Handle image file fields
+      $('div.civicrm-enabled[id$=contact-1-contact-image-url]:has(.file)', context).each(function() {
+        pub.contactImage($(this).attr('id'));
       });
     }
   };
