@@ -1,0 +1,12 @@
+name = Event
+core = 7.x
+package = Features
+dependencies[] = date
+dependencies[] = features
+dependencies[] = field_sql_storage
+dependencies[] = node
+dependencies[] = text
+features[features_api][] = api:1
+features[field][] = node-event-body
+features[field][] = node-event-field_event_date
+features[node][] = event
