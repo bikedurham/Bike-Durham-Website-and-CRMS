@@ -7,3 +7,18 @@ contactid matching when doing a session lookup.  For some reason this allowed no
 no administrative menu.  This was discussed with little help on IRC.  No troubleshooting documentation was provided online
 by me, though given Civi's extremely poor online documenation when it comes to troubleshooting, it would be nice.
 - Chris Russo
+
+2013-Jan-08
+
+After lots of email issues sending straight through PHP mail function, we explored Amazon SES.  It had it's own issues
+with receiving emails too rapidly from CiviCRM such that they would bounce.  After lots of Googlage:
+http://forum.civicrm.org/index.php/topic,18279.15.html?PHPSESSID=5h4scpuigv292nvp5buev2a0k6 (second page of forum thread)
+
+That links to a Mandrill extension that can be incorporated into CiviCRM: 
+http://civicrm.org/extensions/mandrill-transactional-emails/mandrill-transactional-emails
+Github: https://github.com/JMAConsulting/biz.jmaconsulting.mte/blob/master/README.md
+
+As of today, I did not currently install that package, but rather just set up the SMTP to go through Mandrill.  Adam Haile, who
+still is managing the durhambicyclecoalition.org DNS set up the DKIM but was unable to set up SPF records on namecheap for 
+verification of sending.
+- Chris Russo
