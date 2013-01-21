@@ -22,3 +22,12 @@ As of today, I did not currently install that package, but rather just set up th
 still is managing the durhambicyclecoalition.org DNS set up the DKIM but was unable to set up SPF records on namecheap for 
 verification of sending.
 - Chris Russo
+
+2013-Jan-21
+
+I began working through how the bike buddy system might work.  I started to look at other nice mapping sites that help with tracking
+paths and such.  What first came to mind was mapmyride.com.  I realized they had an API, so the current plan is to have folks create
+maps via mapmyride, since there are lots of really nice features that would take a long time to replicate.  We can then use the api
+to pull in those maps as gpx, or images, or other details that will help.  The api is pretty poorly documented, so I sent an email
+to the mapmyride api department to help with the route retrieval as it was not working on first test.
+- Chris Russo
