@@ -31,3 +31,13 @@ maps via mapmyride, since there are lots of really nice features that would take
 to pull in those maps as gpx, or images, or other details that will help.  The api is pretty poorly documented, so I sent an email
 to the mapmyride api department to help with the route retrieval as it was not working on first test.
 - Chris Russo
+
+2013-Jan-22
+
+I got an email from api support last night saying that documentation and api methods are being rapidly developed.  The get_gpx method 
+is only available to a privilged few for the time being.  I was recommended to use the get_route method.  I found success with that. 
+http://api.mapmyfitness.com/3.1/routes/get_route?&o=xml&r=&route_key=&route_id=167477260&created_date=&activity_type=&old_json=&loc= 
+http://api.mapmyfitness.com/3.1/routes/get_route?&o=json&r=&route_key=236135877725048803&route_id=&created_date=&activity_type=&old_json=&loc=
+
+Next step is to build out the infrastructure in Drupal, and do a proof of concept that we can import and display the data based
+on route id or key that should be easily discoverable by anyone creating a route.
