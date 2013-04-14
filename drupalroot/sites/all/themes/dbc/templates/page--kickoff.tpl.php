@@ -79,9 +79,10 @@
     <?php if ($site_name || $site_slogan): ?>
       <div id="name-and-slogan">
             <h1 id="site-name">
-              <a href="<?php print $front_page; ?>" title="<?php print t('Home'); ?>" rel="home"><span>Durham Cyclists!</span></a>
+              <a href="<?php print $front_page; ?>" title="<?php print t('Home'); ?>" rel="home">
+                <?php print t("Bike Durham"); ?>
+              </a>
             </h1>
-
         <?php if ($site_slogan): ?>
           <div id="site-slogan"><?php print $site_slogan; ?></div>
         <?php endif; ?>
