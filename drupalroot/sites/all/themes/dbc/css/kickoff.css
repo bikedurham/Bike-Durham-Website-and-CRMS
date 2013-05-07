@@ -43,10 +43,6 @@
     padding-right: 10px;
 }
 
-.kickoff #navigation .section {
-    padding-left: 240px;
-}
-
 .kickoff .region-sidebar-first {
     width: 240px;
     margin-right: -240px;
@@ -114,6 +110,10 @@
 #navigation {
     position: relative;
     bottom: 140px;
-    left: 29px;
+    left: 229px;
     font-size: 1.5em;
+}
+
+#logo {
+    margin: 10px 0 0 -59px;
 }
