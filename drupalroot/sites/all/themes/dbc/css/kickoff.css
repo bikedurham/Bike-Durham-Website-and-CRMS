@@ -1,13 +1,13 @@
 /* style overrides for the DBC kickoff pages */
 
 #page-wrapper.kickoff{
-    width: 780px;
+    width: 900px;
     color: #444;
 }
 
 /* bump our sidebar width to accomodate background of circling cycles */
 .kickoff #content {
-    width: 740px;
+    width: 870px;
     margin-left: 20px; /* LTR */ /* The width of .region-sidebar-first. */
     margin-right: -780px; /* LTR */ /* Negative value of #content's width + left margin. */
 }
@@ -54,7 +54,7 @@
 
 #navigation #block-menu-menu-kickoff ul.menu li {
     border: 2px solid #F74728;
-    padding: 6px 10px;
+    padding: 6px 5px;
     margin: 0px 8px;
     list-style-type: none !important;
     list-style-image: none;
@@ -110,7 +110,7 @@
 #navigation {
     position: relative;
     bottom: 140px;
-    left: 229px;
+    left: 95px;
     font-size: 1.5em;
 }
 
