@@ -1,5 +1,6 @@
 /* style overrides for the DBC kickoff pages */
 
+
 #page-wrapper.kickoff{
     width: 900px;
     color: #444;
@@ -52,8 +53,8 @@
 #navigation #block-menu-menu-kickoff { display: none; }
 .kickoff #navigation #block-menu-menu-kickoff { display: block; }
 
-#navigation #block-menu-menu-kickoff ul.menu li {
-    border: 2px solid #F74728;
+#navigation ul li {
+    border: 1px solid #000;
     padding: 6px 5px;
     margin: 0px 8px;
     list-style-type: none !important;
@@ -63,27 +64,27 @@
     -webkit-border-radius: 4px;
 }
 
-#navigation #block-menu-menu-kickoff ul.menu li a {
+#navigation ul li a {
     text-decoration: none;
 }
 
-#navigation #block-menu-menu-kickoff h2 {
+#navigation h2 {
     display: none;
 }
 
-#navigation #block-menu-menu-kickoff ul.menu li.menu-447 {
+#navigation ul li.menu-447 {
     border-color: #fca42c;
 }
 
-#navigation #block-menu-menu-kickoff ul.menu li.menu-449 {
+#navigation ul li.menu-484 {
     border-color: #39bef2;
 }
 
-#navigation #block-menu-menu-kickoff ul.menu li.menu-443 {
+#navigation ul li.menu-443 {
     border-color: #23a161;
 }
 
-#navigation #block-menu-menu-kickoff ul.menu li.menu-448 {
+#navigation ul li.menu-448 {
     border-color: #374a99;
 }
 
@@ -116,4 +117,9 @@
 
 #logo {
     margin: 10px 0 0 -59px;
+}
+
+ul.nice-menu a, ul.nice-menu span {
+  padding: 4px;
+  display: block;
 }
