@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * @file
+ * A boolean field for webform.
+ *
+ * An additional componenent for webform, which allows a single on/off checkbox
+ * with a value given for the on and off states.
+ */
+
+/**
+ * Implements hook_webform_component_info().
+ */
+function webform_boolean_webform_component_info() {
+  return array(
+    'boolean' => array(
+      'label' => t('Boolean/Checkbox'),
+      'description' => t('A single on/off checkbox'),
+      'extra' => array(
+        'on_value' => 1,
+        'off_value' => 0,
+      ),
+      'features' => array(
+        'conditional' => FALSE,
+        'email_address' => TRUE,
+        'default_value' => TRUE,
+      ),
+      'file' => 'components/boolean.inc',
+    ),
+  );
+}
