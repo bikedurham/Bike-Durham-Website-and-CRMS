@@ -13,8 +13,11 @@ function _webform_defaults_phone() {
     'mandatory' => 0,
     'pid'       => 0,
     'weight'    => 0,
+    'value'     => '',
     'extra'     => array(
       'title_display'              => 0,
+      'width'                      => '',
+      'disabled'                   => FALSE,
       'private'                    => FALSE,
       'attributes'                 => array(),
       'description'                => '',
@@ -117,6 +120,34 @@ function _webform_edit_phone($component) {
       ),
     ),
   );
+  $form['value'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Default value'),
+    '#default_value' => $component['value'],
+    '#description'   => t('The default value of the field.') . theme('webform_token_help'),
+    '#size'          => 60,
+    '#maxlength'     => 1024,
+    '#weight'        => 0,
+  );
+  $form['display']['width'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Width'),
+    '#default_value' => $component['extra']['width'],
+    '#description'   => t('Width of the textfield.') . ' ' . t('Leaving blank will use the default size.'),
+    '#size'          => 5,
+    '#maxlength'     => 10,
+    '#weight'        => 0,
+    '#parents'       => array( 'extra', 'width' ),
+  );
+  $form['display']['disabled'] = array(
+    '#type'          => 'checkbox',
+    '#title'         => t('Disabled'),
+    '#return_value'  => 1,
+    '#description'   => t('Make this field non-editable. Useful for setting an unchangeable default value.'),
+    '#weight'        => 11,
+    '#default_value' => $component['extra']['disabled'],
+    '#parents'       => array( 'extra', 'disabled' ),
+  );
   return $form;
 }
 
@@ -139,7 +170,7 @@ function _webform_edit_phone($component) {
  */
 function _webform_render_phone($component, $value = NULL, $filter = TRUE) {
   $form_item = array(
-    '#type'             => module_exists('elements') ? 'telfield' : 'textfield',
+    '#type'             => 'textfield',
     '#default_value'    => $filter ? _webform_filter_values($component['value']) : $component['value'],
     '#attributes'       => $component['extra']['attributes'],
     '#theme_wrappers'   => array( 'webform_element' ),
@@ -157,6 +188,21 @@ function _webform_render_phone($component, $value = NULL, $filter = TRUE) {
     ),
   );
   if ( isset( $value ) ) {
+    $form_item['#default_value'] = $value[0];
+  }
+  // Change the 'width' option to the correct 'size' option.
+  if ( $component['extra']['width'] > 0 ) {
+    $form_item['#size'] = $component['extra']['width'];
+  }
+  if ( $component['extra']['disabled'] ) {
+    if ( $filter ) {
+      $form_item['#attributes']['readonly'] = 'readonly';
+    }
+    else {
+      $form_item['#disabled'] = TRUE;
+    }
+  }
+  if ( isset( $value[0] ) ) {
     $form_item['#default_value'] = $value[0];
   }
   return $form_item;

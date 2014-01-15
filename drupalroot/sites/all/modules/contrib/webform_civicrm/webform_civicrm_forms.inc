@@ -13,6 +13,11 @@ module_load_include('inc', 'webform_civicrm', 'webform_civicrm_utils');
  * Display messages.
  * Block users who should not have access.
  * Set webform default values.
+ *
+ * @param $form
+ *   FAPI form array
+ * @param $form_state
+ *   FAPI form_state array
  */
 function _wf_crm_frontend_form_alter(&$form, &$form_state) {
   civicrm_initialize();
@@ -24,7 +29,6 @@ function _wf_crm_frontend_form_alter(&$form, &$form_state) {
   $node = $form['#node'];
   $settings = $node->webform_civicrm;
   $data = $settings['data'];
-  $fields = wf_crm_get_fields();
   $id['cid'] = $id = $info = array();
   // JS Cache eliminates the need for most ajax state/province callbacks
   foreach ($data['contact'] as $c) {
@@ -33,7 +37,7 @@ function _wf_crm_frontend_form_alter(&$form, &$form_state) {
         'defaultCountry' => $config->defaultContactCountry,
         'defaultStates' => wf_crm_get_options('state_province', $config->defaultContactCountry),
         'noCountry' => t('- First Choose a Country -'),
-        'callbackPath' => url('webform-civicrm/js/state_province', array('alias' => TRUE)),
+        'callbackPath' => url('webform-civicrm/js', array('alias' => TRUE)),
       );
       $form['#attached']['js'][] = array(
         'data' => array('webform_civicrm' => $js_vars),
@@ -92,7 +96,6 @@ function _wf_crm_frontend_form_alter(&$form, &$form_state) {
     $result = wf_civicrm_api('activity', 'get', array('activity_id' => $_GET['aid'], 'return.target_contact_id' => 1, 'return.assignee_contact_id' => 1));
     if (isset($result['values'][$_GET['aid']])) {
       $act = $result['values'][$_GET['aid']];
-      $valid = FALSE;
       // Verify that this activity is the right type and that our contacts have some involvement in it
       if ($act['activity_type_id'] == $data['activity'][1]['activity'][1]['activity_type_id']) {
         foreach ($id['cid'] as $cid) {
@@ -116,11 +119,12 @@ function _wf_crm_frontend_form_alter(&$form, &$form_state) {
   }
   // Search for case & activity
   else {
-    if (!empty($data['case'][1]['existing_case_status']) && !empty($data['case'][1]['case'][1]['client_id'])) {
+    if (!empty($data['case'][1])) {
       $case = wf_crm_case_find($data['case'][1], $id);
       if ($case) {
         $id['case'][1] = $case['id'];
         $custom = wf_crm_get_custom($case['id'], 'case');
+        // Add case to $info in standard webform_civicrm format
         $info['case'] = array(1 => (array('case' => array(1 => $case)) + $custom));
       }
     }
@@ -231,7 +235,6 @@ function _wf_crm_frontend_form_alter(&$form, &$form_state) {
     }
   }
   // Form alterations for known contacts
-  $count = count($data['contact']);
   foreach ($data['contact'] as $c => $contact) {
     if ($cid = wf_crm_aval($id['cid'], $c)) {
       // Retrieve contact data
@@ -288,6 +291,19 @@ function _wf_crm_frontend_form_alter(&$form, &$form_state) {
 /**
  * Fetch all relevant data for a given contact
  * Used to load contacts for pre-filling a webform, and also to fill in a contact via ajax
+ *
+ * @param $node
+ *   Node object
+ * @param $enabled
+ *   Array of crm webform fields
+ * @param $c
+ *   Contact #
+ * @param $cids
+ *   All known contact ids for this form
+ * @param array $exclude
+ *   Fields to ignore
+ *
+ * @return array of contact data
  */
 function wf_crm_contact_get($node, $enabled, $c, $cids, $exclude = array()) {
   $info = array();
@@ -408,10 +424,15 @@ function wf_crm_contact_get($node, $enabled, $c, $cids, $exclude = array()) {
 /**
  * Recursively walk through form array and set properties of CiviCRM fields
  * Called by _wf_crm_frontend_form_alter() when webform is being viewed
- * @Param $elements: FAPI array
- * @Param $node: Object
- * @Param $data: CiviCRM data to autofill form
- * @Param $submitted: Existing submission
+ *
+ * @param $elements
+ *   FAPI form array
+ * @param $node
+ *   Node object
+ * @param $data
+ *   CiviCRM data to autofill form (optional)
+ * @param $submitted
+ *   Existing submission (optional)
  */
 function wf_crm_fill_form(&$elements, $node, $data = array(), $submitted = array()) {
   $sp = CRM_Core_DAO::VALUE_SEPARATOR;
@@ -488,7 +509,7 @@ function wf_crm_fill_form(&$elements, $node, $data = array(), $submitted = array
           // Set data for contact image
           if ($name == 'image_URL') {
             if ($val && in_array($element['#type'], array('file', 'managed_file'))) {
-              $js = "jQuery(document).ready(function() {wfCivi.contactImage('$eid', '$val')});";
+              $js = "jQuery(function() {wfCivi.contactImage('$eid', '$val')});";
               $element['#attached']['js'][$js] = array('type' => 'inline');
             }
           }
@@ -513,7 +534,13 @@ function wf_crm_fill_form(&$elements, $node, $data = array(), $submitted = array
  * Webform submission handler
  * Create/update CiviCRM contacts and related data
  * Called by presave, insert and update webform hooks
- * @param $op: Which hook is being called
+ *
+ * @param $node
+ *   Node object
+ * @param $submission
+ *   Webform submission object
+ * @param $op
+ *   Name of hook being called
  */
 function wf_crm_process_submission($node, &$submission, $op) {
   civicrm_initialize();
@@ -529,7 +556,6 @@ function wf_crm_process_submission($node, &$submission, $op) {
     $enabled = wf_crm_enabled_fields($node);
     $fields = wf_crm_get_fields();
     $data = $settings['data'];
-    $sets = wf_crm_get_fields('sets');
     $shared_address = array();
 
     // Retrieve stored ids
@@ -674,11 +700,14 @@ function wf_crm_process_submission($node, &$submission, $op) {
           }
         }
         $params['contact_id'] = $id['cid'][$c];
-        $result = wf_civicrm_api('contact', 'create', $params);
+        wf_civicrm_api('contact', 'create', $params);
       }
     }
+    // $id['cid'] will now contain all contact ids in order, with 0 as a placeholder for any contact not saved
+    ksort($id['cid']);
+
     // Fill ContactRef fields with contact IDs
-    _wf_crm_fill_contact_ref($data, $data, $id['cid']);
+    _wf_crm_fill_contact_ref($data, $id['cid']);
 
     // Create/update other data associated with contacts
     foreach ($data['contact'] as $c => $contact) {
@@ -694,7 +723,7 @@ function wf_crm_process_submission($node, &$submission, $op) {
         ));
       }
       // Save custom data
-      wf_crm_save_custom($contact, $cid);
+      wf_crm_save_custom($contact, $cid, 'Contact', !empty($updating['cid'][$c]));
 
       // Fill values for hidden ID & CS fields
       $fid = 'civicrm_' . $c . '_contact_1_contact_';
@@ -776,7 +805,7 @@ function wf_crm_process_submission($node, &$submission, $op) {
               // the contact this address is shared with yet.
               if (!empty($params['master_id'])) {
                 $shared_address[$cid][$i] = array(
-                  'id' => !empty($existing[$i]) ? $existing[$i]['id'] : NULL,
+                  'id' => wf_crm_aval($existing, "$i:id"),
                   'mc' => $params['master_id'],
                   'loc' => $params['location_type_id'],
                 );
@@ -806,7 +835,7 @@ function wf_crm_process_submission($node, &$submission, $op) {
             }
             if ($location != 'website') {
               if (empty($params['location_type_id'])) {
-                $params['location_type_id'] = wf_crm_aval($existing, $i . ':location_type_id', 1);
+                $params['location_type_id'] = wf_crm_aval($existing, "$i:location_type_id", 1);
               }
               $params['is_primary'] = $i == 1 ? 1 : 0;
             }
@@ -993,25 +1022,41 @@ function wf_crm_process_submission($node, &$submission, $op) {
       }
       // Save activity
       $params = $data['activity'][1]['activity'][1];
-      $cid = wf_crm_user_cid();
-      if ($cid) {
-        $params['source_contact_id'] = $cid;
+      if (is_array($params['status_id'])) {
+        $params['status_id'] = reset($params['status_id']);
       }
+
+      // Existing activity - set id
+      if (!empty($id['act'][1])) {
+        $params['id'] = $id['act'][1];
+      }
+      // New activity - set case id and source_contact
       else {
-        foreach ($id['cid'] as $cid) {
-          if ($cid) {
-            $params['source_contact_id'] = $cid;
-            break;
+        if (!empty($id['case'][1])) {
+          $params['case_id'] = $id['case'][1];
+          $params['medium_id'] = $data['case'][1]['case'][1]['medium_id'];
+        }
+        $cid = wf_crm_user_cid();
+        if ($cid) {
+          $params['source_contact_id'] = $cid;
+        }
+        else {
+          foreach ($id['cid'] as $cid) {
+            if ($cid) {
+              $params['source_contact_id'] = $cid;
+              break;
+            }
           }
         }
       }
+      // Can't pass an empty contact id to the api
       if (empty($params['assignee_contact_id'])) {
         unset($params['assignee_contact_id']);
       }
       // Format details as html
       $params['details'] = nl2br(wf_crm_aval($params, 'details', ''));
       if (empty($params['subject'])) {
-        $params['subject'] = $settings['data']['activity'][1]['activity'][1]['subject'];
+        $params['subject'] = $data['activity'][1]['activity'][1]['subject'];
       }
       if (!empty($data['activity'][1]['details']['entire_result'])) {
         module_load_include('inc', 'webform', 'includes/webform.submissions');
@@ -1023,15 +1068,11 @@ function wf_crm_process_submission($node, &$submission, $op) {
       if (!empty($data['activity'][1]['details']['edit_link'])) {
         $params['details'] .= '<p>' . l(t('Edit Submission'), 'node/' . $node->nid . '/submission/' . $submission->sid . '/edit',  array('absolute' => TRUE, 'alias' => TRUE)) . '</p>';
       }
-      if (!empty($id['act'][1])) {
-        $params['id'] = $id['act'][1];
-      }
-      elseif (!empty($id['case'][1])) {
-        $params['case_id'] = $id['case'][1];
-        $params['medium_id'] = $data['case'][1]['case'][1]['medium_id'];
-      }
       if (empty($params['campaign_id']) || !in_array('CiviCampaign', $config->enableComponents, TRUE)) {
         unset($params['campaign_id']);
+      }
+      if (!empty($data['activity'][1]['activity'][1]['survey_id'])) {
+        $params['source_record_id'] = $data['activity'][1]['activity'][1]['survey_id'];
       }
       $result = wf_civicrm_api('activity', 'create', $params);
 
@@ -1051,7 +1092,7 @@ function wf_crm_process_submission($node, &$submission, $op) {
             require_once 'CRM/Core/BAO/File.php';
             $attachments = &CRM_Core_BAO_File::getEntityFile('civicrm_activity', $id['act'][1]);
             require_once 'CRM/Case/BAO/Case.php';
-            $result = CRM_Case_BAO_Case::sendActivityCopy(NULL, $id['act'][1], $mail, $attachments, NULL);
+            CRM_Case_BAO_Case::sendActivityCopy(NULL, $id['act'][1], $mail, $attachments, NULL);
           }
         }
       }
@@ -1075,6 +1116,19 @@ function wf_crm_process_submission($node, &$submission, $op) {
 /**
  * Handle adding/removing multivalued data for a contact/activity/etc.
  * Currently used only for groups and tags, but written with expansion in mind.
+ *
+ * @param $data_type
+ *   'group' or 'tag'
+ * @param $entity_type
+ *   Parent entity: 'contact' etc.
+ * @param $node
+ *   Node object
+ * @param $id
+ *   Entity id
+ * @param $add
+ *   Groups/tags to add
+ * @param $remove
+ *   Groups/tags to remove
  */
 function wf_crm_add_remove($data_type, $entity_type, $node, $id, $add, $remove = array()) {
   $confirmations_sent = $existing = $params = array();
@@ -1164,6 +1218,15 @@ function wf_crm_add_remove($data_type, $entity_type, $node, $id, $add, $remove =
 
 /**
  * For a given field, find the options that are exposed to the webform.
+ *
+ * @param $node
+ *   Node object
+ * @param $fid
+ *   Numeric webform component id
+ * @param $exclude
+ *   Options to ignore
+ *
+ * @return array
  */
 function wf_crm_exposed_options($node, $fid, $exclude = array()) {
   if ($fid) {
@@ -1188,6 +1251,13 @@ function wf_crm_exposed_options($node, $fid, $exclude = array()) {
 
 /**
  * Recursive validation callback for webform submissions.
+ *
+ * @param $form
+ *   FAPI form array
+ * @param $form_state
+ *   FAPI form_state array
+ * @param $submitted
+ *   Webform submission array
  */
 function _wf_crm_validate($form, &$form_state, $submitted) {
   // Recurse through form elements.
@@ -1242,6 +1312,13 @@ function _wf_crm_validate($form, &$form_state, $submitted) {
 
 /**
  * Validation callback for event registrations.
+ *
+ * @param $form
+ *   FAPI form array
+ * @param $form_state
+ *   FAPI form_state array
+ * @param $submitted
+ *   Webform submission array
  */
 function _wf_crm_participant_validate($form, &$form_state, $submitted) {
   $data = $form['#node']->webform_civicrm['data'];
@@ -1249,7 +1326,7 @@ function _wf_crm_participant_validate($form, &$form_state, $submitted) {
   // Check how many valid contacts we have
   foreach ($data['contact'] as $c => $contact) {
     // Check if we have a contact_id
-    if (!empty($submitted["civicrm_{$c}_contact_1_contact_existing"])) {
+    if (is_numeric(wf_crm_aval($submitted, "civicrm_{$c}_contact_1_contact_existing"))) {
       $cids[] = $contacts[$c] = $submitted["civicrm_{$c}_contact_1_contact_existing"];
     }
     // Or else see if enough info was entered to create a contact
@@ -1331,24 +1408,36 @@ function _wf_crm_participant_validate($form, &$form_state, $submitted) {
 /**
  * Recursive function to fill ContactRef fields with contact IDs
  * Called during webform submission
+ *
+ * @param $data array
+ *   CRM data to update (reference)
+ * @param $cids array
+ *   All known contact ids for this form
+ * @param $values null|array
+ *   Leave blank - used internally to recurse through data
+ * @param $depth int
+ *   Leave blank - used internally to track recursion level
  */
-function _wf_crm_fill_contact_ref(&$data, $values, $cids, $depth = 0) {
+function _wf_crm_fill_contact_ref(&$data, $cids, $values = NULL, $depth = 0) {
   $order = array('ent', 'c', 'table', 'n', 'name');
   static $ent = '';
   static $c = '';
   static $table = '';
   static $n = '';
+  if ($values === NULL) {
+    $values = $data;
+  }
   foreach ($values as $key => $val) {
     ${$order[$depth]} = $key;
     if ($depth < 4 && is_array($val)) {
-      _wf_crm_fill_contact_ref($data, $val, $cids, $depth + 1);
+      _wf_crm_fill_contact_ref($data, $cids, $val, $depth + 1);
     }
     elseif ($depth == 4 && $val) {
       $fields = wf_crm_get_fields();
       if (wf_crm_aval($fields, "{$table}_$name:data_type") === 'ContactReference') {
         if (is_array($val)) {
           $data[$ent][$c][$table][$n][$name] = array();
-          foreach ($val as $k => $v) {
+          foreach ($val as $v) {
             if (is_numeric($v) && !empty($cids[$v])) {
               $data[$ent][$c][$table][$n][$name][] = $cids[$v];
             }
@@ -1368,21 +1457,31 @@ function _wf_crm_fill_contact_ref(&$data, $values, $cids, $depth = 0) {
 /**
  * Dispatch function to add/update relationship for a pair of contacts
  * Called during webform submission
+ *
+ * @param $params
+ *   Params array for relationship api
+ * @param $cid1
+ *   Contact id
+ * @param $cid2
+ *   Contact id
  */
 function wf_crm_process_relationship($params, $cid1, $cid2) {
   if ($cid1 != $cid2) {
     list($type, $side) = explode('_', $params['relationship_type_id']);
     $existing = wf_crm_relationship_get(array($params['relationship_type_id']), $cid1, $cid2);
+    $perm = wf_crm_aval($params, 'relationship_permission');
     // Swap contacts if this is an inverse relationship
     if ($side == 'b' || ($existing && $existing['contact_id_a'] != $cid1)) {
       list($cid1, $cid2) = array($cid2, $cid1);
+      if ($perm == 1 || $perm == 2) {
+        $perm = $perm == 1 ? 2 : 1;
+      }
     }
     $params += $existing;
     $params['contact_id_a'] = $cid1;
     $params['contact_id_b'] = $cid2;
     $params['relationship_type_id'] = $type;
-    if (!empty($params['relationship_permission'])) {
-      $perm = $params['relationship_permission'];
+    if ($perm) {
       $params['is_permission_a_b'] = $params['is_permission_b_a'] = $perm == 3 ? 1 : 0;
       if ($perm == 1 || $perm == 2) {
         $params['is_permission_' . ($perm == 1 ? 'a_b' : 'b_a')] = 1;
@@ -1395,6 +1494,14 @@ function wf_crm_process_relationship($params, $cid1, $cid2) {
 
 /**
  * Fetch relationship for a pair of contacts
+ *
+ * @param $r_types
+ *   Array of relationship type ids
+ * @param $cid1
+ *   Contact id
+ * @param $cid2
+ *   Contact id
+ * @return array
  */
 function wf_crm_relationship_get($r_types, $cid1, $cid2) {
   $found = array();
@@ -1405,7 +1512,7 @@ function wf_crm_relationship_get($r_types, $cid1, $cid2) {
       $types[] = $type;
     }
     $sql = "SELECT * FROM civicrm_relationship
-      WHERE relationship_type_id IN (" . implode(',', $types) . ") 
+      WHERE relationship_type_id IN (" . implode(',', $types) . ")
       AND ((contact_id_a = $cid1 AND contact_id_b = $cid2) OR (contact_id_a = $cid2 AND contact_id_b = $cid1))
       ORDER BY is_active DESC, IF(end_date, 1, 0), end_date DESC";
     $dao = CRM_Core_DAO::executeQuery($sql);
@@ -1433,23 +1540,41 @@ function wf_crm_relationship_get($r_types, $cid1, $cid2) {
 /**
  * Dispatch function to fill data array with submitted form values
  * Called during webform submission
+ *
+ * @param $data
+ *   Array of crm data
+ * @param $enabled
+ *   Array of crm webform fields
+ * @param $submission
+ *   Webform submission array
+ * @param $updating
+ *   Array of known contact ids
+ * @param $node
+ *   Node object
  */
 function _wf_crm_form_data(&$data, $enabled, $submission, $updating, $node) {
   $sp = CRM_Core_DAO::VALUE_SEPARATOR;
   $fields = wf_crm_get_fields();
   foreach ($enabled as $field_key => $fid) {
     $val = wf_crm_sub_value($submission, $fid);
-    if ($val) {
+    if ($val !== FALSE) {
       list( , $c, $ent, $n, $table, $name) = explode('_', $field_key, 6);
-      if ($name === 'existing') {
+      // Fieldsets and existing contact fields are not CRM data, so ignore
+      if ($name === 'existing' || $name === 'fieldset') {
         continue;
       }
       // Ignore values from fields hidden by existing contact component
-      if (!empty($updating['cid'][$c]) && isset($enabled["civicrm_{$c}_contact_1_contact_existing"])) {
+      if ($ent == 'contact' && isset($enabled["civicrm_{$c}_contact_1_contact_existing"])) {
         $component = $node->webform['components'][$enabled["civicrm_{$c}_contact_1_contact_existing"]];
-        $type = ($table == 'contact' && strpos($name, 'name')) ? 'name' : $table;
-        if (in_array($type, $component['extra']['hide_fields'])) {
-          continue;
+        $existing_contact_val = wf_crm_sub_value($submission, $component['cid']);
+        // Fields should be hidden if value is empty (no selection) or a numeric contact id
+        if (!$existing_contact_val[0] || is_numeric($existing_contact_val[0])) {
+          $type = ($table == 'contact' && strpos($name, 'name')) ? 'name' : $table;
+          if (in_array($type, $component['extra']['hide_fields'])) {
+            // Remove the value from the webform submission
+            wf_crm_sub_value($submission, $fid, array(NULL));
+            continue;
+          }
         }
       }
       $field = $fields[$table . '_' . $name];
@@ -1457,6 +1582,7 @@ function _wf_crm_form_data(&$data, $enabled, $submission, $updating, $node) {
       if ($field['type'] == 'hidden') {
         continue;
       }
+      // Translate privacy options into seperate values
       if ($name === 'privacy') {
         foreach (array_keys(wf_crm_exposed_options($node, $fid)) as $key) {
           $data[$ent][$c][$table][$n][$key] = in_array($key, $val);
@@ -1508,6 +1634,11 @@ function _wf_crm_form_data(&$data, $enabled, $submission, $updating, $node) {
 
 /**
  * Displays the admin-defined message with "not you?" link to known contacts
+ *
+ * @param $message
+ *   Raw message with tokens
+ * @param $contact
+ *   CiviCRM contact array
  */
 function _wf_crm_set_message($message, $contact) {
   $message = wf_crm_replace_tokens($message, $contact);
