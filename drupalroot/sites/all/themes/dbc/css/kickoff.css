@@ -123,3 +123,7 @@ ul.nice-menu a, ul.nice-menu span {
   padding: 4px;
   display: block;
 }
+
+.view td {
+    padding: 10px;
+}
