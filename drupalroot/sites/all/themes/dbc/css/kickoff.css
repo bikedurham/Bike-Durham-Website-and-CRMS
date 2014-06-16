@@ -2,19 +2,56 @@
 
 
 #page-wrapper.kickoff{
-    width: 900px;
+    width: 960px;
     color: #444;
 }
 
 /* bump our sidebar width to accomodate background of circling cycles */
 .kickoff #content {
-    width: 870px;
+    width: 70%;
     margin-left: 20px; /* LTR */ /* The width of .region-sidebar-first. */
     margin-right: -780px; /* LTR */ /* Negative value of #content's width + left margin. */
 }
 
+.kickoff .region-sidebar-second {
+    float: left;
+    width: 300px;
+    margin-left: 660px;
+    margin-right: -960px;
+}
+
+a {
+  color: #027AC6;
+}
+
+.view-id-frontpage .node-sticky {
+  background-color: #F0E68C;
+  padding: 10px 10px 0 10px;
+}
+
+.view-id-frontpage .views-row {
+  margin: 20px 0;
+}
+
+h2.node-title a {
+  text-decoration: none;
+  color: #333;
+}
+
+li.node-readmore a {
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #027AC6;
+  font-size: .9em;
+}
+
+.node-sticky h2.node-title {
+  font-size: 1.8em;
+  line-height: 110%;
+}
+
 .kickoff #content .section {
-    padding-right: 10px;
+    padding: 30px 30px 0 0;
 }
 
 .kickoff #block-system-main {
@@ -126,4 +163,23 @@ ul.nice-menu a, ul.nice-menu span {
 
 .view td {
     padding: 10px;
+}
+
+/* Responsive iFrame */
+.responsive-iframe-container {
+    position: relative;
+    padding-bottom: 56.25%;
+    padding-top: 30px;
+    height: 0;
+    overflow: hidden;
+}
+
+.responsive-iframe-container iframe,
+.vresponsive-iframe-container object,
+.vresponsive-iframe-container embed {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
