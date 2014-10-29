@@ -22,3 +22,11 @@ As of today, I did not currently install that package, but rather just set up th
 still is managing the durhambicyclecoalition.org DNS set up the DKIM but was unable to set up SPF records on namecheap for 
 verification of sending.
 - Chris Russo
+
+2014-Oct-29
+Re-installed drush via composer. Since we're on amazon EC2 instance, we were running out of memory doing the update
+I created a swap based on these articles:
+http://yourstory.com/2012/02/adding-swap-space-to-amazon-ec2-linux-micro-instance-to-increase-the-performance/
+http://www.the-tech-tutorial.com/adding-swap-to-any-ec2-instance/
+which fixed it, and allowed composer to finish it's updates
+- Chris Russo
