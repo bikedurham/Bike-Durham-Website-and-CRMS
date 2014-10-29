@@ -1,9 +1,10 @@
 <?php
-/** @file Webform Component information for a phone number field type */
 /**
- * Specify the default properties of a component.
- * @return
- *   An array defining the default structure of a component.
+ * @file
+ * Webform Component information for a phone number field type
+ */
+/**
+ * Implements _webform_defaults_component().
  */
 function _webform_defaults_phone() {
   return array(
@@ -35,7 +36,7 @@ function _webform_defaults_phone() {
  * Implements _webform_theme_component().
  */
 function _webform_theme_phone() {
-  return array( 'webform_display_phonefield' => array( 'render element' => 'element', ), );
+  return array( 'webform_display_phonefield' => array( 'render element' => 'element' ) );
 }
 
 /**
@@ -74,7 +75,7 @@ function _webform_edit_phone($component) {
     '#value'  => t('International phone numbers are in the form +XX YYYYYYY where XX is a country code and YYYYYYY is the local number. This field type is based off of the <a href="http://www.itu.int/rec/T-REC-E.123/en">E.123 specification</a>.'),
     '#states' => array(
       'visible' => array( // action to take.
-        ':input[name="extra[country]"]' => array( 'value' => 'int' ),
+                          ':input[name="extra[country]"]' => array( 'value' => 'int' ),
       ),
     ),
   );
@@ -84,7 +85,7 @@ function _webform_edit_phone($component) {
     '#default_value' => $component['extra']['phone_default_country_code'],
     '#states'        => array(
       'visible' => array( // action to take.
-        ':input[name="extra[country]"]' => array( 'value' => 'int' ),
+                          ':input[name="extra[country]"]' => array( 'value' => 'int' ),
       ),
     ),
   );
@@ -94,7 +95,7 @@ function _webform_edit_phone($component) {
     '#default_value' => $component['extra']['phone_int_max_length'],
     '#states'        => array(
       'visible' => array( // action to take.
-        ':input[name="extra[country]"]' => array( 'value' => 'int' ),
+                          ':input[name="extra[country]"]' => array( 'value' => 'int' ),
       ),
     ),
   );
@@ -106,7 +107,7 @@ function _webform_edit_phone($component) {
     '#size'          => 2,
     '#states'        => array(
       'visible' => array( // action to take.
-        ':input[name="extra[country]"]' => array( 'value' => 'ca' ),
+                          ':input[name="extra[country]"]' => array( 'value' => 'ca' ),
       ),
     ),
   );
@@ -116,7 +117,7 @@ function _webform_edit_phone($component) {
     '#default_value' => $component['extra']['ca_phone_parentheses'],
     '#states'        => array(
       'visible' => array( // action to take.
-        ':input[name="extra[country]"]' => array( 'value' => 'ca' ),
+                          ':input[name="extra[country]"]' => array( 'value' => 'ca' ),
       ),
     ),
   );
@@ -169,23 +170,24 @@ function _webform_edit_phone($component) {
  * @see _webform_client_form_add_component()
  */
 function _webform_render_phone($component, $value = NULL, $filter = TRUE) {
+  //TODO: change these to use non-private functions (no _) if/when webform 3.x is entirely deprecated
   $form_item = array(
-    '#type'             => 'textfield',
+    '#type'             => module_exists('elements') ? 'telfield' : 'textfield',
+    //    '#default_value'    => $filter ? webform_replace_tokens($component['value'], NULL, NULL, NULL, TRUE) : $component['value'],
     '#default_value'    => $filter ? _webform_filter_values($component['value']) : $component['value'],
     '#attributes'       => $component['extra']['attributes'],
     '#theme_wrappers'   => array( 'webform_element' ),
+    //    '#description'      => $filter ? webform_filter_descriptions($component['extra']['description']) : $component['extra']['description'],
     '#description'      => $filter ? _webform_filter_descriptions($component['extra']['description']) : $component['extra']['description'],
     '#element_validate' => array( 'webform_validate_phone' ),
     '#maxlength'        => ( $component['extra']['country'] == 'int' ? ( isset( $component['extra']['phone_int_max_length'] ) ? $component['extra']['phone_int_max_length'] : NULL ) : NULL ),
     '#required'         => $component['required'] || $component['mandatory'], //Either one being true will could as required...because webform changed in 4.x-alpha8
     '#size'             => 17,
+    //    '#title'            => $filter ? webform_filter_xss($component['name']) : $component['name'],
     '#title'            => $filter ? _webform_filter_xss($component['name']) : $component['name'],
     '#title_display'    => $component['extra']['title_display'] ? $component['extra']['title_display'] : 'before',
     '#weight'           => $component['weight'],
-    '#translatable'     => array(
-      'title',
-      'description'
-    ),
+    '#translatable'     => array( 'title', 'description' ),
   );
   if ( isset( $value ) ) {
     $form_item['#default_value'] = $value[0];
@@ -252,6 +254,7 @@ function webform_validate_phone($element, $form_state) {
 function _webform_display_phone($component, $value, $format = 'html') {
   return array(
     '#title'          => $component['name'],
+    '#title_display'  => $component['extra']['title_display'] ? $component['extra']['title_display'] : 'before',
     '#weight'         => $component['weight'],
     '#theme'          => 'webform_display_phonefield',
     '#theme_wrappers' => $format == 'html' ? array( 'webform_element' ) : array( 'webform_element_text' ),
@@ -259,6 +262,7 @@ function _webform_display_phone($component, $value, $format = 'html') {
     '#component'      => $component,
     '#format'         => $format,
     '#value'          => isset( $value[0] ) ? $value[0] : '',
+    '#translatable'   => array( 'title', 'description' ),
   );
 }
 
@@ -266,18 +270,17 @@ function _webform_display_phone($component, $value, $format = 'html') {
  * Format the output of data for this component.
  */
 function theme_webform_display_phonefield($variables) {
-  $markup = array();
   $element = $variables['element'];
   $plain_value = check_plain($element['#value']);
   if ( $element['#format'] == 'html' ) {
     //Use smarter detection if available for formatting the output
     $is_mobile_device = module_exists('mobile_tools') ? mobile_tools_is_mobile_device() : strpos($_SERVER['HTTP_USER_AGENT'], 'iPhone') !== FALSE || strpos($_SERVER['HTTP_USER_AGENT'], 'Android') !== FALSE;
-    $markup['#markup'] = ( $is_mobile_device ) ? '<a href="tel:' . $plain_value . '">' . $plain_value . '</a>' : $plain_value;
+    $value = ( $is_mobile_device ) ? '<a href="tel:' . $plain_value . '">' . $plain_value . '</a>' : $plain_value;
   }
   else {
-    $markup['#markup'] = $plain_value;
+    $value = $plain_value;
   }
-  return drupal_render($markup);
+  return $value;
 }
 
 /**
@@ -304,13 +307,10 @@ function _webform_submit_phone($component, $value) {
   if ( phone_countries($ccode) !== NULL ) {
     if ( isset( $value ) && !empty( $value ) ) {
       //Use 'phone' module to format the number
-      $save_value = format_phone_number($ccode, $value, $component['extra']);
-    }
-    else {
-      $save_value = FALSE;
+      return format_phone_number($ccode, $value, $component['extra']);
     }
   }
-  return $save_value;
+  return FALSE; //If we haven't returned already, something failed.
 }
 
 /**
@@ -395,7 +395,7 @@ function _webform_csv_headers_phone($component, $export_options) {
   $header = array();
   $header[0] = '';
   $header[1] = '';
-  $header[2] = $component['name'];
+  $header[2] = $export_options['header_keys'] ? $component['form_key'] : $component['name'];
   return $header;
 }
 
@@ -421,7 +421,7 @@ function _webform_csv_data_phone($component, $export_options, $value) {
   return !isset( $value[0] ) ? '' : $value[0];
 }
 
-/*
+/**
  The first hook provides the name and position of the field in the Form Builder palette, as well as a default element to display when the field is pulled out of the palette.
 The second hook maps the component properties and options to FormAPI properties that Form Builder can manipulate.
 Form Builder then will manage pulling the form out of the normal Webform configuration form, loading configuration, and saving it.
