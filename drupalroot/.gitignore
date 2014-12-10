@@ -5,9 +5,6 @@ sites/*/local.settings.php
 sites/*/files
 sites/*/private
 
-# I don't think /images is actually used, and is not Drupal default structure
-/images
-
 # Ignore civicrm setting for now
 sites/*/civicrm.settings.php
 
