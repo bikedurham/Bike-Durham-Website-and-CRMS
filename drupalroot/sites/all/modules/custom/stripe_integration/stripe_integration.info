@@ -1,0 +1,6 @@
+name = Stripe Integration
+description = Integrates Stripe payment system with site membership
+core = 7.x
+package = Bike Durham
+php = 5.2.4
+

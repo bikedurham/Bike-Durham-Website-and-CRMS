@@ -1,0 +1,211 @@
+<?php
+
+/**
+ * @file
+ * Integration of Stripe payment system.
+ */
+
+// Define membership amounts
+define('INDIVIDUAL', '25');
+define('FAMILY', '45');
+define('STUDENT', '15');
+define('ADVOCATE', '100');
+define('BRONZE', '250');
+define('SILVER', '500');
+define('GOLD', '1000');
+
+/**
+ * Implements hook_menu().
+ */
+function stripe_integration_menu() {
+
+  $items = array();
+
+  $items['stripe/webhook'] = array(
+    'title' => 'Stripe Webook Consumer',
+    'description' => 'Consume Stripe Webhook.',
+    'page callback' => '_stripe_integration_webhook_consume',
+    'access callback' => array(TRUE),
+    'file' => 'stripe_integration.pages.inc',
+  );
+
+  return $items;
+}
+
+/*
+ * Submit function for Stripe processing from membership form
+ */
+function stripe_integration_form_submit($form, &$form_state){
+
+  if ($_POST) {
+    _stripe_integration_stripe_init();
+
+    try {
+      if (!isset($_POST['stripeToken']) && !isset($_POST['stripe_customer_id'])) {
+        throw new Exception("The Stripe Token was not generated correctly");
+      }
+
+      $v = $form_state['values'];
+
+      $new_customer = array(
+        "card" => $_POST['stripeToken'],
+        "plan" => $v['membership_type'],
+        "email" => $_POST['mail'],
+        "description" => "Online subscription",
+      );
+
+      $stripe_customer = Stripe_Customer::create($new_customer);
+      // Redirect to Thank you page
+      $form_state['redirect'] = 'thank-you';
+
+    }
+    catch (Exception $e) {
+      $error = $e->getMessage();
+      watchdog('stripe_payment', 'Message: @message\rn Post: @Post ', array(
+        '@Post' => print_r($_POST, TRUE),
+        '@message' => $error
+      ),
+      WATCHDOG_ERROR);
+      drupal_set_message('There was a payment error. Please notify the site administrator.', 'error');
+    }
+  }
+}
+
+/*
+ * Custom user registration validation function to handle our business rules
+ */
+function stripe_integration_form_validate($form, &$form_state){
+
+  // Only make them submit credit card info once if some other part of form
+  // fails and they have submitted enough money
+  if (isset($_POST['stripeToken'])) {
+
+    drupal_add_js(array('stripeIntegration' => array(
+      'stripeToken' => $_POST['stripeToken'])), 'setting');
+
+  }
+}
+
+/**
+ * Initialize Stripe and set API key
+ */
+function _stripe_integration_stripe_init() {
+  global $conf;
+  require_once(drupal_get_path('module', 'stripe_integration') . "/stripe-php/lib/Stripe.php");
+  $environment = ($conf['production']) == TRUE ? 'live' : 'test';
+  $result = Stripe::setApiKey($conf['stripe_' . $environment . '_secret_key']);
+}
+
+/**
+ * @return
+ *  The Stripe publishable key
+ */
+function _stripe_integration_stripe_get_publishable_key() {
+  global $conf;
+  $environment = ($conf['production']) == TRUE ? 'live' : 'test';
+  return $conf['stripe_' . $environment . '_publishable_key'];
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function stripe_integration_block_info() {
+  // This example comes from node.module.
+  $blocks['stripe_membership_form'] = array(
+    'info' => t('Stripe membership form'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function stripe_integration_block_view($delta = '') {
+  // This example is adapted from node.module.
+  $block = array();
+
+  switch ($delta) {
+    case 'stripe_membership_form':
+      $block['subject'] = t('Membership');
+      $block['content'] = drupal_get_form('stripe_integration_membership_add_form');
+      break;
+  }
+  return $block;
+}
+
+
+/**
+ * Form constructor for the membership add form.
+ */
+function stripe_integration_membership_add_form($form, &$form_state) {
+
+  $form['membership_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Membership Type'),
+    '#options' => array(
+      'individual' => t('Individual $25.00'),
+      'family' => t('Family $45.00'),
+      'student' => t('Student / Limited Income $15.00'),
+      'advocate' => t('Advocate $100.00'),
+      'bronze' => t('Bronze $250.00'),
+      'silver' => t('Silver $500.00'),
+      'gold' => t('Gold $1,000.00'),
+    ),
+    '#default_value' => null,
+    '#description' => t('Select membership type.'),
+    '#required' => TRUE,
+  );
+
+  $form['mail'] = array(
+    '#type' => 'textfield',
+    '#attributes' => array('id' => array('edit-mail')),
+    '#title' => t('Membership Email'),
+    '#default_value' => '',
+    '#required' => TRUE,
+  );
+
+  // Add stripe checkout.js and our custom handling to submit button
+  $form['actions'] = array(
+    '#weight' => 110,
+    'submit' => array(
+      '#type' => 'submit',
+      '#value' =>  t('Add Membership'),
+      '#attached' => array(
+        'js' => array(
+          drupal_get_path('module', 'stripe_integration') . "/js/stripe_integration_checkout.js" => array(
+            'scope' => 'footer',
+          ),
+          'https://checkout.stripe.com/checkout.js' => array('external'),
+          array(
+            'data' => array(
+              'stripeIntegration' => array(
+                'publishableKey' => _stripe_integration_stripe_get_publishable_key(),
+                'logoURL' => drupal_get_path('theme', 'dbc') . "/images/bike_durham_logo_250w.png",
+                'membershipAmounts' => array(
+                  'individual' => INDIVIDUAL,
+                  'family' => FAMILY,
+                  'student' => STUDENT,
+                  'advocate' => ADVOCATE,
+                  'bronze' => BRONZE,
+                  'silver' => SILVER,
+                  'gold' => GOLD,
+                ),
+              )
+            ),
+            'type' => 'setting'
+          ),
+        ),
+      ),
+      '#submit' => array(
+        'stripe_integration_form_submit',
+      ),
+      '#validate' => array(
+        'stripe_integration_form_validate',
+      )
+    ),
+  );
+
+  return $form;
+}
