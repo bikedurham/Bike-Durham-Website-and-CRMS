@@ -2,9 +2,9 @@
 
 class Stripe_CouponTest extends StripeTestCase
 {
-  public function testCreate()
+  public function testSave()
   {
-    authorizeFromEnv();
+    self::authorizeFromEnv();
     $id = 'test_coupon-' . self::randomString();
     $c = Stripe_Coupon::create(
         array(
@@ -18,6 +18,10 @@ class Stripe_CouponTest extends StripeTestCase
     // @codingStandardsIgnoreStart
     $this->assertEqual(25, $c->percent_off);
     // @codingStandardsIgnoreEnd
-  }
+    $c->metadata['foo'] = 'bar';
+    $c->save();
 
+    $stripeCoupon = Stripe_Coupon::retrieve($id);
+    $this->assertEqual($c->metadata, $stripeCoupon->metadata);
+  }
 }

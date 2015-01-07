@@ -4,7 +4,7 @@ class Stripe_PlanTest extends StripeTestCase
 {
   public function testDeletion()
   {
-    authorizeFromEnv();
+    self::authorizeFromEnv();
     $p = Stripe_Plan::create(
         array(
             'amount' => 2000,
@@ -18,29 +18,21 @@ class Stripe_PlanTest extends StripeTestCase
     $this->assertTrue($p->deleted);
   }
 
-  public function testId()
+  public function testFalseyId()
   {
-    authorizeFromEnv();
-    $plan = Stripe_Plan::create(
-        array(
-            'amount'   => 2000,
-            'interval' => 'month',
-            'currency' => 'usd',
-            'name'     => 'Plan',
-            'id'       => '0'
-        )
-    );
-    $retrieved_plan = Stripe_Plan::retrieve('0');
-
-    $this->assertEqual($plan->id, $retrieved_plan->id);
-    $this->assertEqual($plan->id, '0');
-
-    $plan->delete();
+    try {
+      $retrievedPlan = Stripe_Plan::retrieve('0');
+    } catch (Stripe_InvalidRequestError $e) {
+      // Can either succeed or 404, all other errors are bad
+      if ($e->httpStatus !== 404) {
+        $this->fail();
+      }
+    }
   }
 
   public function testSave()
   {
-    authorizeFromEnv();
+    self::authorizeFromEnv();
     $planID = 'gold-' . self::randomString();
     $p = Stripe_Plan::create(
         array(
