@@ -70,6 +70,14 @@
 ?>
 <div id="page-wrapper" class="kickoff"><div id="page">
 
+    <div id="login-logout" style="float:right;">
+      <?php if(user_is_logged_in()): ?>
+        <?php print l('Logut', 'user/logout'); ?>
+        <?php  else: ?>
+        <?php print l('Login', 'user'); ?>
+
+        <?php endif; ?>
+    </div>
   <div id="header"><div class="section clearfix">
 
     <?php if ($logo): ?>
