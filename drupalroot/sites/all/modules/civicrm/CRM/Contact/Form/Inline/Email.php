@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -36,49 +36,60 @@
 /**
  * form helper class for an Email object
  */
-class CRM_Contact_Form_Inline_Email extends CRM_Core_Form {
+class CRM_Contact_Form_Inline_Email extends CRM_Contact_Form_Inline {
 
   /**
-   * contact id of the contact that is been viewed
-   */
-  private $_contactId;
-
-  /**
-   * email addresses of the contact that is been viewed
+   * Email addresses of the contact that is been viewed.
    */
   private $_emails = array();
 
   /**
-   * No of email blocks for inline edit
+   * No of email blocks for inline edit.
    */
   private $_blockCount = 6;
 
   /**
-   * call preprocess
+   * Whether this contact has a first/last/organization/household name
+   *
+   * @var bool
+   */
+  public $contactHasName;
+
+  /**
+   * Call preprocess.
    */
   public function preProcess() {
-    //get all the existing email addresses
-    $this->_contactId = CRM_Utils_Request::retrieve('cid', 'Positive', $this, TRUE, NULL, $_REQUEST);
+    parent::preProcess();
 
-    $this->assign('contactId', $this->_contactId);
+    //get all the existing email addresses
     $email = new CRM_Core_BAO_Email();
     $email->contact_id = $this->_contactId;
 
     $this->_emails = CRM_Core_BAO_Block::retrieveBlock($email, NULL);
+
+    // Check if this contact has a first/last/organization/household name
+    if ($this->_contactType == 'Individual') {
+      $this->contactHasName = (bool) (CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $this->_contactId, 'last_name')
+        || CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $this->_contactId, 'first_name'));
+    }
+    else {
+      $this->contactHasName = (bool) CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $this->_contactId, strtolower($this->_contactType) . '_name');
+    }
   }
 
   /**
-   * build the form elements for an email object
+   * Build the form object elements for an email object.
    *
    * @return void
-   * @access public
    */
   public function buildQuickForm() {
+    parent::buildQuickForm();
+
     $totalBlocks = $this->_blockCount;
     $actualBlockCount = 1;
     if (count($this->_emails) > 1) {
       $actualBlockCount = $totalBlocks = count($this->_emails);
-      if ( $totalBlocks < $this->_blockCount ) {
+      if ($totalBlocks < $this->_blockCount) {
         $additionalBlocks = $this->_blockCount - $totalBlocks;
         $totalBlocks += $additionalBlocks;
       }
@@ -97,73 +108,52 @@ class CRM_Contact_Form_Inline_Email extends CRM_Core_Form {
       CRM_Contact_Form_Edit_Email::buildQuickForm($this, $blockId, TRUE);
     }
 
-    $buttons = array(
-      array(
-        'type' => 'upload',
-        'name' => ts('Save'),
-        'isDefault' => TRUE,
-      ),
-      array(
-        'type' => 'cancel',
-        'name' => ts('Cancel'),
-      ),
-    );
-
-    $this->addButtons($buttons);
-
-    $this->addFormRule( array( 'CRM_Contact_Form_Inline_Email', 'formRule' ) );
+    $this->addFormRule(array('CRM_Contact_Form_Inline_Email', 'formRule'), $this);
   }
 
   /**
-   * global validation rules for the form
+   * Global validation rules for the form.
    *
-   * @param array $fields     posted values of the form
-   * @param array $errors     list of errors to be posted back to the form
+   * @param array $fields
+   *   Posted values of the form.
+   * @param array $errors
+   *   List of errors to be posted back to the form.
+   * @param CRM_Contact_Form_Inline_Email $form
    *
-   * @return $errors
-   * @static
-   * @access public
+   * @return array
    */
-  static function formRule( $fields, $errors ) {
-    $hasData = $hasPrimary = $errors = array( );
-    if ( CRM_Utils_Array::value( 'email', $fields ) && is_array( $fields['email'] ) ) {
-      foreach ( $fields['email'] as $instance => $blockValues ) {
-        $dataExists = CRM_Contact_Form_Contact::blockDataExists( $blockValues );
+  public static function formRule($fields, $errors, $form) {
+    $hasData = $hasPrimary = $errors = array();
+    if (!empty($fields['email']) && is_array($fields['email'])) {
+      foreach ($fields['email'] as $instance => $blockValues) {
+        $dataExists = CRM_Contact_Form_Contact::blockDataExists($blockValues);
 
-        if ( $dataExists ) {
+        if ($dataExists) {
           $hasData[] = $instance;
-          if ( CRM_Utils_Array::value( 'is_primary', $blockValues ) ) {
+          if (!empty($blockValues['is_primary'])) {
             $hasPrimary[] = $instance;
           }
         }
       }
 
-
-      if ( empty( $hasPrimary ) && !empty( $hasData ) ) {
-        $errors["email[1][is_primary]"] = ts('One email should be marked as primary.' );
+      if (empty($hasPrimary) && !empty($hasData)) {
+        $errors["email[1][is_primary]"] = ts('One email should be marked as primary.');
       }
 
-      if ( count( $hasPrimary ) > 1 ) {
-        $errors["email[".array_pop($hasPrimary)."][is_primary]"] = ts( 'Only one email can be marked as primary.' );
+      if (count($hasPrimary) > 1) {
+        $errors["email[" . array_pop($hasPrimary) . "][is_primary]"] = ts('Only one email can be marked as primary.');
       }
+    }
+    if (!$hasData && !$form->contactHasName) {
+      $errors["email[1][email]"] = ts('Contact with no name must have an email.');
     }
     return $errors;
   }
 
   /**
-   * Override default cancel action
-   */
-  function cancelAction() {
-    $response = array('status' => 'cancel');
-    echo json_encode($response);
-    CRM_Utils_System::civiExit();
-  }
-
-  /**
-   * set defaults for the form
+   * Set defaults for the form.
    *
-   * @return void
-   * @access public
+   * @return array
    */
   public function setDefaultValues() {
     $defaults = array();
@@ -182,30 +172,33 @@ class CRM_Contact_Form_Inline_Email extends CRM_Core_Form {
   }
 
   /**
-   * process the form
+   * Process the form.
    *
    * @return void
-   * @access public
    */
   public function postProcess() {
     $params = $this->exportValues();
 
-    // need to process / save emails
+    // Process / save emails
     $params['contact_id'] = $this->_contactId;
     $params['updateBlankLocInfo'] = TRUE;
-
-    // save email changes
     CRM_Core_BAO_Block::create('email', $params);
 
-    // make entry in log table
-    CRM_Core_BAO_Log::register( $this->_contactId,
-      'civicrm_contact',
-      $this->_contactId
-    );
+    // If contact has no name, set primary email as display name
+    // TODO: This should be handled in the BAO for the benefit of the api, etc.
+    if (!$this->contactHasName) {
+      foreach ($params['email'] as $email) {
+        if ($email['is_primary']) {
+          CRM_Core_DAO::setFieldValue('CRM_Contact_DAO_Contact', $this->_contactId, 'display_name', $email['email']);
+          CRM_Core_DAO::setFieldValue('CRM_Contact_DAO_Contact', $this->_contactId, 'sort_name', $email['email']);
+          $this->ajaxResponse['reloadBlocks'] = array('#crm-contactname-content');
+          break;
+        }
+      }
+    }
 
-    $response = array('status' => 'save');
-    echo json_encode($response);
-    CRM_Utils_System::civiExit();
+    $this->log();
+    $this->response();
   }
-}
 
+}

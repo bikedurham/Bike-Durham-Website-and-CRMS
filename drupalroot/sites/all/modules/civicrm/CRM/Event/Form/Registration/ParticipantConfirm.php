@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                               |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,13 +23,13 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -44,10 +44,9 @@ class CRM_Event_Form_Registration_ParticipantConfirm extends CRM_Event_Form_Regi
   protected $_cc = NULL;
 
   /**
-   * Function to set variables up before form is built
+   * Set variables up before form is built.
    *
    * @return void
-   * @access public
    */
   public function preProcess() {
     $this->_participantId = CRM_Utils_Request::retrieve('participantId', 'Positive', $this);
@@ -56,7 +55,7 @@ class CRM_Event_Form_Registration_ParticipantConfirm extends CRM_Event_Form_Regi
 
     //get the contact and event id and assing to session.
     $values = array();
-    $csContactID = $eventId = NULL;
+    $csContactID = NULL;
     if ($this->_participantId) {
       $params = array('id' => $this->_participantId);
       CRM_Core_DAO::commonRetrieve('CRM_Event_DAO_Participant', $params, $values,
@@ -64,7 +63,7 @@ class CRM_Event_Form_Registration_ParticipantConfirm extends CRM_Event_Form_Regi
       );
     }
 
-    $this->_participantStatusId = $values['status_id'];
+    $this->_participantStatusId = CRM_Utils_Array::value('status_id', $values);
     $this->_eventId = CRM_Utils_Array::value('event_id', $values);
     $csContactId = CRM_Utils_Array::value('contact_id', $values);
 
@@ -91,10 +90,9 @@ class CRM_Event_Form_Registration_ParticipantConfirm extends CRM_Event_Form_Regi
   }
 
   /**
-   * Function to build the form
+   * Build the form object.
    *
-   * @return None
-   * @access public
+   * @return void
    */
   public function buildQuickForm() {
     $params = array('id' => $this->_eventId);
@@ -108,13 +106,12 @@ class CRM_Event_Form_Registration_ParticipantConfirm extends CRM_Event_Form_Regi
 
     $statusMsg = NULL;
     if (array_key_exists($this->_participantStatusId,
-        CRM_Event_PseudoConstant::participantStatus(NULL, "class = 'Pending'")
-      )) {
-
+      CRM_Event_PseudoConstant::participantStatus(NULL, "class = 'Pending'")
+    )) {
 
       //need to confirm that though participant confirming
       //registration - but is there enough space to confirm.
-      $emptySeats   = CRM_Event_BAO_Participant::pendingToConfirmSpaces($this->_eventId);
+      $emptySeats = CRM_Event_BAO_Participant::pendingToConfirmSpaces($this->_eventId);
       $additonalIds = CRM_Event_BAO_Participant::getAdditionalParticipantIds($this->_participantId);
       $requireSpace = 1 + count($additonalIds);
       if ($emptySeats !== NULL && ($requireSpace > $emptySeats)) {
@@ -123,32 +120,38 @@ class CRM_Event_Form_Registration_ParticipantConfirm extends CRM_Event_Form_Regi
       else {
         if ($this->_cc == 'fail') {
           $statusMsg = '<div class="bold">' . ts('Your Credit Card transaction was not successful. No money has yet been charged to your card.') . '</div><div><br />' . ts('Click the "Confirm Registration" button to complete your registration in %1, or click "Cancel Registration" if you are no longer interested in attending this event.', array(
-            1 => $values['title'])) . '</div>';
+              1 => $values['title'],
+            )) . '</div>';
         }
         else {
           $statusMsg = '<div class="bold">' . ts('Confirm your registration for %1.', array(
-            1 => $values['title'])) . '</div><div><br />' . ts('Click the "Confirm Registration" button to begin, or click "Cancel Registration" if you are no longer interested in attending this event.') . '</div>';
+              1 => $values['title'],
+            )) . '</div><div><br />' . ts('Click the "Confirm Registration" button to begin, or click "Cancel Registration" if you are no longer interested in attending this event.') . '</div>';
         }
         $buttons = array_merge($buttons, array(
-          array('type' => 'next',
-              'name' => ts('Confirm Registration'),
-              'spacing' => '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
-              'isDefault' => TRUE,
-            )));
+          array(
+            'type' => 'next',
+            'name' => ts('Confirm Registration'),
+            'spacing' => '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
+            'isDefault' => TRUE,
+          ),
+        ));
       }
     }
 
     // status class other than Negative should be able to cancel registration.
     if (array_key_exists($this->_participantStatusId,
-        CRM_Event_PseudoConstant::participantStatus(NULL, "class != 'Negative'")
-      )) {
+      CRM_Event_PseudoConstant::participantStatus(NULL, "class != 'Negative'")
+    )) {
       $cancelConfirm = ts('Are you sure you want to cancel your registration for this event?');
       $buttons = array_merge($buttons, array(
-        array('type' => 'submit',
-            'name' => ts('Cancel Registration'),
-            'spacing' => '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
-            'js' => array('onclick' => 'return confirm(\'' . $cancelConfirm . '\');'),
-          )));
+        array(
+          'type' => 'submit',
+          'name' => ts('Cancel Registration'),
+          'spacing' => '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
+          'js' => array('onclick' => 'return confirm(\'' . $cancelConfirm . '\');'),
+        ),
+      ));
       if (!$statusMsg) {
         $statusMsg = ts('You can cancel your registration for %1 by clicking "Cancel Registration".', array(1 => $values['title']));
       }
@@ -164,16 +167,14 @@ class CRM_Event_Form_Registration_ParticipantConfirm extends CRM_Event_Form_Regi
   }
 
   /**
-   * Function to process the form
+   * Process the form submission.
    *
-   * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     //get the button.
-    $buttonName    = $this->controller->getButtonName();
-    $eventId       = $this->_eventId;
+    $buttonName = $this->controller->getButtonName();
     $participantId = $this->_participantId;
 
     if ($buttonName == '_qf_ParticipantConfirm_next') {
@@ -185,7 +186,7 @@ class CRM_Event_Form_Registration_ParticipantConfirm extends CRM_Event_Form_Regi
 
       //check user registration status is from pending class
       $url = CRM_Utils_System::url('civicrm/event/register',
-        "reset=1&id={$eventId}&participantId={$participantId}"
+        "reset=1&id={$this->_eventId}&participantId={$participantId}"
       );
       CRM_Utils_System::redirect($url);
     }
@@ -202,10 +203,10 @@ class CRM_Event_Form_Registration_ParticipantConfirm extends CRM_Event_Form_Regi
         $statusMessage = ts("%1 Event registration(s) have been cancelled.", array(1 => count($participantIds)));
       }
       else {
-        $statusMessage = ts("Your event registration has been cancelled.");
+        $statusMessage = ts("Your Event Registration has been cancelled.");
       }
 
-      if (CRM_Utils_Array::value('mailedParticipants', $results)) {
+      if (!empty($results['mailedParticipants'])) {
         foreach ($results['mailedParticipants'] as $key => $displayName) {
           $statusMessage .= "<br />" . ts("Email has been sent to : %1", array(1 => $displayName));
         }
@@ -221,5 +222,5 @@ class CRM_Event_Form_Registration_ParticipantConfirm extends CRM_Event_Form_Regi
       );
     }
   }
-}
 
+}

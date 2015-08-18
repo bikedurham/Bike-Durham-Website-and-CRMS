@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,30 +23,32 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Contribute_Form_ContributionCharts extends CRM_Core_Form {
 
   /**
-   *  Year of chart
+   *  Year of chart.
    *
    * @var int
    */
   protected $_year = NULL;
 
   /**
-   *  The type of chart
+   *  The type of chart.
    *
    * @var string
    */
-  protected $_chartType = NULL; function preProcess() {
+  protected $_chartType = NULL;
+
+  public function preProcess() {
     $this->_year = CRM_Utils_Request::retrieve('year', 'Int', $this);
     $this->_chartType = CRM_Utils_Request::retrieve('type', 'String', $this);
 
@@ -60,19 +62,18 @@ class CRM_Contribute_Form_ContributionCharts extends CRM_Core_Form {
   }
 
   /**
-   * Build the form
+   * Build the form object.
    *
-   * @access public
    *
    * @return void
    */
   public function buildQuickForm() {
     //p3 = Three dimensional pie chart.
     //bvg = Vertical bar chart
-    $this->addElement('select', 'chart_type', ts('Chart Style'), array('bvg' => ts('Bar'),
+    $this->addElement('select', 'chart_type', ts('Chart Style'), array(
+        'bvg' => ts('Bar'),
         'p3' => ts('Pie'),
-      ),
-      array('onchange' => "getChart();")
+      )
     );
     $defaultValues['chart_type'] = $this->_chartType;
     $this->setDefaults($defaultValues);
@@ -86,26 +87,24 @@ class CRM_Contribute_Form_ContributionCharts extends CRM_Core_Form {
         krsort($this->_years);
       }
       foreach ($this->_years as $k => $v) {
-        $years[$k] = $k;
+        $years[substr($k, 0, 4)] = substr($k, 0, 4);
       }
     }
 
-    $this->addElement('select', 'select_year', ts('Select Year (for monthly breakdown)'),
-      $years, array('onchange' => "getChart();")
-    );
+    $this->addElement('select', 'select_year', ts('Select Year (for monthly breakdown)'), $years);
     $this->setDefaults(array(
       'select_year' => ($this->_year) ? $this->_year : $currentYear,
-      ));
+    ));
   }
 
   /**
-   * process the form after the input has been submitted and validated
+   * Process the form after the input has been submitted and validated.
    *
-   * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
+    $config = CRM_Core_Config::singleton();
     $chartType = 'bvg';
     if ($this->_chartType) {
       $chartType = $this->_chartType;
@@ -172,6 +171,12 @@ class CRM_Contribute_Form_ContributionCharts extends CRM_Core_Form {
       }
       if ($chartKey == 'by_year') {
         $yearlyChart = TRUE;
+        if (!empty($config->fiscalYearStart) && ($config->fiscalYearStart['M'] !== 1 || $config->fiscalYearStart['d'] !== 1)) {
+          $values['xLabelAngle'] = 45;
+        }
+        else {
+          $values['xLabelAngle'] = 0;
+        }
       }
       if ($chartKey == 'by_month') {
         $monthlyChart = TRUE;
@@ -181,7 +186,7 @@ class CRM_Contribute_Form_ContributionCharts extends CRM_Core_Form {
       $funName = ($chartType == 'bvg') ? 'barChart' : 'pieChart';
 
       // build the chart objects.
-      eval("\$values['object'] = CRM_Utils_OpenFlashChart::" . $funName . '( $values );');
+      $values['object'] = CRM_Utils_OpenFlashChart::$funName($values);
 
       //build the urls.
       $urlCnt = 0;
@@ -189,13 +194,19 @@ class CRM_Contribute_Form_ContributionCharts extends CRM_Core_Form {
         $urlParams = NULL;
         if ($chartKey == 'by_month') {
           $monthPosition = array_search($index, $abbrMonthNames);
-          $startDate     = CRM_Utils_Date::format(array('Y' => $selectedYear, 'M' => $monthPosition));
-          $endDate       = date('Ymd', mktime(0, 0, 0, $monthPosition + 1, 0, $selectedYear));
-          $urlParams     = "reset=1&force=1&status=1&start={$startDate}&end={$endDate}&test=0";
+          $startDate = CRM_Utils_Date::format(array('Y' => $selectedYear, 'M' => $monthPosition));
+          $endDate = date('Ymd', mktime(0, 0, 0, $monthPosition + 1, 0, $selectedYear));
+          $urlParams = "reset=1&force=1&status=1&start={$startDate}&end={$endDate}&test=0";
         }
         elseif ($chartKey == 'by_year') {
-          $startDate = CRM_Utils_Date::format(array('Y' => $index));
-          $endDate   = date('Ymd', mktime(0, 0, 0, 13, 0, $index));
+          if (!empty($config->fiscalYearStart) && ($config->fiscalYearStart['M'] != 1 || $config->fiscalYearStart['d'] != 1)) {
+            $startDate = date('Ymd', mktime(0, 0, 0, $config->fiscalYearStart['M'], $config->fiscalYearStart['d'], substr($index, 0, 4)));
+            $endDate = date('Ymd', mktime(0, 0, 0, $config->fiscalYearStart['M'], $config->fiscalYearStart['d'], (substr($index, 0, 4)) + 1));
+          }
+          else {
+            $startDate = CRM_Utils_Date::format(array('Y' => substr($index, 0, 4)));
+            $endDate = date('Ymd', mktime(0, 0, 0, 13, 0, substr($index, 0, 4)));
+          }
           $urlParams = "reset=1&force=1&status=1&start={$startDate}&end={$endDate}&test=0";
         }
         if ($urlParams) {
@@ -231,5 +242,5 @@ class CRM_Contribute_Form_ContributionCharts extends CRM_Core_Form {
     $this->assign('hasOpenFlashChart', empty($chartData) ? FALSE : TRUE);
     $this->assign('openFlashChartData', json_encode($chartData));
   }
-}
 
+}

@@ -1,10 +1,9 @@
 <?php
-
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,45 +23,15 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CiviCRM_Hook
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id: $
  *
  */
-class CRM_Utils_Hook_Drupal extends CRM_Utils_Hook {
+class CRM_Utils_Hook_Drupal extends CRM_Utils_Hook_DrupalBase {
 
-  /**
-   * @var bool
-   */
-  private $first = FALSE;
-
-  /**
-   * @var array(string)
-   */
-  private $allModules = array();
-
-  function invoke($numParams,
-    &$arg1, &$arg2, &$arg3, &$arg4, &$arg5,
-    $fnSuffix
-  ) {
-    if (!$this->first || empty($this->allModules)) {
-      $this->first = TRUE;
-
-      // copied from user_module_invoke
-      if (function_exists('module_list')) {
-        $this->allModules = module_list();
-      }
-
-      $this->requireCiviModules($this->allModules);
-    }
-
-    return $this->runHooks($this->allModules, $fnSuffix,
-      $numParams, $arg1, $arg2, $arg3, $arg4, $arg5
-    );
-  }
 }
-

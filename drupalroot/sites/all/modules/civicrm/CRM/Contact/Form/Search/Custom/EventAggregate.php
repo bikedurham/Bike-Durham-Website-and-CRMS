@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,14 +28,23 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Search_Custom_Base implements CRM_Contact_Form_Search_Interface {
 
-  protected $_formValues; function __construct(&$formValues) {
+  protected $_formValues;
+  protected $_aclFrom = NULL;
+  protected $_aclWhere = NULL;
+  public $_permissionedComponent;
+
+  /**
+   * @param $formValues
+   */
+  public function __construct(&$formValues) {
     $this->_formValues = $formValues;
+    $this->_permissionedComponent = array('CiviContribute', 'CiviEvent');
 
     /**
      * Define the columns for search result rows
@@ -51,7 +60,10 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
     );
   }
 
-  function buildForm(&$form) {
+  /**
+   * @param CRM_Core_Form $form
+   */
+  public function buildForm(&$form) {
 
     /**
      * You can define a custom title for the search form
@@ -70,7 +82,7 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
     foreach ($event_type as $eventId => $eventName) {
       $form->addElement('checkbox', "event_type_id[$eventId]", 'Event Type', $eventName);
     }
-    $events = CRM_Event_BAO_Event::getEvents(TRUE);
+    $events = CRM_Event_BAO_Event::getEvents(1);
     $form->add('select', 'event_id', ts('Event Name'), array('' => ts('- select -')) + $events);
 
     $form->addDate('start_date', ts('Payments Date From'), FALSE, array('formatType' => 'custom'));
@@ -80,21 +92,29 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
      * If you are using the sample template, this array tells the template fields to render
      * for the search form.
      */
-    $form->assign('elements', array('paid_online', 'start_date', 'end_date', 'show_payees', 'event_type_id', 'event_id'));
+    $form->assign('elements', array(
+        'paid_online',
+        'start_date',
+        'end_date',
+        'show_payees',
+        'event_type_id',
+        'event_id',
+      ));
   }
 
   /**
    * Define the smarty template used to layout the search form and results listings.
    */
-  function templateFile() {
+  public function templateFile() {
     return 'CRM/Contact/Form/Search/Custom/EventDetails.tpl';
   }
 
   /**
-   * Construct the search query
+   * Construct the search query.
    */
-  function all($offset = 0, $rowcount = 0, $sort = NULL,
-    $includeContactIDs = FALSE
+  public function all(
+    $offset = 0, $rowcount = 0, $sort = NULL,
+    $includeContactIDs = FALSE, $justIDs = FALSE
   ) {
     // SELECT clause must include contact_id as an alias for civicrm_contact.id if you are going to use "tasks" like export etc.
     $select = "civicrm_participant.event_id as event_id,
@@ -113,7 +133,7 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
       $this->_formValues
     );
     if ($onLine) {
-      $from .= "         
+      $from .= "
         inner join civicrm_entity_financial_trxn
         on (civicrm_entity_financial_trxn.entity_id = civicrm_participant_payment.contribution_id and civicrm_entity_financial_trxn.entity_table='civicrm_contribution')";
     }
@@ -157,40 +177,51 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
     }
 
     if ($rowcount > 0 && $offset >= 0) {
+      $offset = CRM_Utils_Type::escape($offset, 'Int');
+      $rowcount = CRM_Utils_Type::escape($rowcount, 'Int');
       $sql .= " LIMIT $offset, $rowcount ";
     }
-
-    // Uncomment the next line to see the actual SQL generated:
-    //CRM_Core_Error::debug('sql',$sql); exit();
     return $sql;
   }
 
-  function from() {
-    return "
+  /**
+   * @return string
+   */
+  public function from() {
+    $this->buildACLClause('contact_a');
+    $from = "
         civicrm_participant_payment
         left join civicrm_participant
         on civicrm_participant_payment.participant_id=civicrm_participant.id
-        
+
+        left join civicrm_contact contact_a
+        on civicrm_participant.contact_id = contact_a.id
+
         left join civicrm_event on
         civicrm_participant.event_id = civicrm_event.id
-        
-        left join civicrm_contribution 
+
+        left join civicrm_contribution
         on civicrm_contribution.id = civicrm_participant_payment.contribution_id
-        
+
         left join civicrm_option_value on
-        ( civicrm_option_value.value = civicrm_event.event_type_id AND civicrm_option_value.option_group_id = 14)";
+        ( civicrm_option_value.value = civicrm_event.event_type_id AND civicrm_option_value.option_group_id = 14) {$this->_aclFrom}";
+
+    return $from;
   }
 
-  /*
-     * WHERE clause is an array built from any required JOINS plus conditional filters based on search criteria field values
-     *
-     */
-  function where($includeContactIDs = FALSE) {
+  /**
+   * WHERE clause is an array built from any required JOINS plus conditional filters based on search criteria field values.
+   *
+   * @param bool $includeContactIDs
+   *
+   * @return string
+   */
+  public function where($includeContactIDs = FALSE) {
     $clauses = array();
 
     $clauses[] = "civicrm_participant.status_id in ( 1 )";
     $clauses[] = "civicrm_contribution.is_test = 0";
-    $onLine    = CRM_Utils_Array::value('paid_online',
+    $onLine = CRM_Utils_Array::value('paid_online',
       $this->_formValues
     );
     if ($onLine) {
@@ -231,12 +262,18 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
       $event_type_ids = implode(',', array_keys($this->_formValues['event_type_id']));
       $clauses[] = "civicrm_event.event_type_id IN ( $event_type_ids )";
     }
+    if ($this->_aclWhere) {
+      $clauses[] = "{$this->_aclWhere} ";
+    }
     return implode(' AND ', $clauses);
   }
 
 
   /* This function does a query to get totals for some of the search result columns and returns a totals array. */
-  function summary() {
+  /**
+   * @return array
+   */
+  public function summary() {
     $totalSelect = "
         SUM(civicrm_contribution.total_amount) as payment_amount,COUNT(civicrm_participant.id) as participant_count,
         format(sum(if(civicrm_contribution.payment_instrument_id <>0,(civicrm_contribution.total_amount *.034) +.45,0)),2) as fee,
@@ -248,11 +285,10 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
       $this->_formValues
     );
     if ($onLine) {
-      $from .= "         
+      $from .= "
         inner join civicrm_entity_financial_trxn
         on (civicrm_entity_financial_trxn.entity_id = civicrm_participant_payment.contribution_id and civicrm_entity_financial_trxn.entity_table='civicrm_contribution')";
     }
-
 
     $where = $this->where();
 
@@ -262,7 +298,6 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
         WHERE   $where
         ";
 
-    //CRM_Core_Error::debug('sql',$sql);
     $dao = CRM_Core_DAO::executeQuery($sql,
       CRM_Core_DAO::$_nullArray
     );
@@ -276,10 +311,14 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
     return $totals;
   }
 
-  /* 
-     * Functions below generally don't need to be modified
-     */
-  function count() {
+  /*
+   * Functions below generally don't need to be modified
+   */
+
+  /**
+   * @inheritDoc
+   */
+  public function count() {
     $sql = $this->all();
 
     $dao = CRM_Core_DAO::executeQuery($sql,
@@ -288,15 +327,29 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
     return $dao->N;
   }
 
-  function contactIDs($offset = 0, $rowcount = 0, $sort = NULL) {
+  /**
+   * @param int $offset
+   * @param int $rowcount
+   * @param null $sort
+   * @param bool $returnSQL Not used; included for consistency with parent; SQL is always returned
+   *
+   * @return string
+   */
+  public function contactIDs($offset = 0, $rowcount = 0, $sort = NULL, $returnSQL = TRUE) {
     return $this->all($offset, $rowcount, $sort);
   }
 
-  function &columns() {
+  /**
+   * @return array
+   */
+  public function &columns() {
     return $this->_columns;
   }
 
-  function setTitle($title) {
+  /**
+   * @param $title
+   */
+  public function setTitle($title) {
     if ($title) {
       CRM_Utils_System::setTitle($title);
     }
@@ -304,5 +357,12 @@ class CRM_Contact_Form_Search_Custom_EventAggregate extends CRM_Contact_Form_Sea
       CRM_Utils_System::setTitle(ts('Search'));
     }
   }
-}
 
+  /**
+   * @param string $tableAlias
+   */
+  public function buildACLClause($tableAlias = 'contact') {
+    list($this->_aclFrom, $this->_aclWhere) = CRM_Contact_BAO_Contact_Permission::cacheClause($tableAlias);
+  }
+
+}

@@ -1,19 +1,45 @@
 <?php
-// $Id$
-
-require_once 'CRM/Core/BAO/OptionValue.php';
+/*
+ +--------------------------------------------------------------------+
+ | CiviCRM version 4.6                                                |
+ +--------------------------------------------------------------------+
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
+ +--------------------------------------------------------------------+
+ | This file is a part of CiviCRM.                                    |
+ |                                                                    |
+ | CiviCRM is free software; you can copy, modify, and distribute it  |
+ | under the terms of the GNU Affero General Public License           |
+ | Version 3, 19 November 2007 and the CiviCRM Licensing Exception.   |
+ |                                                                    |
+ | CiviCRM is distributed in the hope that it will be useful, but     |
+ | WITHOUT ANY WARRANTY; without even the implied warranty of         |
+ | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               |
+ | See the GNU Affero General Public License for more details.        |
+ |                                                                    |
+ | You should have received a copy of the GNU Affero General Public   |
+ | License and the CiviCRM Licensing Exception along                  |
+ | with this program; if not, contact CiviCRM LLC                     |
+ | at info[AT]civicrm[DOT]org. If you have questions about the        |
+ | GNU Affero General Public License or the licensing of CiviCRM,     |
+ | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
+ +--------------------------------------------------------------------+
+ */
 
 /**
- * Retrieve one or more OptionValues
+ * This api exposes CiviCRM option values.
  *
- * @param  array  $ params input parameters
+ * Values are grouped by "OptionGroup"
  *
- * {@example OptionValueGet.php 0}
- * @example OptionValueGet.php
+ * @package CiviCRM_APIv3
+ */
+
+/**
+ * Retrieve one or more option values.
  *
- * @return  array details of found Option Values
- * {@getfields OptionValue_get}
- * @access public
+ * @param array $params
+ *
+ * @return array
+ *   Details of found Option Values
  */
 function civicrm_api3_option_value_get($params) {
 
@@ -30,91 +56,60 @@ function civicrm_api3_option_value_get($params) {
 }
 
 /**
- *  Add a OptionValue. OptionValues are used to classify CRM entities (including Contacts, Groups and Actions).
+ * Add an OptionValue.
  *
- * Allowed @params array keys are:
+ * @param array $params
  *
- * {@example OptionValueCreate.php}
- *
- * @return array of newly created option_value property values.
- * {@getfields OptionValue_create}
- * @access public
+ * @throws API_Exception
+ * @return array
  */
 function civicrm_api3_option_value_create($params) {
-
-  $weight = 0;
-  if (!array_key_exists('label', $params) && array_key_exists('name', $params)) {
-    // no idea why that's a "mandatory" field
-    $params['label'] = $params['name'];
-  }
-  if (!CRM_Utils_Array::value('value', $params) && array_key_exists('option_group_id', $params)) {
-    require_once 'CRM/Utils/Weight.php';
-    $fieldValues = array('option_group_id' => $params['option_group_id']);
-    // use the next available value
-    /* CONVERT(value, DECIMAL) is used to convert varchar
-       field 'value' to decimal->integer                    */
-
-
-    $params['value'] = (int) CRM_Utils_Weight::getDefaultWeight('CRM_Core_DAO_OptionValue',
-      $fieldValues,
-      'CONVERT(value, DECIMAL)'
-    );
-    $weight = $params['value'];
-  }
-  if (!array_key_exists('weight', $params) && array_key_exists('value', $params)) {
-    // no idea why that's a "mandatory" field
-    $params['weight'] = $params['value'];
-  } elseif (array_key_exists('weight', $params) && $params['weight'] == 'next') {
-    // weight is numeric, so it's safe-ish to treat symbol 'next' as magical value
-    $params['weight'] = CRM_Utils_Weight::getDefaultWeight('CRM_Core_DAO_OptionValue',
-      array('option_group_id' => $params['option_group_id'])
+  $result = _civicrm_api3_basic_create(_civicrm_api3_get_BAO(__FUNCTION__), $params);
+  if (!empty($params['id']) && !array_key_exists('option_group_id', $params)) {
+    $groupId = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_OptionValue',
+      $params['id'], 'option_group_id', 'id'
     );
   }
-
-  if (array_key_exists('component', $params)) {
-    if (empty($params['component'])) {
-      $params['component_id'] = '';
-    } else {
-      $params['component_id'] = array_search($params['component'], CRM_Core_PseudoConstant::component());
-    }
-    unset($params['component']);
+  else {
+    $groupId = $params['option_group_id'];
   }
 
-  if (CRM_Utils_Array::value('id', $params)) {
-    $ids = array('optionValue' => $params['id']);
-  }
-  $optionValueBAO = CRM_Core_BAO_OptionValue::add($params, $ids);
-  civicrm_api('option_value', 'getfields', array('version' => 3, 'cache_clear' => 1));
-  $values = array();
-  _civicrm_api3_object_to_array($optionValueBAO, $values[$optionValueBAO->id]);
-  return civicrm_api3_create_success($values, $params);
-}
-
-/*
- * Adjust Metadata for Create action
- * 
- * The metadata is used for setting defaults, documentation & validation
- * @param array $params array or parameters determined by getfields
- */
-function _civicrm_api3_option_value_create_spec(&$params) {
-  $params['is_active']['api.default'] = 1;
-  $params['component']['type'] = CRM_Utils_Type::T_STRING;
-  $params['component']['options'] = array_values(CRM_Core_PseudoConstant::component());
-  // $params['component_id']['pseudoconstant'] = 'component';
+  civicrm_api('option_value', 'getfields', array('version' => 3, 'cache_clear' => 1, 'option_group_id' => $groupId));
+  return $result;
 }
 
 /**
- * Deletes an existing OptionValue
+ * Adjust Metadata for Create action.
  *
- * @param  array  $params
+ * The metadata is used for setting defaults, documentation & validation.
  *
- * {@example OptionValueDelete.php 0}
- *
- * @return array Api result
- * {@getfields OptionValue_create}
- * @access public
+ * @param array $params
+ *   Array of parameters determined by getfields.
  */
-function civicrm_api3_option_value_delete($params) {
-  return CRM_Core_BAO_OptionValue::del((int) $params['id']) ? civicrm_api3_create_success() : civicrm_api3_create_error('Could not delete OptionValue ' . $params['id']);
+function _civicrm_api3_option_value_create_spec(&$params) {
+  $params['is_active']['api.default'] = 1;
+  //continue to support component
+  $params['component_id']['api.aliases'] = array('component');
+  $params['name']['api.aliases'] = array('label');
+  $params['option_group_id']['api.required'] = TRUE;
 }
 
+/**
+ * Deletes an existing option value.
+ *
+ * @param array $params
+ *
+ * @return array
+ *   Api result
+ */
+function civicrm_api3_option_value_delete($params) {
+  // We will get the option group id before deleting so we can flush pseudoconstants.
+  $optionGroupID = civicrm_api('option_value', 'getvalue', array('version' => 3, 'id' => $params['id'], 'return' => 'option_group_id'));
+  if (CRM_Core_BAO_OptionValue::del((int) $params['id'])) {
+    civicrm_api('option_value', 'getfields', array('version' => 3, 'cache_clear' => 1, 'option_group_id' => $optionGroupID));
+    return civicrm_api3_create_success();
+  }
+  else {
+    civicrm_api3_create_error('Could not delete OptionValue ' . $params['id']);
+  }
+}

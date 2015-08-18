@@ -1,72 +1,73 @@
 <?php
 /*
    +----------------------------------------------------------------------------+
-   | PayflowPro Core Payment Module for CiviCRM version 4.2                     |
+   | PayflowPro Core Payment Module for CiviCRM version 4.6                     |
    +----------------------------------------------------------------------------+
    | Licensed to CiviCRM under the Academic Free License version 3.0            |
    |                                                                            |
    | Written & Contributed by Eileen McNaughton - 2009                          |
    +---------------------------------------------------------------------------+
   */
+
+/**
+ * Class CRM_Core_Payment_PayflowPro
+ */
 class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
   // (not used, implicit in the API, might need to convert?)
-  CONST
-  CHARSET = 'UFT-8';
+  const
+    CHARSET = 'UFT-8';
 
   /**
    * We only need one instance of this object. So we use the singleton
    * pattern and cache the instance in this variable
    *
    * @var object
-   * @static
    */
   static private $_singleton = NULL;
 
   /*
-     * Constructor
-     *
-     * @param string $mode the mode of operation: live or test
-     *
-     * @return void
-     */ function __construct($mode, &$paymentProcessor) {
+   * Constructor
+   *
+   * @param string $mode
+   *   The mode of operation: live or test.
+   *
+   * @return void
+   */
+  /**
+   * @param $mode
+   * @param $paymentProcessor
+   */
+  public function __construct($mode, &$paymentProcessor) {
     // live or test
     $this->_mode = $mode;
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName = ts('Payflow Pro');
   }
 
-  /**
-   * singleton function used to manage this object
-   *
-   * @param string $mode the mode of operation: live or test
-   *
-   * @return object
-   * @static
-   *
-   */
-  static
-  function &singleton($mode, &$paymentProcessor) {
-    $processorName = $paymentProcessor['name'];
-    if (self::$_singleton[$processorName] === NULL) {
-      self::$_singleton[$processorName] = new CRM_Core_Payment_PayflowPro($mode, $paymentProcessor);
-    }
-    return self::$_singleton[$processorName];
-  }
-
   /*
-     * This function  sends request and receives response from
-     * the processor. It is the main function for processing on-server
-	 * credit card transactions
-     */
-  function doDirectPayment(&$params) {
+   * This function  sends request and receives response from
+   * the processor. It is the main function for processing on-server
+   * credit card transactions
+   */
+  /**
+   * This function collects all the information from a web/api form and invokes
+   * the relevant payment processor specific functions to perform the transaction
+   *
+   * @param array $params
+   *   Assoc array of input parameters for this transaction.
+   *
+   * @return array
+   *   the result in an nice formatted array (or an error object)
+   * @abstract
+   */
+  public function doDirectPayment(&$params) {
     if (!defined('CURLOPT_SSLCERT')) {
       CRM_Core_Error::fatal(ts('PayFlowPro requires curl with SSL support'));
     }
 
     /*
-         * define variables for connecting with the gateway
-		 */
-
+     * define variables for connecting with the gateway
+     */
 
     // Are you using the Payflow Fraud Protection Service?
     // Default is YES, change to NO or blank if not.
@@ -88,10 +89,10 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
     //age',$params['contributionPageID'],  'payment_processor_id' );
 
     /*
-         *Create the array of variables to be sent to the processor from the $params array
-         * passed into this function
-		 *
-         */
+     *Create the array of variables to be sent to the processor from the $params array
+     * passed into this function
+     *
+     */
 
     $payflow_query_array = array(
       'USER' => $user,
@@ -131,7 +132,6 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
       $params['is_recur'] == FALSE;
     }
 
-
     if ($params['is_recur'] == TRUE) {
 
       $payflow_query_array['TRXTYPE'] = 'R';
@@ -163,89 +163,75 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
 
       switch ($params['frequency_unit']) {
         case '1 week':
-          $params['next_sched_contribution'] = mktime(0, 0, 0, date("m"), date("d") + 7,
+          $params['next_sched_contribution_date'] = mktime(0, 0, 0, date("m"), date("d") + 7,
             date("Y")
           );
           $params['end_date'] = mktime(0, 0, 0, date("m"), date("d") + (7 * $payflow_query_array['TERM']),
             date("Y")
           );
-          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution'
-            ]
-          );
+          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution_date']);
           $payflow_query_array['PAYPERIOD'] = "WEEK";
           $params['frequency_unit'] = "week";
           $params['frequency_interval'] = 1;
           break;
 
         case '2 weeks':
-          $params['next_sched_contribution'] = mktime(0, 0, 0, date("m"), date("d") + 14, date("Y")
+          $params['next_sched_contribution_date'] = mktime(0, 0, 0, date("m"), date("d") + 14, date("Y"));
+          $params['end_date'] = mktime(0, 0, 0, date("m"), date("d") + (14 * $payflow_query_array['TERM']), date("Y ")
           );
-          $params['end_date'] = mktime(0, 0, 0, date("m"), date("d") + (14 * $payflow_query_array['TERM'])
-            , date("Y ")
-          );
-          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution'
-            ]
-          );
+          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution_date']);
           $payflow_query_array['PAYPERIOD'] = "BIWK";
           $params['frequency_unit'] = "week";
           $params['frequency_interval'] = 2;
           break;
 
         case '4 weeks':
-          $params['next_sched_contribution'] = mktime(0, 0, 0, date("m"), date("d") + 28, date("Y")
+          $params['next_sched_contribution_date'] = mktime(0, 0, 0, date("m"), date("d") + 28, date("Y")
           );
-          $params['end_date'] = mktime(0, 0, 0, date("m"), date("d") + (28 * $payflow_query_array['TERM'])
-            , date("Y")
+          $params['end_date'] = mktime(0, 0, 0, date("m"), date("d") + (28 * $payflow_query_array['TERM']), date("Y")
           );
-          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution'
-            ]
-          );
+          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution_date']);
           $payflow_query_array['PAYPERIOD'] = "FRWK";
           $params['frequency_unit'] = "week";
           $params['frequency_interval'] = 4;
           break;
 
         case '1 month':
-          $params['next_sched_contribution'] = mktime(0, 0, 0, date("m") + 1,
+          $params['next_sched_contribution_date'] = mktime(0, 0, 0, date("m") + 1,
             date("d"), date("Y")
           );
           $params['end_date'] = mktime(0, 0, 0, date("m") +
             (1 * $payflow_query_array['TERM']),
             date("d"), date("Y")
           );
-          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution'
-            ]
-          );
+          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution_date']);
           $payflow_query_array['PAYPERIOD'] = "MONT";
           $params['frequency_unit'] = "month";
           $params['frequency_interval'] = 1;
           break;
 
         case '3 months':
-          $params['next_sched_contribution'] = mktime(0, 0, 0, date("m") + 3, date("d")
-            , date("Y")
+          $params['next_sched_contribution_date'] = mktime(0, 0, 0, date("m") + 3, date("d"), date("Y")
           );
           $params['end_date'] = mktime(0, 0, 0, date("m") +
             (3 * $payflow_query_array['TERM']),
             date("d"), date("Y")
           );
-          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution']
-          );
+          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution_date']);
           $payflow_query_array['PAYPERIOD'] = "QTER";
           $params['frequency_unit'] = "month";
           $params['frequency_interval'] = 3;
           break;
 
         case '6 months':
-          $params['next_sched_contribution'] = mktime(0, 0, 0, date("m") + 6, date("d"),
+          $params['next_sched_contribution_date'] = mktime(0, 0, 0, date("m") + 6, date("d"),
             date("Y")
           );
           $params['end_date'] = mktime(0, 0, 0, date("m") +
             (6 * $payflow_query_array['TERM']),
             date("d"), date("Y")
           );
-          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution'
-            ]
+          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution_date']
           );
           $payflow_query_array['PAYPERIOD'] = "SMYR";
           $params['frequency_unit'] = "month";
@@ -253,16 +239,14 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
           break;
 
         case '1 year':
-          $params['next_sched_contribution'] = mktime(0, 0, 0, date("m"), date("d"),
+          $params['next_sched_contribution_date'] = mktime(0, 0, 0, date("m"), date("d"),
             date("Y") + 1
           );
           $params['end_date'] = mktime(0, 0, 0, date("m"), date("d"),
             date("Y") +
             (1 * $payflow_query_array['TEM'])
           );
-          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution'
-            ]
-          );
+          $payflow_query_array['START'] = date('mdY', $params['next_sched_contribution_date']);
           $payflow_query_array['PAYPERIOD'] = "YEAR";
           $params['frequency_unit'] = "year";
           $params['frequency_interval'] = 1;
@@ -274,9 +258,8 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
     $payflow_query = $this->convert_to_nvp($payflow_query_array);
 
     /*
-         * Check to see if we have a duplicate before we send
-         */
-
+     * Check to see if we have a duplicate before we send
+     */
     if ($this->_checkDupe($params['invoiceID'])) {
       return self::errorExit(9003, 'It appears that this transaction is a duplicate.  Have you already submitted the form once?  If so there may have been a connection problem.  Check your email for a receipt.  If you do not receive a receipt within 2 hours you can try your transaction again.  If you continue to have problems please contact the site administrator.');
     }
@@ -285,11 +268,10 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
     $submiturl = $this->_paymentProcessor['url_site'];
 
     $responseData = self::submit_transaction($submiturl, $payflow_query);
+
     /*
-         * Payment succesfully sent to gateway - process the response now
-         */
-
-
+     * Payment successfully sent to gateway - process the response now
+     */
     $result = strstr($responseData, "RESULT");
     $nvpArray = array();
     while (strlen($result)) {
@@ -306,16 +288,16 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
     // get the result code to validate.
     $result_code = $nvpArray['RESULT'];
     /*debug
-             echo "<p>Params array</p><br>";
-             print_r($params);
-             echo "<p></p><br>";
-             echo "<p>Values to Payment Processor</p><br>";
-             print_r($payflow_query_array);
-             echo "<p></p><br>";
-             echo "<p>Results from Payment Processor</p><br>";
-             print_r($nvpArray);
-             echo "<p></p><br>";
-            */
+    echo "<p>Params array</p><br>";
+    print_r($params);
+    echo "<p></p><br>";
+    echo "<p>Values to Payment Processor</p><br>";
+    print_r($payflow_query_array);
+    echo "<p></p><br>";
+    echo "<p>Results from Payment Processor</p><br>";
+    print_r($nvpArray);
+    echo "<p></p><br>";
+     */
 
     switch ($result_code) {
       case 0:
@@ -327,7 +309,6 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
          * the cvv check, the avs check. This is stored in
          * CiviCRM as part of the transact
          * but not further processing is done. Business rules would need to be defined
-
          *******************************************************/
         $params['trxn_id'] = $nvpArray['PNREF'] . $nvpArray['TRXPNREF'];
         //'trxn_id' is varchar(255) field. returned value is length 12
@@ -365,13 +346,15 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
   }
 
   /**
-   * Checks to see if invoice_id already exists in db
+   * Checks to see if invoice_id already exists in db.
    *
-   * @param  int     $invoiceId   The ID to check
+   * @param int $invoiceId
+   *   The ID to check.
    *
-   * @return bool                  True if ID exists, else false
+   * @return bool
+   *   True if ID exists, else false
    */
-  function _checkDupe($invoiceId) {
+  public function _checkDupe($invoiceId) {
     //copied from Eway but not working and not really sure it should!
     $contribution = new CRM_Contribute_DAO_Contribution();
     $contribution->invoice_id = $invoiceId;
@@ -379,9 +362,15 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
   }
 
   /*
-     * Produces error message and returns from class
-     */
-  function &errorExit($errorCode = NULL, $errorMessage = NULL) {
+   * Produces error message and returns from class
+   */
+  /**
+   * @param null $errorCode
+   * @param null $errorMessage
+   *
+   * @return object
+   */
+  public function &errorExit($errorCode = NULL, $errorMessage = NULL) {
     $e = CRM_Core_Error::singleton();
     if ($errorCode) {
       $e->push($errorCode, 0, NULL, $errorMessage);
@@ -394,29 +383,42 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
 
 
   /*
-     * NOTE: 'doTransferCheckout' not implemented
-     */
-  function doTransferCheckout(&$params, $component) {
+   * NOTE: 'doTransferCheckout' not implemented
+   */
+  /**
+   * @param array $params
+   * @param $component
+   *
+   * @throws Exception
+   */
+  public function doTransferCheckout(&$params, $component) {
     CRM_Core_Error::fatal(ts('This function is not implemented'));
   }
 
-
   /*
-     * This public function checks to see if we have the right processor config values set
-     *
-     * NOTE: Called by Events and Contribute to check config params are set prior to trying
-     *  register any credit card details
-     *
-     * @param string $mode the mode we are operating in (live or test) - not used
-     *
-     * returns string $errorMsg if any errors found - null if OK
-     *
-     */
+   * This public function checks to see if we have the right processor config values set
+   *
+   * NOTE: Called by Events and Contribute to check config params are set prior to trying
+   *  register any credit card details
+   *
+   * @param string $mode
+   *   The mode we are operating in (live or test) - not used.
+   *
+   * returns string $errorMsg if any errors found - null if OK
+   */
 
   //  function checkConfig( $mode )          // CiviCRM V1.9 Declaration
 
-  // CiviCRM V2.0 Declaration
-  function checkConfig() {
+  /**
+   * CiviCRM V2.0 Declaration
+   * This function checks to see if we have the right config values
+   *
+   * @internal param string $mode the mode we are operating in (live or test)
+   *
+   * @return string
+   *   the error message if any
+   */
+  public function checkConfig() {
     $errorMsg = array();
     if (empty($this->_paymentProcessor['user_name'])) {
       $errorMsg[] = ' ' . ts('ssl_merchant_id is not set for this payment processor');
@@ -434,10 +436,16 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
     }
   }
   //end check config
+
   /*
-     * convert to a name/value pair (nvp) string
-     */
-  function convert_to_nvp($payflow_query_array) {
+   * convert to a name/value pair (nvp) string
+   */
+  /**
+   * @param $payflow_query_array
+   *
+   * @return array|string
+   */
+  public function convert_to_nvp($payflow_query_array) {
     foreach ($payflow_query_array as $key => $value) {
       $payflow_query[] = $key . '[' . strlen($value) . ']=' . $value;
     }
@@ -445,16 +453,22 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
 
     return $payflow_query;
   }
+
   /*
-     * Submit transaction using CuRL
-     * @submiturl string Url to direct HTTPS GET to
-     * @payflow_query value string to be posted
-     *
-     */
-  function submit_transaction($submiturl, $payflow_query) {
+   * Submit transaction using CuRL
+   * @submiturl string Url to direct HTTPS GET to
+   * @payflow_query value string to be posted
+   */
+  /**
+   * @param $submiturl
+   * @param $payflow_query
+   *
+   * @return mixed|object
+   */
+  public function submit_transaction($submiturl, $payflow_query) {
     /*
-         * Submit transaction using CuRL
-         */
+     * Submit transaction using CuRL
+     */
 
     // get data ready for API
     $user_agent = $_SERVER['HTTP_USER_AGENT'];
@@ -464,8 +478,7 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
     $headers[] = "Content-Length : " . strlen($data);
     // Length of data to be passed
     // Here the server timeout value is set to 45, but notice
-    // below in the cURL section, the t
-    //imeout
+    // below in the cURL section, the timeout
     // for cURL is 90 seconds.  You want to make sure the server
     // timeout is less, then the connection.
     $headers[] = "X-VPS-Timeout: 45";
@@ -500,12 +513,14 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
     // return into a variable
     curl_setopt($ch, CURLOPT_TIMEOUT, 90);
     // times out after 90 secs
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 0);
+    if (ini_get('open_basedir') == '' && ini_get('safe_mode') == 'Off') {
+      curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 0);
+    }
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL'));
     // this line makes it work under https
     curl_setopt($ch, CURLOPT_POSTFIELDS, $payflow_query);
     //adding POST data
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL') ? 2 : 0);
     //verifies ssl certificate
     curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
     //forces closure of connection when done
@@ -531,27 +546,27 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
       }
     }
 
-
     /*
-         * Transaction submitted -
-         * See if we had a curl error - if so tell 'em and bail out
-         *
-         * NOTE: curl_error does not return a logical value (see its documentation), but
-         *       a string, which is empty when there was no error.
-         */
-
+     * Transaction submitted -
+     * See if we had a curl error - if so tell 'em and bail out
+     *
+     * NOTE: curl_error does not return a logical value (see its documentation), but
+     *       a string, which is empty when there was no error.
+     */
     if ((curl_errno($ch) > 0) || (strlen(curl_error($ch)) > 0)) {
       curl_close($ch);
       $errorNum = curl_errno($ch);
       $errorDesc = curl_error($ch);
 
       //Paranoia - in the unlikley event that 'curl' errno fails
-      if ($errorNum == 0)
-      $errorNum = 9005;
+      if ($errorNum == 0) {
+        $errorNum = 9005;
+      }
 
       // Paranoia - in the unlikley event that 'curl' error fails
-      if (strlen($errorDesc) == 0)
-      $errorDesc = "Connection to payment gateway failed";
+      if (strlen($errorDesc) == 0) {
+        $errorDesc = "Connection to payment gateway failed";
+      }
       if ($errorNum = 60) {
         return self::errorExit($errorNum, "Curl error - " . $errorDesc .
           " Try this link for more information http://curl.haxx.se/d
@@ -565,12 +580,11 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
     }
 
     /*
-         * If null data returned - tell 'em and bail out
-         *
-         * NOTE: You will not necessarily get a string back, if the request failed for
-         *       any reason, the return value will be the boolean false.
-         */
-
+     * If null data returned - tell 'em and bail out
+     *
+     * NOTE: You will not necessarily get a string back, if the request failed for
+     *       any reason, the return value will be the boolean false.
+     */
     if (($responseData === FALSE) || (strlen($responseData) == 0)) {
       curl_close($ch);
       return self::errorExit(9006, "Error: Connection to payment gateway failed - no data
@@ -578,31 +592,35 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
     }
 
     /*
-         * If gateway returned no data - tell 'em and bail out
-         */
-
+     * If gateway returned no data - tell 'em and bail out
+     */
     if (empty($responseData)) {
       curl_close($ch);
       return self::errorExit(9007, "Error: No data returned from payment gateway.");
     }
 
     /*
-         * Success so far - close the curl and check the data
-         */
-
+     * Success so far - close the curl and check the data
+     */
     curl_close($ch);
     return $responseData;
   }
   //end submit_transaction
-  function getRecurringTransactionStatus($recurringProfileID, $processorID) {
+
+  /**
+   * @param int $recurringProfileID
+   * @param int $processorID
+   *
+   * @throws Exception
+   */
+  public function getRecurringTransactionStatus($recurringProfileID, $processorID) {
     if (!defined('CURLOPT_SSLCERT')) {
       CRM_Core_Error::fatal(ts('PayFlowPro requires curl with SSL support'));
     }
 
     /*
-         * define variables for connecting with the gateway
-         */
-
+     * define variables for connecting with the gateway
+     */
 
     //if you have not set up a separate user account the vendor name is used as the username
     if (!$this->_paymentProcessor['subject']) {
@@ -614,12 +632,11 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
     //$recurringProfileID = "RT0000000001";
     //     c  $trythis =        $this->getRecurringTransactionStatus($recurringProfileID,17);
 
-
     /*
-         *Create the array of variables to be sent to the processor from the $params array
-         * passed into this function
-         *
-         */
+     *Create the array of variables to be sent to the processor from the $params array
+     * passed into this function
+     *
+     */
 
     $payflow_query_array = array(
       'USER' => $user,
@@ -644,9 +661,8 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
     //ie. url at payment processor to submit to.
     $responseData = self::submit_transaction($submiturl, $payflow_query);
     /*
-         * Payment succesfully sent to gateway - process the response now
-         */
-
+     * Payment successfully sent to gateway - process the response now
+     */
 
     $result = strstr($responseData, "RESULT");
     $nvpArray = array();
@@ -668,5 +684,5 @@ class CRM_Core_Payment_PayflowPro extends CRM_Core_Payment {
     //RESPMSG=Invalid Profile ID: Invalid recurring profile ID
     //RT0000000001
   }
-}
 
+}

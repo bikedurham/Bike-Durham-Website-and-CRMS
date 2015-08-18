@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -36,16 +36,16 @@
 
       {if $action ne 1 and $action ne 2}
         <div class="action-link">
-          <a href="{crmURL q="action=add&reset=1"}" id="newJob" class="button"><span><div class="icon add-icon"></div>{ts}Add New Scheduled Job{/ts}</span></a>
-          <a href="{crmURL p='civicrm/admin/joblog' q="reset=1"}" id="jobLog" class="button"><span><div class="icon preview-icon"></div>{ts}View Log (all jobs){/ts}</span></a>
+          {crmButton q="action=add&reset=1" id="newJob"  icon="circle-plus"}{ts}Add New Scheduled Job{/ts}{/crmButton}
+          {crmButton p='civicrm/admin/joblog' q="reset=1" id="jobLog"  icon="zoomin"}{ts}View Log (all jobs){/ts}{/crmButton}
         </div>
       {/if}
 
 <div id="ltype">
     {strip}
         {* handle enable/disable actions*}
- 	    {include file="CRM/common/enableDisable.tpl"}
-        <br/><table class="selector">
+       {include file="CRM/common/enableDisableApi.tpl"}
+        <br/><table class="selector row-highlight">
         <tr class="columnheader">
             <th >{ts}Name (Frequency)/Description{/ts}</th>
             <th >{ts}Command/Parameters{/ts}</th>
@@ -54,17 +54,16 @@
             <th ></th>
         </tr>
         {foreach from=$rows item=row}
-        <tr id="row_{$row.id}" class="crm-job {cycle values="odd-row,even-row"} {$row.class}{if NOT $row.is_active} disabled{/if}">
-            <td class="crm-job-name"><strong>{$row.name}</strong> ({$row.run_frequency})<br/>
+        <tr id="job-{$row.id}" class="crm-entity {cycle values="odd-row,even-row"} {$row.class}{if NOT $row.is_active} disabled{/if}">
+            <td class="crm-job-name"><strong><span data-field="name">{$row.name}</span></strong> ({$row.run_frequency})<br/>
                 {$row.description}<br />
-                {ts}API Prefix:{/ts} {$row.api_prefix}<br/>
                 {ts}API Entity:{/ts} {$row.api_entity}<br/>
                 {ts}API Action:{/ts} <strong>{$row.api_action}</strong><br/>
             </td>
             <td class="crm-job-name">{if $row.parameters eq null}<em>{ts}no parameters{/ts}</em>{else}<pre>{$row.parameters}</pre>{/if}</td>
             <td class="crm-job-name">{if $row.last_run eq null}never{else}{$row.last_run|crmDate:$config->dateformatDatetime}{/if}</td>
             <td id="row_{$row.id}_status" class="crm-job-is_active">{if $row.is_active eq 1} {ts}Yes{/ts} {else} {ts}No{/ts} {/if}</td>
-	        <td>{$row.action|replace:'xx':$row.id}</td>
+          <td>{$row.action|replace:'xx':$row.id}</td>
         </tr>
         {/foreach}
         </table>
@@ -72,19 +71,19 @@
 
     {if $action ne 1 and $action ne 2}
         <div class="action-link">
-          <a href="{crmURL q="action=add&reset=1"}" id="newJob-bottom" class="button"><span><div class="icon add-icon"></div>{ts}Add New Scheduled Job{/ts}</span></a>
-          <a href="{crmURL p='civicrm/admin/joblog' q="reset=1"}" id="jobLog-bottom" class="button"><span><div class="icon preview-icon"></div>{ts}View Log (all jobs){/ts}</span></a>
+          <a href="{crmURL q="action=add&reset=1"}" id="newJob-bottom" class="button"><span><div class="icon ui-icon-circle-plus"></div>{ts}Add New Scheduled Job{/ts}</span></a>
+          <a href="{crmURL p='civicrm/admin/joblog' q="reset=1"}" id="jobLog-bottom" class="button"><span><div class="icon ui-icon-zoomin"></div>{ts}View Log (all jobs){/ts}</span></a>
         </div>
     {/if}
 </div>
 {elseif $action ne 1}
-    <div class="messages status">
+    <div class="messages status no-popup">
       <div class="icon inform-icon"></div>
         {ts}There are no jobs configured.{/ts}
-     </div>    
-     <div class="action-link">
-       <a href="{crmURL p='civicrm/admin/job' q="action=add&reset=1"}" id="newJob-nojobs" class="button"><span><div class="icon add-icon"></div>{ts}Add New Scheduled Job{/ts}</span></a>
      </div>
- 
+     <div class="action-link">
+       <a href="{crmURL p='civicrm/admin/job' q="action=add&reset=1"}" id="newJob-nojobs" class="button"><span><div class="icon ui-icon-circle-plus"></div>{ts}Add New Scheduled Job{/ts}</span></a>
+     </div>
+
 {/if}
 {/if}

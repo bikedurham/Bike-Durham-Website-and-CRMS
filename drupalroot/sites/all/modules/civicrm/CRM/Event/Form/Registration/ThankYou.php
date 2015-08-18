@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,13 +23,13 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -41,39 +41,39 @@
 class CRM_Event_Form_Registration_ThankYou extends CRM_Event_Form_Registration {
 
   /**
-   * Function to set variables up before form is built
+   * Set variables up before form is built.
    *
    * @return void
-   * @access public
    */
-  function preProcess() {
+  public function preProcess() {
     parent::preProcess();
-    $this->_params      = $this->get('params');
-    $this->_lineItem    = $this->get('lineItem');
-    $this->_part        = $this->get('part');
+    $this->_params = $this->get('params');
+    $this->_lineItem = $this->get('lineItem');
+    $this->_part = $this->get('part');
     $this->_totalAmount = $this->get('totalAmount');
     $this->_receiveDate = $this->get('receiveDate');
-    $this->_trxnId      = $this->get('trxnId');
-    $finalAmount        = $this->get('finalAmount');
+    $this->_trxnId = $this->get('trxnId');
+    $finalAmount = $this->get('finalAmount');
     $this->assign('finalAmount', $finalAmount);
     $participantInfo = $this->get('participantInfo');
     $this->assign('part', $this->_part);
     $this->assign('participantInfo', $participantInfo);
     $customGroup = $this->get('customProfile');
     $this->assign('customProfile', $customGroup);
+    $this->assign('individual', $this->get('individual'));
 
-    $this->assign('addParticipantProfile', $this->get('addParticipantProfile'));
+    CRM_Event_Form_Registration_Confirm::assignProfiles($this);
+
     CRM_Utils_System::setTitle(CRM_Utils_Array::value('thankyou_title', $this->_values['event']));
   }
 
   /**
-   * overwrite action, since we are only showing elements in frozen mode
+   * Overwrite action, since we are only showing elements in frozen mode
    * no help display needed
    *
    * @return int
-   * @access public
    */
-  function getAction() {
+  public function getAction() {
     if ($this->_action & CRM_Core_Action::PREVIEW) {
       return CRM_Core_Action::VIEW | CRM_Core_Action::PREVIEW;
     }
@@ -83,28 +83,65 @@ class CRM_Event_Form_Registration_ThankYou extends CRM_Event_Form_Registration {
   }
 
   /**
-   * Function to build the form
+   * Build the form object.
    *
-   * @return None
-   * @access public
+   * @return void
    */
   public function buildQuickForm() {
     // Assign the email address from a contact id lookup as in CRM_Event_BAO_Event->sendMail()
-    if (isset($this->_params[0]['contact_id'])) {
-      list($displayName, $email) = CRM_Contact_BAO_Contact_Location::getEmailDetails($this->_params[0]['contact_id']);
+    $primaryContactId = $this->get('primaryContactId');
+    if ($primaryContactId) {
+      list($displayName, $email) = CRM_Contact_BAO_Contact_Location::getEmailDetails($primaryContactId);
       $this->assign('email', $email);
     }
     $this->assignToTemplate();
 
-    $this->buildCustom($this->_values['custom_pre_id'], 'customPre', TRUE);
-    $this->buildCustom($this->_values['custom_post_id'], 'customPost', TRUE);
+    $invoiceSettings = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::CONTRIBUTE_PREFERENCES_NAME, 'contribution_invoice_settings');
+    $taxTerm = CRM_Utils_Array::value('tax_term', $invoiceSettings);
+    $invoicing = CRM_Utils_Array::value('invoicing', $invoiceSettings);
+    $getTaxDetails = FALSE;
+    $taxAmount = 0;
+    if ($this->_priceSetId && !CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceSet', $this->_priceSetId, 'is_quick_config')) {
+      $lineItemForTemplate = array();
+      if (!empty($this->_lineItem) && is_array($this->_lineItem)) {
+        foreach ($this->_lineItem as $key => $value) {
+          if (!empty($value)) {
+            $lineItemForTemplate[$key] = $value;
+            if ($invoicing) {
+              foreach ($value as $v) {
+                if (isset($v['tax_amount']) || isset($v['tax_rate'])) {
+                  $taxAmount += $v['tax_amount'];
+                  $getTaxDetails = TRUE;
+                }
+              }
+            }
+          }
+        }
+      }
+      if (!empty($lineItemForTemplate)) {
+        $this->assign('lineItem', $lineItemForTemplate);
+      }
+    }
+    else {
+      if ($invoicing) {
+        foreach ($this->_lineItem as $lineItemKey => $lineItemValue) {
+          foreach ($lineItemValue as $v) {
+            if (isset($v['tax_amount']) || isset($v['tax_rate'])) {
+              $taxAmount += $v['tax_amount'];
+              $getTaxDetails = TRUE;
+            }
+          }
+        }
+      }
+    }
 
-    if ($this->_priceSetId && !CRM_Core_DAO::getFieldValue('CRM_Price_DAO_Set', $this->_priceSetId, 'is_quick_config')) {
-
-      $this->assign('lineItem', $this->_lineItem);
-
+    if ($invoicing) {
+      $this->assign('getTaxDetails', $getTaxDetails);
+      $this->assign('totalTaxAmount', $taxAmount);
+      $this->assign('taxTerm', $taxTerm);
     }
     $this->assign('totalAmount', $this->_totalAmount);
+
     $hookDiscount = $this->get('hookDiscount');
     if ($hookDiscount) {
       $this->assign('hookDiscount', $hookDiscount);
@@ -149,12 +186,11 @@ class CRM_Event_Form_Registration_ThankYou extends CRM_Event_Form_Registration {
 
     $this->setDefaults($defaults);
 
-
     $params['entity_id'] = $this->_eventId;
     $params['entity_table'] = 'civicrm_event';
-
+    $data = array();
     CRM_Friend_BAO_Friend::retrieve($params, $data);
-    if (CRM_Utils_Array::value('is_active', $data)) {
+    if (!empty($data['is_active'])) {
       $friendText = $data['title'];
       $this->assign('friendText', $friendText);
       if ($this->_action & CRM_Core_Action::PREVIEW) {
@@ -184,43 +220,40 @@ class CRM_Event_Form_Registration_ThankYou extends CRM_Event_Form_Registration {
     $this->assign('isRequireApproval', $isRequireApproval);
 
     // find pcp info
-    $eventId           = $this->_eventId;
-    $dao               = new CRM_PCP_DAO_PCPBlock();
+    $dao = new CRM_PCP_DAO_PCPBlock();
     $dao->entity_table = 'civicrm_event';
-    $dao->entity_id    = $eventId;
-    $dao->is_active    = 1;
+    $dao->entity_id = $this->_eventId;
+    $dao->is_active = 1;
     $dao->find(TRUE);
 
     if ($dao->id) {
-      $this->assign('pcpLink', CRM_Utils_System::url('civicrm/contribute/campaign', 'action=add&reset=1&pageId=' . $eventId . '&component=event'));
+      $this->assign('pcpLink', CRM_Utils_System::url('civicrm/contribute/campaign', 'action=add&reset=1&pageId=' . $this->_eventId . '&component=event'));
       $this->assign('pcpLinkText', $dao->link_text);
     }
 
     // Assign Participant Count to Lineitem Table
-    $this->assign('pricesetFieldsCount', CRM_Price_BAO_Set::getPricesetCount($this->_priceSetId));
+    $this->assign('pricesetFieldsCount', CRM_Price_BAO_PriceSet::getPricesetCount($this->_priceSetId));
 
     // can we blow away the session now to prevent hackery
     $this->controller->reset();
   }
 
   /**
-   * Function to process the form
+   * Process the form submission.
    *
-   * @access public
    *
-   * @return None
+   * @return void
    */
-  public function postProcess() {}
-  //end of function
+  public function postProcess() {
+  }
 
   /**
    * Return a descriptive name for the page, used in wizard header
    *
    * @return string
-   * @access public
    */
   public function getTitle() {
     return ts('Thank You Page');
   }
-}
 
+}

@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -38,7 +38,10 @@ class CRM_Group_Form_Search extends CRM_Core_Form {
     parent::preProcess();
   }
 
-  function setDefaultValues() {
+  /**
+   * @return array
+   */
+  public function setDefaultValues() {
     $defaults = array();
     $defaults['group_status[1]'] = 1;
     return $defaults;
@@ -46,6 +49,10 @@ class CRM_Group_Form_Search extends CRM_Core_Form {
 
   public function buildQuickForm() {
     $this->add('text', 'title', ts('Find'),
+      CRM_Core_DAO::getAttribute('CRM_Contact_DAO_Group', 'title')
+    );
+
+    $this->add('text', 'created_by', ts('Created By'),
       CRM_Core_DAO::getAttribute('CRM_Contact_DAO_Group', 'title')
     );
 
@@ -73,22 +80,22 @@ class CRM_Group_Form_Search extends CRM_Core_Form {
     );
 
     $this->addButtons(array(
-        array(
-          'type' => 'refresh',
-          'name' => ts('Search'),
-          'isDefault' => TRUE,
-        ),
-      ));
+      array(
+        'type' => 'refresh',
+        'name' => ts('Search'),
+        'isDefault' => TRUE,
+      ),
+    ));
 
     parent::buildQuickForm();
     $this->assign('suppressForm', TRUE);
   }
 
-  function postProcess() {
+  public function postProcess() {
     $params = $this->controller->exportValues($this->_name);
     $parent = $this->controller->getParent();
     if (!empty($params)) {
-      $fields = array('title', 'group_type', 'visibility', 'active_status', 'inactive_status');
+      $fields = array('title', 'created_by', 'group_type', 'visibility', 'active_status', 'inactive_status');
       foreach ($fields as $field) {
         if (isset($params[$field]) &&
           !CRM_Utils_System::isNull($params[$field])
@@ -101,5 +108,5 @@ class CRM_Group_Form_Search extends CRM_Core_Form {
       }
     }
   }
-}
 
+}

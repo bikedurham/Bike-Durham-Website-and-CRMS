@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -38,12 +38,11 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
   public $_contactId = NULL;
 
   /**
-   * This function is called when action is browse
-   *
-   * return null
-   * @access public
-   */ function browse() {
-    $controller = new CRM_Core_Controller_Simple('CRM_Event_Form_Search',
+   * called when action is browse.
+   */
+  public function browse() {
+    $controller = new CRM_Core_Controller_Simple(
+      'CRM_Event_Form_Search',
       ts('Events'),
       $this->_action
     );
@@ -57,21 +56,29 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
     if ($this->_contactId) {
       $displayName = CRM_Contact_BAO_Contact::displayName($this->_contactId);
       $this->assign('displayName', $displayName);
+      $this->ajaxResponse['tabCount'] = CRM_Contact_BAO_Contact::getCountComponent('participant', $this->_contactId);
+      // Refresh other tabs with related data
+      $this->ajaxResponse['updateTabs'] = array(
+        '#tab_activity' => CRM_Contact_BAO_Contact::getCountComponent('activity', $this->_contactId),
+      );
+      if (CRM_Core_Permission::access('CiviContribute')) {
+        $this->ajaxResponse['updateTabs']['#tab_contribute'] = CRM_Contact_BAO_Contact::getCountComponent('contribution', $this->_contactId);
+      }
     }
   }
 
   /**
-   * This function is called when action is view
+   * called when action is view.
    *
-   * return null
-   * @access public
+   * @return null
    */
-  function view() {
+  public function view() {
     // build associated contributions
     $this->associatedContribution();
 
-    $controller = new CRM_Core_Controller_Simple('CRM_Event_Form_ParticipantView',
-      'View Participant',
+    $controller = new CRM_Core_Controller_Simple(
+      'CRM_Event_Form_ParticipantView',
+      ts('View Participant'),
       $this->_action
     );
     $controller->setEmbedded(TRUE);
@@ -82,12 +89,11 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
   }
 
   /**
-   * This function is called when action is update or new
+   * called when action is update or new.
    *
-   * return null
-   * @access public
+   * @return null
    */
-  function edit() {
+  public function edit() {
     // set https for offline cc transaction
     $mode = CRM_Utils_Request::retrieve('mode', 'String', $this);
     if ($mode == 'test' || $mode == 'live') {
@@ -99,7 +105,8 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
       $this->associatedContribution();
     }
 
-    $controller = new CRM_Core_Controller_Simple('CRM_Event_Form_Participant',
+    $controller = new CRM_Core_Controller_Simple(
+      'CRM_Event_Form_Participant',
       'Create Participation',
       $this->_action
     );
@@ -111,10 +118,10 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
     return $controller->run();
   }
 
-  function preProcess() {
-    $context       = CRM_Utils_Request::retrieve('context', 'String', $this);
+  public function preProcess() {
+    $context = CRM_Utils_Request::retrieve('context', 'String', $this);
     $this->_action = CRM_Utils_Request::retrieve('action', 'String', $this, FALSE, 'browse');
-    $this->_id     = CRM_Utils_Request::retrieve('id', 'Positive', $this);
+    $this->_id = CRM_Utils_Request::retrieve('id', 'Positive', $this);
 
     if ($context == 'standalone') {
       $this->_action = CRM_Core_Action::ADD;
@@ -125,9 +132,6 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
 
       // check logged in url permission
       CRM_Contact_Page_View::checkUserPermission($this);
-
-      // set page title
-      CRM_Contact_Page_View::setTitle($this->_contactId);
     }
 
     $this->assign('action', $this->_action);
@@ -140,24 +144,15 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
   }
 
   /**
-   * This function is the main function that is called when the page loads, it decides the which action has to be taken for the page.
+   * the main function that is called when the page loads, it decides the which action has to be taken for the page.
    *
-   * return null
-   * @access public
+   * @return null
    */
-  function run() {
+  public function run() {
     $this->preProcess();
 
     // check if we can process credit card registration
-    $processors = CRM_Core_PseudoConstant::paymentProcessor(FALSE, FALSE,
-      "billing_mode IN ( 1, 3 )"
-    );
-    if (count($processors) > 0) {
-      $this->assign('newCredit', TRUE);
-    }
-    else {
-      $this->assign('newCredit', FALSE);
-    }
+    $this->assign('newCredit', CRM_Core_Config::isEnabledBackOfficeCreditCardPayments());
 
     // Only show credit card registration button if user has CiviContribute permission
     if (CRM_Core_Permission::access('CiviContribute')) {
@@ -175,7 +170,8 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
     elseif ($this->_action & (CRM_Core_Action::UPDATE |
         CRM_Core_Action::ADD |
         CRM_Core_Action::DELETE
-      )) {
+      )
+    ) {
       $this->edit();
     }
     else {
@@ -185,13 +181,15 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
     return parent::run();
   }
 
-  function setContext() {
+  public function setContext() {
     $context = CRM_Utils_Request::retrieve('context',
       'String', $this, FALSE, 'search'
     );
     $compContext = CRM_Utils_Request::retrieve('compContext',
       'String', $this
     );
+
+    $searchContext = CRM_Utils_Request::retrieve('searchContext', 'String', $this);
 
     $qfKey = CRM_Utils_Request::retrieve('key', 'String', $this);
 
@@ -214,6 +212,9 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
 
         if ($compContext == 'advanced') {
           $url = CRM_Utils_System::url('civicrm/contact/search/advanced', $urlParams);
+        }
+        elseif ($searchContext) {
+          $url = CRM_Utils_System::url("civicrm/$searchContext/search", $urlParams);
         }
         else {
           $url = CRM_Utils_System::url('civicrm/event/search', $urlParams);
@@ -245,7 +246,7 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
         break;
 
       case 'fulltext':
-        $keyName   = '&qfKey';
+        $keyName = '&qfKey';
         $urlParams = 'force=1';
         $urlString = 'civicrm/contact/search/custom';
         if ($this->_action == CRM_Core_Action::UPDATE) {
@@ -278,16 +279,18 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
   }
 
   /**
-   * This function is used for the to show the associated
+   * used for the to show the associated
    * contribution for the participant
-   *
-   * return null
-   * @access public
    */
-  function associatedContribution() {
+  public function associatedContribution() {
     if (CRM_Core_Permission::access('CiviContribute')) {
       $this->assign('accessContribution', TRUE);
-      $controller = new CRM_Core_Controller_Simple('CRM_Contribute_Form_Search', ts('Contributions'), NULL);
+      $controller = new CRM_Core_Controller_Simple(
+        'CRM_Contribute_Form_Search',
+        ts('Contributions'),
+        NULL,
+        FALSE, FALSE, TRUE
+      );
       $controller->setEmbedded(TRUE);
       $controller->set('force', 1);
       $controller->set('cid', $this->_contactId);
@@ -300,5 +303,5 @@ class CRM_Event_Page_Tab extends CRM_Core_Page {
       $this->assign('accessContribution', FALSE);
     }
   }
-}
 
+}

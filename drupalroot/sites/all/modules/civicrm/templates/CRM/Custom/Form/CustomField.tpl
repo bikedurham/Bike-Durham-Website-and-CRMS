@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,10 +24,7 @@
  +--------------------------------------------------------------------+
 *}
 {assign var="element_name" value=$element.element_name}
-{if $element.help_post}
-    {assign var="help_post" value=$element.help_post}
-{/if}
-{if $element.is_view eq 0}{* fix for CRM-3510 *}
+
     {if $element.help_pre}
         <tr class="custom_field-help-pre-row {$element.element_name}-row-help-pre">
             <td>&nbsp;</td>
@@ -36,7 +33,7 @@
     {/if}
      {if $element.options_per_line != 0 }
         <tr class="custom_field-row {$element.element_name}-row">
-            <td class="label">{$form.$element_name.label}{if $element.help_post}{help id=$element_name text=$help_post}{/if}</td>
+            <td class="label">{$form.$element_name.label}{if $element.help_post}{help id=$element.id file="CRM/Custom/Form/CustomField.hlp" title=$element.label}{/if}</td>
             <td class="html-adjust">
                 {assign var="count" value="1"}
                 <table class="form-layout-compressed" style="margin-top: -0.5em;">
@@ -57,50 +54,47 @@
                                 {/if}
                             {/if}
                         {/foreach}
-                        {if $element.html_type eq 'Radio'}
-                            <td><span class="crm-clear-link">(<a href="#" title="unselect" onclick="unselectRadio('{$element_name}', '{$form.formName}'); return false;" >{ts}Clear{/ts} {$form.$element_name.label|@strip_tags} </a>)</span></td>
-                        {/if}
                     </tr>
                 </table>
             </td>
         </tr>
-            
+
     {else}
         <tr class="custom_field-row {$element.element_name}-row">
-            <td class="label">{$form.$element_name.label}{if $element.help_post}{help id=$element_name text=$help_post}{/if}</td>                                
+            <td class="label">{$form.$element_name.label}{if $element.help_post}{help id=$element.id file="CRM/Custom/Form/CustomField.hlp" title=$element.label}{/if}</td>
             <td class="html-adjust">
-                {if $element.data_type neq 'Date'}
+                {if $element.data_type neq 'Date' OR ($element.data_type eq 'Date' AND $element.is_view eq 1)}
                     {$form.$element_name.html}&nbsp;
-                {elseif $element.skip_calendar NEQ true }
+                {elseif $element.skip_calendar NEQ true}
                     {include file="CRM/common/jcalendar.tpl" elementName=$element_name}
                 {/if}
-                
-                {if $element.html_type eq 'Radio'}
-                    <span class="crm-clear-link">(<a href="#" title="unselect" onclick="unselectRadio('{$element_name}', '{$form.formName}'); return false;" >{ts}Clear{/ts}{$form.$element_name.label|@strip_tags}</a>)</span>
-                {elseif $element.data_type eq 'File'}
+
+                {if $element.data_type eq 'File'}
                     {if $element.element_value.data}
+                      <div class="crm-attachment-wrapper crm-entity" id="file_{$element_name}">
                         <span class="html-adjust"><br />
                             &nbsp;{ts}Attached File{/ts}: &nbsp;
-                            {if $element.element_value.displayURL }
-                                <a href="javascript:popUp('{$element.element_value.imageURL}')" ><img src="{$element.element_value.displayURL}" height = "{$element.element_value.imageThumbHeight}" width="{$element.element_value.imageThumbWidth}"></a>
+                            {if $element.element_value.displayURL}
+                                <a href="{$element.element_value.displayURL}" class='crm-image-popup crm-attachment'>
+                                  <img src="{$element.element_value.displayURL}"
+                                       height = "{$element.element_value.imageThumbHeight}"
+                                       width="{$element.element_value.imageThumbWidth}">
+                                </a>
                             {else}
-                                <a href="{$element.element_value.fileURL}">{$element.element_value.fileName}</a>
+                                <a class="crm-attachment" href="{$element.element_value.fileURL}">{$element.element_value.fileName}</a>
                             {/if}
-                            {if $element.element_value.deleteURL }
-                                <br />
-                            {$element.element_value.deleteURL}
-                            {/if}	
-                        </span>  
-                    {/if} 
+                            {if $element.element_value.deleteURL}
+                                   <a href="#" class="crm-hover-button delete-attachment" data-filename="{$element.element_value.fileName}" data-args="{$element.element_value.deleteURLArgs}" title="{ts}Delete File{/ts}"><span class="icon delete-icon"></span></a>
+                            {/if}
+                        </span>
+                      </div>
+                    {/if}
                 {elseif $element.html_type eq 'Autocomplete-Select'}
                   {if $element.data_type eq 'ContactReference'}
                     {include file="CRM/Custom/Form/ContactReference.tpl"}
-                  {else}
-                    {include file="CRM/Custom/Form/AutoComplete.tpl"}
                   {/if}
                 {/if}
             </td>
         </tr>
-        
+
     {/if}
-{/if}

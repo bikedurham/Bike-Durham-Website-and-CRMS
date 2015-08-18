@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -54,14 +54,11 @@
                                 {/if}
                             {/if}
                         {/foreach}
-                        {if $element.html_type eq 'Radio'}
-                            <td><span class="crm-clear-link">(<a href="#" title="unselect" onclick="unselectRadio('{$element_name}', '{$form.formName}'); return false;" >{ts}clear{/ts}</a>)</span></td>
-                        {/if}
                     </tr>
                 </table>
             </td>
         </tr>
-            
+
         {if $element.help_post}
             <tr>
                 <td>&nbsp;</td>
@@ -70,43 +67,40 @@
              {/if}
     {else}
         <tr>
-            <td class="label">{$form.address.$blockId.$element_name.label}</td>                                
+            <td class="label">{$form.address.$blockId.$element_name.label}</td>
             <td class="html-adjust">
                 {if $element.data_type neq 'Date'}
                     {$form.address.$blockId.$element_name.html}&nbsp;
                 {elseif $element.skip_calendar NEQ true }
                     {include file="CRM/common/jcalendar.tpl" blockId=$blockId blockSection='address' elementName=$element_name}
                 {/if}
-                
-                {if $element.html_type eq 'Radio'}
-                    <span class="crm-clear-link">(<a href="#" title="unselect" onclick="unselectRadio('address[{$blockId}][{$element_name}]', '{$form.formName}'); return false;" >{ts}clear{/ts}</a>)</span> 
 
-                {elseif $element.data_type eq 'File'}
+                {if $element.data_type eq 'File'}
                     {if $element.element_value.data}
                         <span class="html-adjust"><br />
                             &nbsp;{ts}Attached File{/ts}: &nbsp;
                             {if $element.element_value.displayURL }
-                                <a href="javascript:popUp('{$element.element_value.displayURL}')" ><img src="{$element.element_value.displayURL}" height = "100" width="100"></a>
+                                <a href="{$element.element_value.displayURL}" class='crm-image-popup'>
+                                  <img src="{$element.element_value.displayURL}" height = "100" width="100">
+                                </a>
                             {else}
                                 <a href="{$element.element_value.fileURL}">{$element.element_value.fileName}</a>
                             {/if}
                             {if $element.element_value.deleteURL }
                                 <br />
                             {$element.element_value.deleteURL}
-                            {/if}	
-                        </span>  
-                    {/if} 
+                            {/if}
+                        </span>
+                    {/if}
                 {elseif $element.html_type eq 'Autocomplete-Select'}
-		    {assign var="element_name" value="address[$blockId][$element_name]" }
+        {assign var="element_name" value="address[$blockId][$element_name]" }
                     {if $element.data_type eq 'ContactReference'}
                       {include file="CRM/Custom/Form/ContactReference.tpl"}
-                    {else}
-                      {include file="CRM/Custom/Form/AutoComplete.tpl"}
                     {/if}
                 {/if}
             </td>
         </tr>
-        
+
         {if $element.help_post}
 
 <td>&nbsp;</td>

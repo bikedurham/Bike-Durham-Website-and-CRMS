@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,23 +24,17 @@
  +--------------------------------------------------------------------+
 *}
 {if ! $suppressForm}
-  <form {$form.attributes} >
+<form {$form.attributes} >
+  {crmRegion name='form-top'}{/crmRegion}
 {/if}
 
-{include file="CRM/Form/body.tpl"}
+  {crmRegion name='form-body'}
+    {include file="CRM/Form/body.tpl"}
 
-{include file=$tplFile}
+    {include file=$tplFile}
+  {/crmRegion}
 
 {if ! $suppressForm}
-  </form>
-
-  {if $smarty.get.snippet neq 5}
-    {literal}
-    <script type="text/javascript" >
-      cj( function( ) {
-        cj("#{/literal}{$form.formName}{literal}").validate({ 'errorClass': 'crm-error'});
-      });
-    </script>
-    {/literal}
-  {/if}
+  {crmRegion name='form-bottom'}{/crmRegion}
+</form>
 {/if}

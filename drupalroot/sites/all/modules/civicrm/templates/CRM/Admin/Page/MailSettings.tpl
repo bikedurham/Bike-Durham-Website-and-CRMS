@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -40,7 +40,7 @@
             <th>{ts}Localpart{/ts}</th>
             <th>{ts}Domain{/ts}</th>
             <th>{ts}Return-Path{/ts}</th>
-            <th>{ts}Protocol{/ts}</th>	
+            <th>{ts}Protocol{/ts}</th>
             <th>{ts}Source{/ts}</th>
             <!--<th>{ts}Port{/ts}</th>-->
             <th>{ts}Use SSL?{/ts}</th>
@@ -49,10 +49,10 @@
         </thead>
         {foreach from=$rows item=row}
           <tr id='rowid{$row.id}' class="crm-mailSettings {cycle values="odd-row,even-row"}">
-              <td class="crm-mailSettings-name">{$row.name}</td>	
-              <td class="crm-mailSettings-server">{$row.server}</td>	
-              <td class="crm-mailSettings-username">{$row.username}</td>	
-              <td class="crm-mailSettings-localpart">{$row.localpart}</td>	
+              <td class="crm-mailSettings-name">{$row.name}</td>
+              <td class="crm-mailSettings-server">{$row.server}</td>
+              <td class="crm-mailSettings-username">{$row.username}</td>
+              <td class="crm-mailSettings-localpart">{$row.localpart}</td>
               <td class="crm-mailSettings-domain">{$row.domain}</td>
               <td class="crm-mailSettings-return_path">{$row.return_path}</td>
               <td class="crm-mailSettings-protocol">{$row.protocol}</td>
@@ -66,18 +66,16 @@
       </table>
     {/strip}
 
-    {if $action ne 1 and $action ne 2}
-      <div class="action-link">
-        <a href="{crmURL q="action=add&reset=1"}" id="newMailSettings" class="button"><span><div class="icon add-icon"></div>{ts}Add Mail Account{/ts}</span></a>
-      </div>
-    {/if}
   </div>
 </div>
 {else}
-    <div class="messages status">
-        <img src="{$config->resourceBase}i/Inform.gif" alt="{ts}status{/ts}"/>
-        {capture assign=crmURL}{crmURL p='civicrm/admin/mailSettings' q="action=add&reset=1"}{/capture}
-        {ts 1=$crmURL}There are no Mail Settings present. You can <a href='%1'>add one</a>.{/ts} 
-    </div>    
+    <div class="messages status no-popup">
+      <img src="{$config->resourceBase}i/Inform.gif" alt="{ts}status{/ts}"/>
+      {ts}None found.{/ts}
+    </div>
 {/if}
+  <div class="action-link">
+    {crmButton q="action=add&reset=1" id="newMailSettings"  icon="circle-plus"}{ts}Add Mail Account{/ts}{/crmButton}
+    {crmButton p="civicrm/admin" q="reset=1" class="cancel" icon="close"}{ts}Done{/ts}{/crmButton}
+  </div>
 {/if}

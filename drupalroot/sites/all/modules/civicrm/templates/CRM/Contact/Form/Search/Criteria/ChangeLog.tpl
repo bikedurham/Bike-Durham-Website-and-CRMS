@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,23 +24,51 @@
  +--------------------------------------------------------------------+
 *}
 <div id="changelog" class="form-item">
-   <table class="form-layout">
-     <tr>
-        <td>
-          {$form.changed_by.label}<br />
-          {$form.changed_by.html}
-        </td>
-	<td width="100%">
-	  {$form.log_date.html}<span class="crm-clear-link">(<a href="#" title="unselect" onclick="unselectRadio('log_date', '{$form.formName}'); return false;" >{ts}clear{/ts}</a>)</span><br />
-        </td>
-     </tr>
-     <tr>
-	<td>
-	   <label>{ts}Modified Between{/ts}</label>
-	</td>
-     </tr>
-     <tr>
-	{include file="CRM/Core/DateRange.tpl" fieldName="log_date" from='_low' to='_high'}
-     </tr>
-   </table>
- </div>
+  <table class="form-layout">
+    <tr>
+      <td>
+        <span class="modifiedBy"><label>{ts}Modified By{/ts}</label></span>
+        <span class="hiddenElement addedBy"><label>{ts}Added By{/ts}</label></span>
+        <br/>
+        {$form.changed_by.html}
+      </td>
+      <td width="100%">
+        {$form.log_date.html}
+        <br/>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <span class="modifiedBy"><label>{ts}Modified Between{/ts}</label></span>
+        <span class="hiddenElement addedBy"><label>{ts}Added Between{/ts}</label></span>
+      </td>
+    </tr>
+    <tr>
+      {include file="CRM/Core/DateRange.tpl" fieldName="log_date" from='_low' to='_high'}
+    </tr>
+  </table>
+</div>
+
+{literal}
+  <script type="text/javascript">
+    CRM.$(function($) {
+      function updateChangeLogLabels() {
+        var changeType = $('input[name=log_date]:checked').val();
+        if (changeType == 2) {
+          $('.addedBy').hide();
+          $('.modifiedBy').show();
+        }
+        else {
+          if (changeType == 1) {
+            $('.addedBy').show();
+            $('.modifiedBy').hide();
+          }
+        }
+      }
+      $('[name=log_date]:input').change(updateChangeLogLabels);
+      updateChangeLogLabels();
+    });
+
+
+  </script>
+{/literal}

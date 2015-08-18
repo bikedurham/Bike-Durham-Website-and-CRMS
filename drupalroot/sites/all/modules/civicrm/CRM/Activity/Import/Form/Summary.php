@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -36,13 +36,12 @@
 /**
  * This class summarizes the import results
  */
-class CRM_Activity_Import_Form_Summary extends CRM_Core_Form {
+class CRM_Activity_Import_Form_Summary extends CRM_Import_Form_Summary {
 
   /**
-   * Function to set variables up before form is built
+   * Set variables up before form is built.
    *
    * @return void
-   * @access public
    */
   public function preProcess() {
 
@@ -54,17 +53,17 @@ class CRM_Activity_Import_Form_Summary extends CRM_Core_Form {
     $totalRowCount += $relatedCount;
     $this->set('totalRowCount', $totalRowCount);
 
-    $invalidRowCount   = $this->get('invalidRowCount');
-    $conflictRowCount  = $this->get('conflictRowCount');
+    $invalidRowCount = $this->get('invalidRowCount');
+    $conflictRowCount = $this->get('conflictRowCount');
     $duplicateRowCount = $this->get('duplicateRowCount');
-    $onDuplicate       = $this->get('onDuplicate');
-    $mismatchCount     = $this->get('unMatchCount');
+    $onDuplicate = $this->get('onDuplicate');
+    $mismatchCount = $this->get('unMatchCount');
     if ($duplicateRowCount > 0) {
-      $urlParams = 'type=' . CRM_Activity_Import_Parser::DUPLICATE . '&parser=CRM_Activity_Import_Parser';
+      $urlParams = 'type=' . CRM_Import_Parser::DUPLICATE . '&parser=CRM_Activity_Import_Parser';
       $this->set('downloadDuplicateRecordsUrl', CRM_Utils_System::url('civicrm/export', $urlParams));
     }
     elseif ($mismatchCount) {
-      $urlParams = 'type=' . CRM_Activity_Import_Parser::NO_MATCH . '&parser=CRM_Activity_Import_Parser';
+      $urlParams = 'type=' . CRM_Import_Parser::NO_MATCH . '&parser=CRM_Activity_Import_Parser';
       $this->set('downloadMismatchRecordsUrl', CRM_Utils_System::url('civicrm/export', $urlParams));
     }
     else {
@@ -74,10 +73,10 @@ class CRM_Activity_Import_Form_Summary extends CRM_Core_Form {
 
     $this->assign('dupeError', FALSE);
 
-    if ($onDuplicate == CRM_Activity_Import_Parser::DUPLICATE_UPDATE) {
+    if ($onDuplicate == CRM_Import_Parser::DUPLICATE_UPDATE) {
       $dupeActionString = ts('These records have been updated with the imported data.');
     }
-    elseif ($onDuplicate == CRM_Activity_Import_Parser::DUPLICATE_FILL) {
+    elseif ($onDuplicate == CRM_Import_Parser::DUPLICATE_FILL) {
       $dupeActionString = ts('These records have been filled in with the imported data.');
     }
     else {
@@ -87,7 +86,7 @@ class CRM_Activity_Import_Form_Summary extends CRM_Core_Form {
 
       $this->assign('dupeError', TRUE);
 
-      /* only subtract dupes from succesful import if we're skipping */
+      /* only subtract dupes from successful import if we're skipping */
 
       $this->set('validRowCount', $totalRowCount - $invalidRowCount -
         $conflictRowCount - $duplicateRowCount - $mismatchCount
@@ -95,37 +94,22 @@ class CRM_Activity_Import_Form_Summary extends CRM_Core_Form {
     }
     $this->assign('dupeActionString', $dupeActionString);
 
-    $properties = array('totalRowCount', 'validRowCount', 'invalidRowCount', 'conflictRowCount', 'downloadConflictRecordsUrl', 'downloadErrorRecordsUrl', 'duplicateRowCount', 'downloadDuplicateRecordsUrl', 'downloadMismatchRecordsUrl', 'groupAdditions', 'unMatchCount');
+    $properties = array(
+      'totalRowCount',
+      'validRowCount',
+      'invalidRowCount',
+      'conflictRowCount',
+      'downloadConflictRecordsUrl',
+      'downloadErrorRecordsUrl',
+      'duplicateRowCount',
+      'downloadDuplicateRecordsUrl',
+      'downloadMismatchRecordsUrl',
+      'groupAdditions',
+      'unMatchCount',
+    );
     foreach ($properties as $property) {
       $this->assign($property, $this->get($property));
     }
   }
 
-  /**
-   * Function to actually build the form
-   *
-   * @return None
-   * @access public
-   */
-  public function buildQuickForm() {
-    $this->addButtons(array(
-        array(
-          'type' => 'next',
-          'name' => ts('Done'),
-          'isDefault' => TRUE,
-        ),
-      )
-    );
-  }
-
-  /**
-   * Return a descriptive name for the page, used in wizard header
-   *
-   * @return string
-   * @access public
-   */
-  public function getTitle() {
-    return ts('Summary');
-  }
 }
-

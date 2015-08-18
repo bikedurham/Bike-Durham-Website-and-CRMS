@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -41,48 +41,61 @@
 class CRM_Contact_Form_Edit_Household {
 
   /**
-   * This function provides the HTML form elements that are specific to the Individual Contact Type
+   * This function provides the HTML form elements that are specific.
+   * to the Household Contact Type
    *
-   * @access public
+   * @param CRM_Core_Form $form
+   *   Form object.
+   * @param int $inlineEditMode
+   *   ( 1 for contact summary.
+   * top bar form and 2 for display name edit )
    *
-   * @return None
+   * @return void
    */
-  public function buildQuickForm(&$form, $action = NULL) {
+  public static function buildQuickForm(&$form, $inlineEditMode = NULL) {
     $attributes = CRM_Core_DAO::getAttribute('CRM_Contact_DAO_Contact');
 
     $form->applyFilter('__ALL__', 'trim');
 
-    // household_name
-    $form->add('text', 'household_name', ts('Household Name'), $attributes['household_name']);
+    if (!$inlineEditMode || $inlineEditMode == 1) {
+      // household_name
+      $form->add('text', 'household_name', ts('Household Name'), $attributes['household_name']);
+    }
 
-    // nick_name
-    $form->addElement('text', 'nick_name', ts('Nick Name'), $attributes['nick_name']);
-    $form->addElement('text', 'contact_source', ts('Source'), CRM_Utils_Array::value('source', $attributes));
-    $form->add('text', 'external_identifier', ts('External Id'), $attributes['external_identifier'], FALSE);
-    $form->addRule('external_identifier',
-      ts('External ID already exists in Database.'),
-      'objectExists',
-      array('CRM_Contact_DAO_Contact', $form->_contactId, 'external_identifier')
-    );
+    if (!$inlineEditMode || $inlineEditMode == 2) {
+      // nick_name
+      $form->addElement('text', 'nick_name', ts('Nickname'), $attributes['nick_name']);
+      $form->addElement('text', 'contact_source', ts('Source'), CRM_Utils_Array::value('source', $attributes));
+    }
+
+    if (!$inlineEditMode) {
+      $form->add('text', 'external_identifier', ts('External ID'), $attributes['external_identifier'], FALSE);
+      $form->addRule('external_identifier',
+        ts('External ID already exists in Database.'),
+        'objectExists',
+        array('CRM_Contact_DAO_Contact', $form->_contactId, 'external_identifier')
+      );
+    }
   }
 
   /**
-   * add rule for household
+   * Add rule for household.
    *
-   * @params array $fields array of form values
+   * @param array $fields
+   *   Array of form values.
+   * @param array $files
+   *   Unused.
+   * @param int $contactID
    *
-   * @return $error
-   * @static
-   * @public
+   * @return array|bool
+   *   $error
    */
-  static
-  function formRule($fields, $files, $contactID = NULL) {
+  public static function formRule($fields, $files, $contactID = NULL) {
     $errors = array();
-
     $primaryID = CRM_Contact_Form_Contact::formRule($fields, $errors, $contactID);
 
     // make sure that household name is set
-    if (!CRM_Utils_Array::value('household_name', $fields)) {
+    if (empty($fields['household_name'])) {
       $errors['household_name'] = 'Household Name should be set.';
     }
 
@@ -91,5 +104,5 @@ class CRM_Contact_Form_Edit_Household {
 
     return empty($errors) ? TRUE : $errors;
   }
-}
 
+}

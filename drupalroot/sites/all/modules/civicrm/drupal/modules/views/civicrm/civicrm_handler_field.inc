@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -45,11 +45,12 @@ class civicrm_handler_field extends views_handler_field {
     $form['link_to_civicrm'] = array(
       '#title' => t('Link this field to its user'),
       '#type' => 'checkbox',
-      '#default_value' => $this->options['link_to_civicrm'],
+      '#default_value' => isset($this->options['link_to_civicrm']) ? $this->options['link_to_civicrm'] : '',
     );
   }
 
   function render_link($data, $values) {
+    $data = str_replace('', ', ', trim($data, ''));
     if (!empty($this->options['link_to_civicrm']) && user_access('access CiviCRM') && $values->id) {
       return civicrm_views_href($data,
         'civicrm/contact/view',

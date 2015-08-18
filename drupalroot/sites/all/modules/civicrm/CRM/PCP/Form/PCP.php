@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -41,18 +41,13 @@ class CRM_PCP_Form_PCP extends CRM_Core_Form {
   public $_context;
 
   /**
-   * Function to set variables up before form is built
-   *
-   * @param null
-   *
-   * @return void
-   * @access public
+   * Set variables up before form is built.
    */
   public function preProcess() {
     if ($this->_action & CRM_Core_Action::DELETE) {
       //check permission for action.
       if (!CRM_Core_Permission::checkActionPermission('CiviEvent', $this->_action)) {
-        CRM_Core_Error::fatal(ts('You do not have permission to access this page'));
+        CRM_Core_Error::fatal(ts('You do not have permission to access this page.'));
       }
 
       $this->_id = CRM_Utils_Request::retrieve('id', 'Positive', $this);
@@ -76,10 +71,9 @@ class CRM_PCP_Form_PCP extends CRM_Core_Form {
 
     $this->assign('context', $this->_context);
 
-
     $session = CRM_Core_Session::singleton();
     $context = $session->popUserContext();
-    $userID  = $session->get('userID');
+    $userID = $session->get('userID');
 
     //do not allow destructive actions without permissions
     $permission = FALSE;
@@ -97,20 +91,20 @@ class CRM_PCP_Form_PCP extends CRM_Core_Form {
       switch ($this->_action) {
         case CRM_Core_Action::DELETE:
         case 'delete':
-          CRM_PCP_BAO_PCP::delete($this->_id);
-          CRM_Core_Session::setStatus(ts("The Campaign Page '%1' has been deleted.", array(1 => $this->_title)));
+          CRM_PCP_BAO_PCP::deleteById($this->_id);
+          CRM_Core_Session::setStatus(ts("The Campaign Page '%1' has been deleted.", array(1 => $this->_title)), ts('Page Deleted'), 'success');
           break;
 
         case CRM_Core_Action::DISABLE:
         case 'disable':
           CRM_PCP_BAO_PCP::setDisable($this->_id, '0');
-          CRM_Core_Session::setStatus(ts("The Campaign Page '%1' has been disabled.", array(1 => $this->_title)));
+          CRM_Core_Session::setStatus(ts("The Campaign Page '%1' has been disabled.", array(1 => $this->_title)), ts('Page Disabled'), 'success');
           break;
 
         case CRM_Core_Action::ENABLE:
         case 'enable':
           CRM_PCP_BAO_PCP::setDisable($this->_id, '1');
-          CRM_Core_Session::setStatus(ts("The Campaign Page '%1' has been enabled.", array(1 => $this->_title)));
+          CRM_Core_Session::setStatus(ts("The Campaign Page '%1' has been enabled.", array(1 => $this->_title)), ts('Page Enabled'), 'success');
           break;
       }
 
@@ -121,15 +115,13 @@ class CRM_PCP_Form_PCP extends CRM_Core_Form {
   }
 
   /**
-   * This function sets the default values for the form. Note that in edit/view mode
+   * Set default values for the form. Note that in edit/view mode
    * the default values are retrieved from the database
    *
-   * @param null
-   *
-   * @return array   array of default values
-   * @access public
+   * @return array
+   *   array of default values
    */
-  function setDefaultValues() {
+  public function setDefaultValues() {
     $defaults = array();
 
     $pageType = CRM_Utils_Request::retrieve('page_type', 'String', $this);
@@ -139,12 +131,7 @@ class CRM_PCP_Form_PCP extends CRM_Core_Form {
   }
 
   /**
-   * Function to actually build the form
-   *
-   * @param null
-   *
-   * @return void
-   * @access public
+   * Build the form object.
    */
   public function buildQuickForm() {
     if ($this->_action & CRM_Core_Action::DELETE) {
@@ -163,10 +150,14 @@ class CRM_PCP_Form_PCP extends CRM_Core_Form {
     }
     else {
 
-      $status       = array('' => ts('- select -')) + CRM_PCP_PseudoConstant::pcpStatus();
-      $types        = array('' => ts('- select -')) + CRM_PCP_PseudoConstant::pcpType();
+      $status = array('' => ts('- select -')) + CRM_Core_OptionGroup::values("pcp_status");
+      $types = array(
+        '' => ts('- select -'),
+        'contribute' => ts('Contribution'),
+        'event' => ts('Event'),
+      );
       $contribPages = array('' => ts('- select -')) + CRM_Contribute_PseudoConstant::contributionPage();
-      $eventPages   = array('' => ts('- select -')) + CRM_Event_PseudoConstant::event(NULL, FALSE, "( is_template IS NULL OR is_template != 1 )");
+      $eventPages = array('' => ts('- select -')) + CRM_Event_PseudoConstant::event(NULL, FALSE, "( is_template IS NULL OR is_template != 1 )");
 
       $this->addElement('select', 'status_id', ts('Status'), $status);
       $this->addElement('select', 'page_type', ts('Source Type'), $types);
@@ -186,29 +177,27 @@ class CRM_PCP_Form_PCP extends CRM_Core_Form {
   }
 
   /**
-   * global validation rules for the form
+   * Global validation rules for the form.
    *
-   * @param array $fields posted values of the form
+   * @param array $fields
+   *   Posted values of the form.
+   * @param array $files
+   * @param CRM_Core_Form $form
    *
-   * @return array list of errors to be posted back to the form
-   * @static
-   * @access public
+   * @return array|NULL
+   *   list of errors to be posted back to the form
    */
-  static
-  function formRule($fields, $files, $form) {}
+  public static function formRule($fields, $files, $form) {
+    return NULL;
+  }
 
   /**
-   * Process the form
-   *
-   * @param null
-   *
-   * @return void
-   * @access public
+   * Process the form.
    */
   public function postProcess() {
     if ($this->_action & CRM_Core_Action::DELETE) {
-      CRM_PCP_BAO_PCP::delete($this->_id);
-      CRM_Core_Session::setStatus(ts("The Campaign Page '%1' has been deleted.", array(1 => $this->_title)));
+      CRM_PCP_BAO_PCP::deleteById($this->_id);
+      CRM_Core_Session::setStatus(ts("The Campaign Page '%1' has been deleted.", array(1 => $this->_title)), ts('Page Deleted'), 'success');
     }
     else {
       $params = $this->controller->exportValues($this->_name);
@@ -229,5 +218,5 @@ class CRM_PCP_Form_PCP extends CRM_Core_Form {
       }
     }
   }
-}
 
+}

@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -26,9 +26,9 @@
 {* Confirmation of Cancel Registration *}
 <div class="crm-block crm-form-block crm-event-cancel-form-block">
 <div class="crm-submit-buttons">
-  {include file="CRM/common/formButtons.tpl" location="top"} 
+  {include file="CRM/common/formButtons.tpl" location="top"}
 </div>
-<div class="messages status">
+<div class="messages status no-popup">
   <div class="icon inform-icon"></div>
   <div>
       <p>{ts}Are you sure you want to set status to Cancelled for the selected participants?{/ts}</p>
@@ -37,6 +37,6 @@
 </div>
 
 <div class="crm-submit-buttons">
-  {include file="CRM/common/formButtons.tpl" location="bottom"} 
+  {include file="CRM/common/formButtons.tpl" location="bottom"}
 </div>
 </div>

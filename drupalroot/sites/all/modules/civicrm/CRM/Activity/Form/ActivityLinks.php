@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -39,7 +39,17 @@
  */
 class CRM_Activity_Form_ActivityLinks extends CRM_Core_Form {
   public function buildQuickForm() {
-    $contactId = CRM_Utils_Request::retrieve('cid', 'Positive', $this);
+    self::commonBuildQuickForm($this);
+  }
+
+  /**
+   * @param $self
+   */
+  public static function commonBuildQuickForm($self) {
+    $contactId = CRM_Utils_Request::retrieve('cid', 'Positive', $self);
+    if (!$contactId) {
+      $contactId = CRM_Utils_Request::retrieve('cid', 'Positive', CRM_Core_DAO::$_nullObject, FALSE, NULL, $_REQUEST);
+    }
     $urlParams = "action=add&reset=1&cid={$contactId}&selectedChild=activity&atype=";
 
     $activityTypes = $urls = array();
@@ -57,7 +67,7 @@ class CRM_Activity_Form_ActivityLinks extends CRM_Core_Form {
       'Text Message (SMS)',
       'label'
     );
-   
+
     if (CRM_Utils_Mail::validOutBoundMail() && $contactId) {
       list($name, $email, $doNotEmail, $onHold, $isDeseased) = CRM_Contact_BAO_Contact::getContactDetails($contactId);
       if (!$doNotEmail && $email && !$isDeseased) {
@@ -66,28 +76,31 @@ class CRM_Activity_Form_ActivityLinks extends CRM_Core_Form {
     }
 
     if ($contactId && CRM_SMS_BAO_Provider::activeProviderCount()) {
-      list($name, $phone, $doNotSMS) = CRM_Contact_BAO_Contact_Location::getPhoneDetails($contactId);
+      // Check for existence of a mobile phone and ! do not SMS privacy setting
+      $mobileTypeID = CRM_Core_OptionGroup::getValue('phone_type', 'Mobile', 'name');
+      list($name, $phone, $doNotSMS) = CRM_Contact_BAO_Contact_Location::getPhoneDetails($contactId, $mobileTypeID);
+
       if (!$doNotSMS && $phone) {
-        $sendSMS = array($SMSId  => ts('Send SMS'));
+        $sendSMS = array($SMSId => ts('Send SMS'));
         $activityTypes += $sendSMS;
       }
     }
     // this returns activity types sorted by weight
     $otherTypes = CRM_Core_PseudoConstant::activityType(FALSE);
-    
+
     $activityTypes += $otherTypes;
-   
+
     foreach (array_keys($activityTypes) as $typeId) {
       if ($typeId == $emailTypeId) {
         $urls[$typeId] = CRM_Utils_System::url('civicrm/activity/email/add',
           "{$urlParams}{$typeId}", FALSE, NULL, FALSE
         );
       }
-       elseif ($typeId == $SMSId) {
+      elseif ($typeId == $SMSId) {
         $urls[$typeId] = CRM_Utils_System::url('civicrm/activity/sms/add',
           "{$urlParams}{$typeId}", FALSE, NULL, FALSE
         );
-        }
+      }
       elseif ($typeId == $letterTypeId) {
         $urls[$typeId] = CRM_Utils_System::url('civicrm/activity/pdf/add',
           "{$urlParams}{$typeId}", FALSE, NULL, FALSE
@@ -100,10 +113,10 @@ class CRM_Activity_Form_ActivityLinks extends CRM_Core_Form {
       }
     }
 
-    $this->assign('activityTypes', $activityTypes);
-    $this->assign('urls', $urls);
+    $self->assign('activityTypes', $activityTypes);
+    $self->assign('urls', $urls);
 
-    $this->assign('suppressForm', TRUE);
+    $self->assign('suppressForm', TRUE);
   }
-}
 
+}

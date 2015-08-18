@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -38,25 +38,25 @@
             <td class="html-adjust">{$form.dst_html_type.html}</td>
         </tr>
     </table>
-<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>	
+<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
 </div>
 {literal}
 <script type="text/Javascript">
-  var srcHtmlType = '{/literal}{$srcHtmlType}{literal}';
-  var singleValOps = new Array('Text', 'Select', 'Radio', 'Autocomplete-Select');
-  var multiValOps  = new Array('CheckBox', 'Multi-Select', 'AdvMulti-Select');
   function checkCustomDataField( ) {
+    var srcHtmlType = '{/literal}{$srcHtmlType}{literal}';
+    var singleValOps = ['Text', 'Select', 'Radio', 'Autocomplete-Select'];
+    var multiValOps  = ['CheckBox', 'Multi-Select', 'AdvMulti-Select'];
     var dstHtmlType = cj('#dst_html_type').val( );
     if ( !dstHtmlType ) {
-      return true;	   
+      return true;
     }
-    
+
     if ( ( cj.inArray(srcHtmlType, multiValOps) > -1 ) &&
          ( cj.inArray(dstHtmlType, singleValOps) > -1 ) ) {
-	  return confirm( "{/literal}{ts}Changing a 'multi option' html type to a 'single option' html type, might results in a data loss. Please consider to take db backup before change the html type. Click 'Ok' to continue.{/ts}{literal}" );
+    return confirm( "{/literal}{ts escape='js'}Changing a 'multi option' html type to a 'single option' html type, might results in a data loss. Please consider to take db backup before change the html type. Click 'Ok' to continue.{/ts}{literal}" );
     }
     return true;
   }
 </script>
 {/literal}
- 
+

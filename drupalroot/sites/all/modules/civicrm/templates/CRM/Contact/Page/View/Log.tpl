@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,10 +28,10 @@
    <div class="bold">{ts}Change Log:{/ts} {$displayName}</div>
    {if $useLogging}
      <br />
-     <div class='hiddenElement' id='instance_data'> </div>
+     <div class='instance_data'><div class="crm-loading-element"></div></div>
    {else}
     <div class="form-item">
-     {if $logCount > 0 }  	
+     {if $logCount > 0 }
        <table>
        <tr class="columnheader"><th>{ts}Changed By{/ts}</th><th>{ts}Change Date{/ts}</th></tr>
        {foreach from=$log item=row}
@@ -42,10 +42,10 @@
        {/foreach}
        </table>
      {else}
-     <div class="messages status">	
+     <div class="messages status no-popup">
       <div class="icon inform-icon"></div> &nbsp;
-      {ts}No modifications have been logged for this contact.{/ts}
-     </div>	
+      {ts}None found.{/ts}
+     </div>
      {/if}
     </div>
    {/if}
@@ -55,15 +55,22 @@
 {if $useLogging}
 {literal}
   <script type="text/javascript">
-  cj( document ).ready( function ( ) {
-    var dataURL = {/literal}"{$instanceUrl}"{literal};
-    cj.ajax({
-      url: dataURL,
-      success: function( content ) {
-        cj('#instance_data').show( ).html( content );
-      }
+  CRM.$(function($) {
+    $('#changeLog .instance_data').on('crmLoad', function(e, data) {
+      CRM.tabHeader.updateCount('#tab_log', data.totalRows);
     });
+    CRM.reloadChangeLogTab = function(url) {
+      if (url) {
+        $('#changeLog .instance_data').crmSnippet({url: url});
+      }
+      $('#changeLog .instance_data').crmSnippet('refresh');
+    };
+    CRM.incrementChangeLogTab = function() {
+      CRM.tabHeader.updateCount('#tab_log', 1 + CRM.tabHeader.getCount('#tab_log'));
+    };
+    CRM.reloadChangeLogTab({/literal}"{$instanceUrl}"{literal});
   });
-</script>
+
+  </script>
 {/literal}
 {/if}

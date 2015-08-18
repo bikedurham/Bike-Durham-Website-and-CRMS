@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -43,24 +43,27 @@ class CRM_Contribute_Page_DashBoard extends CRM_Core_Page {
    * the contact and calls the appropriate type of page to view.
    *
    * @return void
-   * @access public
-   *
    */
-  function preProcess() {
+  public function preProcess() {
     CRM_Utils_System::setTitle(ts('CiviContribute'));
 
-    $status      = array('Valid', 'Cancelled');
-    $prefixes    = array('start', 'month', 'year');
-    $startDate   = NULL;
+    $status = array('Valid', 'Cancelled');
+    $prefixes = array('start', 'month', 'year');
+    $startDate = NULL;
     $startToDate = $monthToDate = $yearToDate = array();
 
     //get contribution dates.
     $dates = CRM_Contribute_BAO_Contribution::getContributionDates();
     foreach (array(
-      'now', 'yearDate', 'monthDate') as $date) {
+               'now',
+               'yearDate',
+               'monthDate',
+             ) as $date) {
       $$date = $dates[$date];
     }
-    $yearNow = $yearDate + 10000;
+    // fiscal years end date
+    $yearNow = date('Ymd', strtotime('+1 year -1 day', strtotime($yearDate)));
+
     foreach ($prefixes as $prefix) {
       $aName = $prefix . 'ToDate';
       $dName = $prefix . 'Date';
@@ -69,8 +72,12 @@ class CRM_Contribute_Page_DashBoard extends CRM_Core_Page {
         $now = $yearNow;
       }
 
+      // appending end date i.e $now with time
+      // to also calculate records of end date till mid-night
+      $nowWithTime = $now . '235959';
+
       foreach ($status as $s) {
-        ${$aName}[$s] = CRM_Contribute_BAO_Contribution::getTotalAmountAndCount($s, $$dName, $now);
+        ${$aName}[$s] = CRM_Contribute_BAO_Contribution::getTotalAmountAndCount($s, $$dName, $nowWithTime);
         ${$aName}[$s]['url'] = CRM_Utils_System::url('civicrm/contribute/search',
           "reset=1&force=1&status=1&start={$$dName}&end=$now&test=0"
         );
@@ -95,13 +102,12 @@ class CRM_Contribute_Page_DashBoard extends CRM_Core_Page {
   }
 
   /**
-   * This function is the main function that is called when the page loads,
+   * the main function that is called when the page loads,
    * it decides the which action has to be taken for the page.
    *
-   * return null
-   * @access public
+   * @return null
    */
-  function run() {
+  public function run() {
     $this->preProcess();
 
     $controller = new CRM_Core_Controller_Simple('CRM_Contribute_Form_Search',
@@ -121,8 +127,10 @@ class CRM_Contribute_Page_DashBoard extends CRM_Core_Page {
     $chartForm->setEmbedded(TRUE);
     $chartForm->process();
     $chartForm->run();
+    CRM_Core_Resources::singleton()
+      ->addScriptFile('civicrm', 'templates/CRM/Contribute/Page/DashBoard.js', 1, 'html-header');
 
     return parent::run();
   }
-}
 
+}

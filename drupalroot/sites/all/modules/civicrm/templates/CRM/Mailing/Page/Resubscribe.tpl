@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,7 +24,7 @@
  +--------------------------------------------------------------------+
 *}
 {if $confirm}
-<div class="messages status">
+<div class="messages status no-popup">
       <div class="icon inform-icon"></div>&nbsp;
       <label>{$display_name} ({$email})</label> {ts}has been successfully resubscribed.{/ts}
 </div>
@@ -34,9 +34,9 @@
 {ts 1=$display_name 2=$email}Are you sure you want to resubscribe: %1 (%2){/ts}
 <br/>
 <center>
-<input type="submit" name="_qf_resubscribe_next" value="{ts}Resubscribe{/ts}" class="form-submit" />
+<input type="submit" name="_qf_resubscribe_next" value="{ts}Resubscribe{/ts}" class="crm-form-submit" />
 &nbsp;&nbsp;&nbsp;
-<input type="submit" name="_qf_resubscribe_cancel" value="{ts}Cancel{/ts}" class="form-submit" />
+<input type="submit" name="_qf_resubscribe_cancel" value="{ts}Cancel{/ts}" class="crm-form-submit" />
 </center>
 </form>
 </div>

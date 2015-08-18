@@ -1,10 +1,9 @@
 <?php
-
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -42,37 +41,56 @@
 class CRM_Mailing_Page_Event extends CRM_Core_Page {
 
   /**
-   * all the fields that are listings related
+   * All the fields that are listings related.
    *
    * @var array
-   * @access protected
    */
   protected $_fields;
 
   /**
-   * run this page (figure out the action needed and perform it).
+   * Run this page (figure out the action needed and perform it).
    *
    * @return void
-   */ function run() {
+   */
+  public function run() {
     $selector = &new CRM_Mailing_Selector_Event(
-      CRM_Utils_Request::retrieve('event', 'String',
-        $this
-      ),
-      CRM_Utils_Request::retrieve('distinct', 'Boolean',
-        $this
-      ),
-      CRM_Utils_Request::retrieve('mid', 'Positive',
-        $this
-      ),
-      CRM_Utils_Request::retrieve('jid', 'Positive',
-        $this
-      ),
-      CRM_Utils_Request::retrieve('uid', 'Positive',
-        $this
-      )
+      CRM_Utils_Request::retrieve('event', 'String', $this),
+      CRM_Utils_Request::retrieve('distinct', 'Boolean', $this),
+      CRM_Utils_Request::retrieve('mid', 'Positive', $this),
+      CRM_Utils_Request::retrieve('jid', 'Positive', $this),
+      CRM_Utils_Request::retrieve('uid', 'Positive', $this)
     );
 
     $mailing_id = CRM_Utils_Request::retrieve('mid', 'Positive', $this);
+
+    //assign backurl
+    $context = CRM_Utils_Request::retrieve('context', 'String', $this);
+
+    if ($context == 'activitySelector') {
+      $cid = CRM_Utils_Request::retrieve('cid', 'Positive', $this);
+      $backUrl = CRM_Utils_System::url('civicrm/contact/view', "reset=1&cid={$cid}&selectedChild=activity");
+      $backUrlTitle = ts('Back to Activities');
+    }
+    elseif ($context == 'mailing') {
+      $cid = CRM_Utils_Request::retrieve('cid', 'Positive', $this);
+      $backUrl = CRM_Utils_System::url('civicrm/contact/view', "reset=1&cid={$cid}&selectedChild=mailing");
+      $backUrlTitle = ts('Back to Mailing');
+    }
+    elseif ($context == 'angPage') {
+      $angPage = CRM_Utils_Request::retrieve('angPage', 'String', $this);
+      if (!preg_match(':^[a-zA-Z0-9\-_/]+$:', $angPage)) {
+        CRM_Core_Error::fatal('Malformed return URL');
+      }
+      $backUrl = CRM_Utils_System::url('civicrm/a/#/' . $angPage);
+      $backUrlTitle = ts('Back to Report');
+    }
+    else {
+      $backUrl = CRM_Utils_System::url('civicrm/mailing/report', "reset=1&mid={$mailing_id}");
+      $backUrlTitle = ts('Back to Report');
+    }
+
+    $this->assign('backUrl', $backUrl);
+    $this->assign('backUrlTitle', $backUrlTitle);
 
     CRM_Utils_System::setTitle($selector->getTitle());
     $this->assign('title', $selector->getTitle());
@@ -99,5 +117,5 @@ class CRM_Mailing_Page_Event extends CRM_Core_Page {
 
     return parent::run();
   }
-}
 
+}

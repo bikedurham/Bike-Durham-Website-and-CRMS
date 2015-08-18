@@ -1,11 +1,9 @@
 <?php
-// $Id$
-
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -44,76 +42,168 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
     '' => 'Tabular',
     'barChart' => 'Bar Chart',
     'pieChart' => 'Pie Chart',
-  ); function __construct() {
+  );
+
+  protected $_customGroupExtends = array(
+    'Contact',
+    'Individual',
+    'Contribution',
+  );
+
+  public $_drilldownReport = array('contribute/detail' => 'Link to Detail Report');
+
+  /**
+   */
+  public function __construct() {
+
+    // Check if CiviCampaign is a) enabled and b) has active campaigns
+    $config = CRM_Core_Config::singleton();
+    $campaignEnabled = in_array("CiviCampaign", $config->enableComponents);
+    if ($campaignEnabled) {
+      $getCampaigns = CRM_Campaign_BAO_Campaign::getPermissionedCampaigns(NULL, NULL, TRUE, FALSE, TRUE);
+      $this->activeCampaigns = $getCampaigns['campaigns'];
+      asort($this->activeCampaigns);
+    }
+
     $this->_columns = array(
-      'civicrm_contact' =>
-      array(
+      'civicrm_contact' => array(
         'dao' => 'CRM_Contact_DAO_Contact',
-        'fields' =>
-        array(
-          'display_name_creditor' =>
-          array('title' => ts('Soft Credit Name'),
+        'fields' => array(
+          'display_name_creditor' => array(
+            'title' => ts('Soft Credit Name'),
             'name' => 'sort_name',
             'alias' => 'contact_civireport',
             'required' => TRUE,
             'no_repeat' => TRUE,
           ),
-          'id_creditor' =>
-          array('title' => ts('Soft Credit Id'),
+          'id_creditor' => array(
+            'title' => ts('Soft Credit Id'),
             'name' => 'id',
             'alias' => 'contact_civireport',
             'no_display' => TRUE,
             'required' => TRUE,
           ),
-          'display_name_constituent' =>
-          array('title' => ts('Contributor Name'),
+          'display_name_constituent' => array(
+            'title' => ts('Contributor Name'),
             'name' => 'sort_name',
             'alias' => 'constituentname',
             'required' => TRUE,
           ),
-          'id_constituent' =>
-          array('title' => ts('Const Id'),
+          'id_constituent' => array(
+            'title' => ts('Const Id'),
             'name' => 'id',
             'alias' => 'constituentname',
             'no_display' => TRUE,
             'required' => TRUE,
           ),
+          'first_name' => array(
+            'title' => ts('First Name'),
+          ),
+          'middle_name' => array(
+            'title' => ts('Middle Name'),
+          ),
+          'last_name' => array(
+            'title' => ts('Last Name'),
+          ),
+          'gender_id' => array(
+            'title' => ts('Gender'),
+          ),
+          'birth_date' => array(
+            'title' => ts('Birth Date'),
+          ),
+          'age' => array(
+            'title' => ts('Age'),
+            'dbAlias' => 'TIMESTAMPDIFF(YEAR, contact_civireport.birth_date, CURDATE())',
+          ),
+          'contact_type' => array(
+            'title' => ts('Contact Type'),
+          ),
+          'contact_sub_type' => array(
+            'title' => ts('Contact Subtype'),
+          ),
         ),
         'grouping' => 'contact-fields',
+        'order_bys' => array(
+          'sort_name' => array(
+            'title' => ts('Last Name, First Name'),
+            'default' => '1',
+            'default_weight' => '0',
+            'default_order' => 'ASC',
+          ),
+          'first_name' => array(
+            'name' => 'first_name',
+            'title' => ts('First Name'),
+          ),
+          'gender_id' => array(
+            'name' => 'gender_id',
+            'title' => ts('Gender'),
+          ),
+          'birth_date' => array(
+            'name' => 'birth_date',
+            'title' => ts('Birth Date'),
+          ),
+          'age_at_event' => array(
+            'name' => 'age_at_event',
+            'title' => ts('Age at Event'),
+          ),
+          'contact_type' => array(
+            'title' => ts('Contact Type'),
+          ),
+          'contact_sub_type' => array(
+            'title' => ts('Contact Subtype'),
+          ),
+        ),
+        'filters' => array(
+          'sort_name' => array(
+            'name' => 'sort_name',
+            'title' => ts('Soft Credit Name'),
+          ),
+          'gender_id' => array(
+            'title' => ts('Gender'),
+            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+            'options' => CRM_Core_PseudoConstant::get('CRM_Contact_DAO_Contact', 'gender_id'),
+          ),
+          'birth_date' => array(
+            'title' => ts('Birth Date'),
+            'operatorType' => CRM_Report_Form::OP_DATE,
+          ),
+          'contact_type' => array(
+            'title' => ts('Contact Type'),
+          ),
+          'contact_sub_type' => array(
+            'title' => ts('Contact Subtype'),
+          ),
+        ),
       ),
-      'civicrm_email' =>
-      array(
+      'civicrm_email' => array(
         'dao' => 'CRM_Core_DAO_Email',
-        'fields' =>
-        array(
-          'email_creditor' =>
-          array('title' => ts('Soft Credit Email'),
+        'fields' => array(
+          'email_creditor' => array(
+            'title' => ts('Soft Credit Email'),
             'name' => 'email',
             'alias' => 'emailcredit',
             'default' => TRUE,
             'no_repeat' => TRUE,
           ),
-          'email_constituent' =>
-          array('title' => ts('Contributor\'s Email'),
+          'email_constituent' => array(
+            'title' => ts('Contributor\'s Email'),
             'name' => 'email',
             'alias' => 'emailconst',
           ),
         ),
         'grouping' => 'contact-fields',
       ),
-      'civicrm_phone' =>
-      array(
+      'civicrm_phone' => array(
         'dao' => 'CRM_Core_DAO_Phone',
-        'fields' =>
-        array(
-          'phone_creditor' =>
-          array('title' => ts('Soft Credit Phone'),
+        'fields' => array(
+          'phone_creditor' => array(
+            'title' => ts('Soft Credit Phone'),
             'name' => 'phone',
             'alias' => 'pcredit',
             'default' => TRUE,
           ),
-          'phone_constituent' =>
-          array('title' => ts('Contributor\'s Phone'),
+          'phone_constituent' => array(
+            'title' => ts('Contributor\'s Phone'),
             'name' => 'phone',
             'alias' => 'pconst',
             'no_repeat' => TRUE,
@@ -121,109 +211,117 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
         ),
         'grouping' => 'contact-fields',
       ),
-      'civicrm_contribution_type' =>
-      array(
-        'dao' => 'CRM_Contribute_DAO_ContributionType',
-        'fields' =>
-        array(
-          'contribution_type' => NULL,
-        ),
-        'filters' =>
-        array(
-          'id' =>
-          array(
+      'civicrm_financial_type' => array(
+        'dao' => 'CRM_Financial_DAO_FinancialType',
+        'fields' => array('financial_type' => NULL),
+        'filters' => array(
+          'id' => array(
             'name' => 'id',
-            'title' => ts('Contribution Type'),
+            'title' => ts('Financial Type'),
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
-            'options' => CRM_Contribute_PseudoConstant::contributionType(),
+            'options' => CRM_Contribute_PseudoConstant::financialType(),
           ),
         ),
         'grouping' => 'softcredit-fields',
       ),
-      'civicrm_contribution' =>
-      array(
+      'civicrm_contribution' => array(
         'dao' => 'CRM_Contribute_DAO_Contribution',
-        'fields' =>
-        array(
+        'fields' => array(
           'contribution_source' => NULL,
-          'total_amount' =>
-          array('title' => ts('Amount Statistics'),
+          'currency' => array(
+            'required' => TRUE,
+            'no_display' => TRUE,
+          ),
+          'total_amount' => array(
+            'title' => ts('Amount Statistics'),
             'default' => TRUE,
-            'statistics' =>
-            array('sum' => ts('Aggregate Amount'),
-              'count' => ts('Donations'),
+            'statistics' => array(
+              'sum' => ts('Aggregate Amount'),
+              'count' => ts('Contributions'),
               'avg' => ts('Average'),
             ),
           ),
         ),
         'grouping' => 'softcredit-fields',
-        'filters' =>
-        array(
-          'receive_date' =>
-          array('operatorType' => CRM_Report_Form::OP_DATE),
-          'contribution_status_id' =>
-          array('title' => ts('Donation Status'),
+        'filters' => array(
+          'receive_date' => array('operatorType' => CRM_Report_Form::OP_DATE),
+          'currency' => array(
+            'title' => 'Currency',
+            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+            'options' => CRM_Core_OptionGroup::values('currencies_enabled'),
+            'default' => NULL,
+            'type' => CRM_Utils_Type::T_STRING,
+          ),
+          'contribution_status_id' => array(
+            'title' => ts('Contribution Status'),
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
             'options' => CRM_Contribute_PseudoConstant::contributionStatus(),
             'default' => array(1),
           ),
-          'total_amount' =>
-          array('title' => ts('Donation Amount'),
+          'total_amount' => array(
+            'title' => ts('Contribution Amount'),
           ),
         ),
       ),
-      'civicrm_contribution_soft' =>
-      array(
+      'civicrm_contribution_soft' => array(
         'dao' => 'CRM_Contribute_DAO_ContributionSoft',
-        'fields' =>
-        array(
-          'contribution_id' =>
-          array('title' => ts('Contribution ID'),
+        'fields' => array(
+          'contribution_id' => array(
+            'title' => ts('Contribution ID'),
             'no_display' => TRUE,
             'default' => TRUE,
           ),
-          'id' =>
-          array(
+          'id' => array(
             'default' => TRUE,
             'no_display' => TRUE,
+          ),
+          'soft_credit_type_id' => array('title' => ts('Soft Credit Type')),
+        ),
+        'filters' => array(
+          'soft_credit_type_id' => array(
+            'title' => 'Soft Credit Type',
+            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+            'options' => CRM_Core_OptionGroup::values('soft_credit_type'),
+            'default' => NULL,
+            'type' => CRM_Utils_Type::T_STRING,
           ),
         ),
         'grouping' => 'softcredit-fields',
       ),
-      'civicrm_group' =>
-      array(
-        'dao' => 'CRM_Contact_DAO_GroupContact',
-        'alias' => 'cgroup',
-        'filters' =>
-        array(
-          'gid' =>
-          array(
-            'name' => 'group_id',
-            'title' => ts('Soft Credit Group'),
-            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
-            'group' => TRUE,
-            'options' => CRM_Core_PseudoConstant::group(),
-          ),
-        ),
-      ),
     );
 
+    // If we have a campaign, build out the relevant elements
+    if ($campaignEnabled && !empty($this->activeCampaigns)) {
+      $this->_columns['civicrm_contribution']['fields']['campaign_id'] = array(
+        'title' => ts('Campaign'),
+        'default' => 'false',
+      );
+      $this->_columns['civicrm_contribution']['filters']['campaign_id'] = array(
+        'title' => ts('Campaign'),
+        'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+        'options' => $this->activeCampaigns,
+      );
+    }
+
+    $this->_groupFilter = TRUE;
     $this->_tagFilter = TRUE;
+
+    $this->_currencyColumn = 'civicrm_contribution_currency';
     parent::__construct();
   }
 
-  function preProcess() {
+  public function preProcess() {
     parent::preProcess();
   }
 
-  function select() {
+  public function select() {
     $select = array();
     $this->_columnHeaders = array();
     foreach ($this->_columns as $tableName => $table) {
       if (array_key_exists('fields', $table)) {
         foreach ($table['fields'] as $fieldName => $field) {
-          if (CRM_Utils_Array::value('required', $field) ||
-            CRM_Utils_Array::value($fieldName, $this->_params['fields'])
+          if (!empty($field['required']) ||
+            !empty($this->_params['fields'][$fieldName])
           ) {
 
             // include email column if set
@@ -245,7 +343,7 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
             }
 
             // only include statistics columns if set
-            if (CRM_Utils_Array::value('statistics', $field)) {
+            if (!empty($field['statistics'])) {
               foreach ($field['statistics'] as $stat => $label) {
                 switch (strtolower($stat)) {
                   case 'sum':
@@ -281,41 +379,47 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
       }
     }
 
-    $this->_select = "SELECT " . implode(', ', $select) . " ";
+    $this->_select = 'SELECT ' . implode(', ', $select) . ' ';
   }
 
-  static
-  function formRule($fields, $files, $self) {
+  /**
+   * @param $fields
+   * @param $files
+   * @param $self
+   *
+   * @return array
+   */
+  public static function formRule($fields, $files, $self) {
     $errors = $grouping = array();
     return $errors;
   }
 
-  function from() {
+  public function from() {
     $alias_constituent = 'constituentname';
-    $alias_creditor    = 'contact_civireport';
-    $this->_from       = "
+    $alias_creditor = 'contact_civireport';
+    $this->_from = "
         FROM  civicrm_contribution {$this->_aliases['civicrm_contribution']}
-              INNER JOIN civicrm_contribution_soft {$this->_aliases['civicrm_contribution_soft']} 
-                         ON {$this->_aliases['civicrm_contribution_soft']}.contribution_id = 
+              INNER JOIN civicrm_contribution_soft {$this->_aliases['civicrm_contribution_soft']}
+                         ON {$this->_aliases['civicrm_contribution_soft']}.contribution_id =
                             {$this->_aliases['civicrm_contribution']}.id
-              INNER JOIN civicrm_contact {$alias_constituent} 
-                         ON {$this->_aliases['civicrm_contribution']}.contact_id = 
+              INNER JOIN civicrm_contact {$alias_constituent}
+                         ON {$this->_aliases['civicrm_contribution']}.contact_id =
                             {$alias_constituent}.id
-              LEFT  JOIN civicrm_contribution_type  {$this->_aliases['civicrm_contribution_type']} 
-                         ON {$this->_aliases['civicrm_contribution']}.contribution_type_id = 
-                            {$this->_aliases['civicrm_contribution_type']}.id
+              LEFT  JOIN civicrm_financial_type  {$this->_aliases['civicrm_financial_type']}
+                         ON {$this->_aliases['civicrm_contribution']}.financial_type_id =
+                            {$this->_aliases['civicrm_financial_type']}.id
               LEFT  JOIN civicrm_contact {$alias_creditor}
-                         ON {$this->_aliases['civicrm_contribution_soft']}.contact_id = 
-                            {$alias_creditor}.id 
+                         ON {$this->_aliases['civicrm_contribution_soft']}.contact_id =
+                            {$alias_creditor}.id
               {$this->_aclFrom} ";
 
     // include Constituent email field if email column is to be included
     if ($this->_emailField) {
       $alias = 'emailconst';
       $this->_from .= "
-            LEFT JOIN civicrm_email {$alias} 
-                      ON {$alias_constituent}.id = 
-                         {$alias}.contact_id   AND 
+            LEFT JOIN civicrm_email {$alias}
+                      ON {$alias_constituent}.id =
+                         {$alias}.contact_id   AND
                          {$alias}.is_primary = 1\n";
     }
 
@@ -323,9 +427,9 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
     if ($this->_emailFieldCredit) {
       $alias = 'emailcredit';
       $this->_from .= "
-            LEFT JOIN civicrm_email {$alias} 
-                      ON {$alias_creditor}.id = 
-                         {$alias}.contact_id  AND 
+            LEFT JOIN civicrm_email {$alias}
+                      ON {$alias_creditor}.id =
+                         {$alias}.contact_id  AND
                          {$alias}.is_primary = 1\n";
     }
 
@@ -333,8 +437,8 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
     if ($this->_phoneField) {
       $alias = 'pconst';
       $this->_from .= "
-            LEFT JOIN civicrm_phone {$alias} 
-                      ON {$alias_constituent}.id = 
+            LEFT JOIN civicrm_phone {$alias}
+                      ON {$alias_constituent}.id =
                          {$alias}.contact_id  AND
                          {$alias}.is_primary = 1\n";
     }
@@ -344,72 +448,77 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
       $alias = 'pcredit';
       $this->_from .= "
             LEFT JOIN civicrm_phone pcredit
-                      ON {$alias_creditor}.id = 
-                         {$alias}.contact_id  AND 
+                      ON {$alias_creditor}.id =
+                         {$alias}.contact_id  AND
                          {$alias}.is_primary = 1\n";
     }
   }
 
-  function groupBy() {
-    $alias_constituent = 'constituentname';
-    $alias_creditor    = 'contact_civireport';
-    $this->_groupBy    = "GROUP BY {$this->_aliases['civicrm_contribution_soft']}.contact_id,
-                                       {$alias_constituent}.id, 
-                                       {$alias_creditor}.display_name";
+  public function groupBy() {
+    $this->_rollup = 'WITH ROLLUP';
+    $this->_groupBy = "
+GROUP BY {$this->_aliases['civicrm_contribution_soft']}.contact_id, constituentname.id {$this->_rollup}";
   }
 
-  function orderBy() {
-    $alias_constituent = 'constituentname';
-    $alias_creditor    = 'contact_civireport';
-    $this->_orderBy    = "ORDER BY {$alias_constituent}.sort_name, {$this->_aliases['civicrm_contribution_soft']}.contact_id,
-                                       {$alias_creditor}.sort_name, {$alias_creditor}.id ";
-  }
-
-  function where() {
+  public function where() {
     parent::where();
     $this->_where .= " AND {$this->_aliases['civicrm_contribution']}.is_test = 0 ";
   }
 
-  function statistics(&$rows) {
+  /**
+   * @param $rows
+   *
+   * @return array
+   */
+  public function statistics(&$rows) {
     $statistics = parent::statistics($rows);
 
     $select = "
         SELECT COUNT({$this->_aliases['civicrm_contribution']}.total_amount ) as count,
                SUM({$this->_aliases['civicrm_contribution']}.total_amount ) as amount,
-               ROUND(AVG({$this->_aliases['civicrm_contribution']}.total_amount), 2) as avg
+               ROUND(AVG({$this->_aliases['civicrm_contribution']}.total_amount), 2) as avg,
+               {$this->_aliases['civicrm_contribution']}.currency as currency
         ";
 
-    $sql = "{$select} {$this->_from} {$this->_where}";
-    $dao = CRM_Core_DAO::executeQuery($sql);
+    $sql = "{$select} {$this->_from} {$this->_where}
+GROUP BY   {$this->_aliases['civicrm_contribution']}.currency
+";
 
-    if ($dao->fetch()) {
-      $statistics['counts']['amount'] = array(
-        'value' => $dao->amount,
-        'title' => 'Total Amount',
-        'type' => CRM_Utils_Type::T_MONEY,
-      );
-      $statistics['counts']['count '] = array(
-        'value' => $dao->count,
-        'title' => 'Total Donations',
-      );
-      $statistics['counts']['avg   '] = array(
-        'value' => $dao->avg,
-        'title' => 'Average',
-        'type' => CRM_Utils_Type::T_MONEY,
-      );
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    $count = 0;
+    $totalAmount = $average = array();
+    while ($dao->fetch()) {
+      $totalAmount[] = CRM_Utils_Money::format($dao->amount, $dao->currency) . '(' .
+        $dao->count . ')';
+      $average[] = CRM_Utils_Money::format($dao->avg, $dao->currency);
+      $count += $dao->count;
     }
+    $statistics['counts']['amount'] = array(
+      'title' => ts('Total Amount'),
+      'value' => implode(',  ', $totalAmount),
+      'type' => CRM_Utils_Type::T_STRING,
+    );
+    $statistics['counts']['count'] = array(
+      'title' => ts('Total Contributions'),
+      'value' => $count,
+    );
+    $statistics['counts']['avg'] = array(
+      'title' => ts('Average'),
+      'value' => implode(',  ', $average),
+      'type' => CRM_Utils_Type::T_STRING,
+    );
 
     return $statistics;
   }
 
-  function postProcess() {
+  public function postProcess() {
     $this->beginPostProcess();
 
     $this->buildACLClause(array('constituentname', 'contact_civireport'));
     $sql = $this->buildQuery();
 
-    $dao   = CRM_Core_DAO::executeQuery($sql);
-    $rows  = $graphRows = array();
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    $rows = $graphRows = array();
     $count = 0;
     while ($dao->fetch()) {
       $row = array();
@@ -429,12 +538,19 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
     $this->endPostProcess($rows);
   }
 
-  function alterDisplay(&$rows) {
-    // custom code to alter rows
-
-    $entryFound    = FALSE;
+  /**
+   * Alter display of rows.
+   *
+   * Iterate through the rows retrieved via SQL and make changes for display purposes,
+   * such as rendering contacts as links.
+   *
+   * @param array $rows
+   *   Rows generated by SQL, with an array for each row.
+   */
+  public function alterDisplay(&$rows) {
+    $entryFound = FALSE;
     $dispname_flag = $phone_flag = $email_flag = 0;
-    $prev_email    = $prev_dispname = $prev_phone = NULL;
+    $prev_email = $prev_dispname = $prev_phone = NULL;
 
     foreach ($rows as $rowNum => $row) {
       // Link constituent (contributor) to contribution detail
@@ -443,118 +559,66 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
       ) {
 
         $url = CRM_Report_Utils_Report::getNextUrl('contribute/detail',
-          'reset=1&force=1&id_op=eq&id_value=' . $row['civicrm_contact_id_constituent'],
-          $this->_absoluteUrl, $this->_id
+          'reset=1&force=1&id_op=eq&id_value=' .
+          $row['civicrm_contact_id_constituent'],
+          $this->_absoluteUrl, $this->_id, $this->_drilldownReport
         );
         $rows[$rowNum]['civicrm_contact_display_name_constituent_link'] = $url;
-        $rows[$rowNum]['civicrm_contact_display_name_constituent_hover'] = ts("List all direct contribution(s) from this contact.");
+        $rows[$rowNum]['civicrm_contact_display_name_constituent_hover'] = ts('List all direct contribution(s) from this contact.');
         $entryFound = TRUE;
       }
 
-      // Handling Creditor's display_name no Repeat
-      if (array_key_exists('civicrm_contact_display_name_creditor', $row) && $this->_outputMode != 'csv') {
-        if ($value = $row['civicrm_contact_display_name_creditor']) {
-          if ($rowNum == 0) {
-            $prev_dispname = $value;
-          }
-          else {
-            if ($prev_dispname == $value) {
-              $dispname_flag = 1;
-              $prev_dispname = $value;
-            }
-            else {
-              $dispname_flag = 0;
-              $prev_dispname = $value;
-            }
-          }
+      // convert soft credit contact name to link
+      if (array_key_exists('civicrm_contact_display_name_creditor', $row) &&
+        !empty($rows[$rowNum]['civicrm_contact_display_name_creditor']) &&
+        array_key_exists('civicrm_contact_id_creditor', $row)
+      ) {
+        $url = CRM_Utils_System::url("civicrm/contact/view",
+          'reset=1&cid=' . $row['civicrm_contact_id_creditor'],
+          $this->_absoluteUrl
+        );
+        $rows[$rowNum]['civicrm_contact_display_name_creditor_link'] = $url;
+        $rows[$rowNum]['civicrm_contact_display_name_creditor_hover'] = ts("view contact summary");
+      }
 
-          if ($dispname_flag) {
-            unset($rows[$rowNum]['civicrm_contact_display_name_creditor']);
-          }
-          else {
-            $url = CRM_Report_Utils_Report::getNextUrl('contribute/detail',
-              'reset=1&force=1&id_op=eq&id_value=' . $row['civicrm_contact_id_creditor'],
-              $this->_absoluteUrl, $this->_id
-            );
-            $rows[$rowNum]['civicrm_contact_display_name_creditor_link'] = $url;
-            $rows[$rowNum]['civicrm_contact_display_name_creditor_hover'] = ts("List direct contribution(s) from this contact.");
-          }
+      // make subtotals look nicer
+      if (array_key_exists('civicrm_contact_id_constituent', $row) &&
+        !$row['civicrm_contact_id_constituent']
+      ) {
+        $this->fixSubTotalDisplay($rows[$rowNum], $this->_statFields);
+        $entryFound = TRUE;
+      }
+
+      // convert campaign_id to campaign title
+      if (array_key_exists('civicrm_contribution_campaign_id', $row)) {
+        if ($value = $row['civicrm_contribution_campaign_id']) {
+          $rows[$rowNum]['civicrm_contribution_campaign_id'] = $this->activeCampaigns[$value];
           $entryFound = TRUE;
         }
       }
 
-      // Handling Creditor's Phone No Repeat
-      if (array_key_exists('civicrm_phone_phone_creditor', $row) && $this->_outputMode != 'csv') {
-        //$value = 0;
-        if ($value = $row['civicrm_phone_phone_creditor']) {
-          if ($rowNum == 0) {
-            $prev_phone = $value;
-          }
-          else {
-            if ($prev_phone == $value) {
-              $phone_flag = 1;
-              $prev_phone = $value;
-            }
-            else {
-              $phone_flag = 0;
-              $prev_phone = $value;
-            }
-          }
-
-          if ($phone_flag) {
-            unset($rows[$rowNum]['civicrm_phone_phone_creditor']);
-          }
-          else {
-            $rows[$rowNum]['civicrm_phone_phone_creditor'] = $value;
-          }
-          $entryFound = TRUE;
-        }
+      //convert soft_credit_type_id into label
+      if (array_key_exists('civicrm_contribution_soft_soft_credit_type_id', $rows[$rowNum])) {
+        $rows[$rowNum]['civicrm_contribution_soft_soft_credit_type_id'] = CRM_Core_OptionGroup::getLabel('soft_credit_type',
+          $row['civicrm_contribution_soft_soft_credit_type_id']);
       }
 
-      // Handling Creditor's Email No Repeat
-      if (array_key_exists('civicrm_email_email_creditor', $row) && $this->_outputMode != 'csv') {
-        if ($value = $row['civicrm_email_email_creditor']) {
-          if ($rowNum == 0) {
-            $prev_email = $value;
-          }
-          else {
-            if ($prev_email == $value) {
-              $email_flag = 1;
-              $prev_email = $value;
-            }
-            else {
-              $email_flag = 0;
-              $prev_email = $value;
-            }
-          }
-
-          if ($email_flag) {
-            unset($rows[$rowNum]['civicrm_email_email_creditor']);
-          }
-          else {
-            $rows[$rowNum]['civicrm_email_email_creditor'] = $value;
-          }
-          $entryFound = TRUE;
+      //handle gender
+      if (array_key_exists('civicrm_contact_gender_id', $row)) {
+        if ($value = $row['civicrm_contact_gender_id']) {
+          $gender = CRM_Core_PseudoConstant::get('CRM_Contact_DAO_Contact', 'gender_id');
+          $rows[$rowNum]['civicrm_contact_gender_id'] = $gender[$value];
         }
+        $entryFound = TRUE;
       }
 
-      if (!empty($this->_noRepeats) && $this->_outputMode != 'csv') {
-        // not repeat contact display names if it matches with the one
-        // in previous row
-        $repeatFound = FALSE;
-
-        foreach ($row as $colName => $colVal) {
-          if (isset($checkList) && CRM_Utils_Array::value($colName, $checkList) && 
-            is_array($checkList[$colName]) &&
-            in_array($colVal, $checkList[$colName])
-          ) {
-            $rows[$rowNum][$colName] = "";
-            $repeatFound = TRUE;
-          }
-          if (in_array($colName, $this->_noRepeats)) {
-            $checkList[$colName][] = $colVal;
-          }
+      // display birthday in the configured custom format
+      if (array_key_exists('civicrm_contact_birth_date', $row)) {
+        $birthDate = $row['civicrm_contact_birth_date'];
+        if ($birthDate) {
+          $rows[$rowNum]['civicrm_contact_birth_date'] = CRM_Utils_Date::customFormat($birthDate, '%Y%m%d');
         }
+        $entryFound = TRUE;
       }
 
       // skip looking further in rows, if first row itself doesn't
@@ -563,6 +627,8 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
         break;
       }
     }
-  }
-}
 
+    $this->removeDuplicates($rows);
+  }
+
+}

@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -40,109 +40,165 @@
 class CRM_Contribute_PseudoConstant extends CRM_Core_PseudoConstant {
 
   /**
-   * contribution types
+   * Financial types
    * @var array
-   * @static
    */
-  private static $contributionType;
+  private static $financialType;
 
   /**
-   * contribution pages
+   * Financial types
    * @var array
-   * @static
+   */
+  private static $financialTypeAccount;
+
+
+  /**
+   * Financial types
+   * @var array
+   */
+  private static $financialAccount;
+
+  /**
+   * Contribution pages
+   * @var array
    */
   private static $contributionPageActive = NULL;
 
   /**
-   * contribution pages
+   * Contribution pages
    * @var array
-   * @static
    */
   private static $contributionPageAll = NULL;
 
   /**
-   * payment instruments
+   * Payment instruments
    *
    * @var array
-   * @static
    */
   private static $paymentInstrument;
 
   /**
-   * credit card
+   * Contribution status
    *
    * @var array
-   * @static
-   */
-  private static $creditCard;
-
-  /**
-   * contribution status
-   *
-   * @var array
-   * @static
    */
   private static $contributionStatus;
 
   /**
    * Personal campaign pages
    * @var array
-   * @static
    */
   private static $pcPage;
 
   /**
-   * status of personal campaign page
+   * Status of personal campaign page
    * @var array
-   * @static
    */
-  private static $pcpStatus = array();
+  private static $pcpStatus;
 
   /**
-   * Get all the contribution types
-   *
-   * @access public
-   *
-   * @return array - array reference of all contribution types if any
-   * @static
+   * Contribution / financial batches
+   * @var array
    */
-  public static function &contributionType($id = NULL) {
-    if (!self::$contributionType) {
-      CRM_Core_PseudoConstant::populate(self::$contributionType,
-        'CRM_Contribute_DAO_ContributionType'
+  private static $batch;
+
+  /**
+   * DEPRECATED. Please use the buildOptions() method in the appropriate BAO object.
+   *
+   * Get all the financial types
+   *
+   *
+   * @param int $id
+   *
+   * @return array
+   *   array reference of all financial types if any
+   */
+  public static function &financialType($id = NULL) {
+    if (!self::$financialType) {
+      $condition = " is_active = 1 ";
+      CRM_Core_PseudoConstant::populate(
+        self::$financialType,
+        'CRM_Financial_DAO_FinancialType',
+        TRUE,
+        'name',
+        NULL,
+        $condition
       );
     }
+
     if ($id) {
-      $result = CRM_Utils_Array::value($id, self::$contributionType);
+      $result = CRM_Utils_Array::value($id, self::$financialType);
       return $result;
     }
-    return self::$contributionType;
+    return self::$financialType;
+  }
+
+  /**
+   * DEPRECATED. Please use the buildOptions() method in the appropriate BAO object.
+   *
+   * Get all the financial Accounts
+   *
+   *
+   * @param int $id
+   * @param int $financialAccountTypeId
+   * @param string $retrieveColumn
+   * @param string $key
+   *
+   * @return array
+   *   array reference of all financial accounts if any
+   */
+  public static function &financialAccount($id = NULL, $financialAccountTypeId = NULL, $retrieveColumn = 'name', $key = 'id') {
+    $condition = NULL;
+    if ($financialAccountTypeId) {
+      $condition = " financial_account_type_id = " . $financialAccountTypeId;
+    }
+    $cacheKey = "{$id}_{$financialAccountTypeId}_{$retrieveColumn}_{$key}";
+    if (!isset(self::$financialAccount[$cacheKey])) {
+      CRM_Core_PseudoConstant::populate(
+        self::$financialAccount[$cacheKey],
+        'CRM_Financial_DAO_FinancialAccount',
+        TRUE,
+        $retrieveColumn,
+        'is_active',
+        $condition,
+        NULL,
+        $key
+      );
+
+    }
+    if ($id) {
+      $result = CRM_Utils_Array::value($id, self::$financialAccount[$cacheKey]);
+      return $result;
+    }
+    return self::$financialAccount[$cacheKey];
   }
 
   /**
    * Flush given pseudoconstant so it can be reread from db
    * nex time it's requested.
    *
-   * @access public
-   * @static
    *
-   * @param boolean $name pseudoconstant to be flushed
-   *
+   * @param bool|string $name pseudoconstant to be flushed
    */
-  public static function flush($name) {
-    self::$$name = NULL;
+  public static function flush($name = 'cache') {
+    if (isset(self::$$name)) {
+      self::$$name = NULL;
+    }
   }
 
   /**
+   * DEPRECATED. Please use the buildOptions() method in the appropriate BAO object.
+   *
    * Get all the contribution pages
    *
-   * @param integer $id  id of the contribution page
-   * @param boolean $all do we want all pages or only active pages
+   * @param int $id
+   *   Id of the contribution page.
+   * @param bool $all
+   *   Do we want all pages or only active pages.
    *
-   * @access public
    *
-   * @return array - array reference of all contribution pages if any
-   * @static
+   * @return array
+   *   array reference of all contribution pages if any
    */
   public static function &contributionPage($id = NULL, $all = FALSE) {
     if ($all) {
@@ -166,12 +222,15 @@ class CRM_Contribute_PseudoConstant extends CRM_Core_PseudoConstant {
   }
 
   /**
+   * DEPRECATED. Please use the buildOptions() method in the appropriate BAO object.
+   *
    * Get all the payment instruments
    *
-   * @access public
    *
-   * @return array - array reference of all payment instruments if any
-   * @static
+   * @param string $columnName
+   *
+   * @return array
+   *   array reference of all payment instruments if any
    */
   public static function &paymentInstrument($columnName = 'label') {
     if (!isset(self::$paymentInstrument[$columnName])) {
@@ -184,37 +243,27 @@ class CRM_Contribute_PseudoConstant extends CRM_Core_PseudoConstant {
   }
 
   /**
-   * Get all the valid accepted credit cards
+   * Get all the valid accepted credit cards.
    *
-   * @access public
    *
-   * @return array - array reference of all payment instruments if any
-   * @static
+   * @return array
+   *   array reference of all payment instruments if any
    */
   public static function &creditCard() {
-    $acceptCreditCard = array();
-    $creditCard = CRM_Core_OptionGroup::values('accept_creditcard');
-
-    if (!$creditCard) {
-      $creditCard = array();
-    }
-    foreach ($creditCard as $key => $value) {
-      $acceptCreditCard[$value] = $value;
-    }
-    return $acceptCreditCard;
+    return CRM_Core_OptionGroup::values('accept_creditcard', FALSE, FALSE, FALSE, NULL, 'label', TRUE, FALSE, 'name');
   }
 
   /**
-   * Get all premiums
+   * Get all premiums.
    *
-   * @access public
    *
-   * @return array - array of all Premiums if any
-   * @static
+   * @param int $pageID
+   * @return array
+   *   array of all Premiums if any
    */
   public static function products($pageID = NULL) {
-    $products       = array();
-    $dao            = new CRM_Contribute_DAO_Product();
+    $products = array();
+    $dao = new CRM_Contribute_DAO_Product();
     $dao->is_active = 1;
     $dao->orderBy('id');
     $dao->find();
@@ -223,9 +272,9 @@ class CRM_Contribute_PseudoConstant extends CRM_Core_PseudoConstant {
       $products[$dao->id] = $dao->name;
     }
     if ($pageID) {
-      $dao               = new CRM_Contribute_DAO_Premium();
+      $dao = new CRM_Contribute_DAO_Premium();
       $dao->entity_table = 'civicrm_contribution_page';
-      $dao->entity_id    = $pageID;
+      $dao->entity_id = $pageID;
       $dao->find(TRUE);
       $premiumID = $dao->id;
 
@@ -252,12 +301,13 @@ class CRM_Contribute_PseudoConstant extends CRM_Core_PseudoConstant {
   }
 
   /**
-   * Get all the contribution statuses
+   * Get all the contribution statuses.
    *
-   * @access public
    *
-   * @return array - array reference of all contribution statuses
-   * @static
+   * @param int $id
+   * @param string $columnName
+   * @return array
+   *   array reference of all contribution statuses
    */
   public static function &contributionStatus($id = NULL, $columnName = 'label') {
     $cacheKey = $columnName;
@@ -275,12 +325,14 @@ class CRM_Contribute_PseudoConstant extends CRM_Core_PseudoConstant {
   }
 
   /**
-   * Get all the Personal campaign pages
+   * Get all the Personal campaign pages.
    *
-   * @access public
    *
-   * @return array - array reference of all pcp if any
-   * @static
+   * @param null $pageType
+   * @param int $id
+   *
+   * @return array
+   *   array reference of all pcp if any
    */
   public static function &pcPage($pageType = NULL, $id = NULL) {
     if (!isset(self::$pcPage[$pageType])) {
@@ -308,12 +360,15 @@ class CRM_Contribute_PseudoConstant extends CRM_Core_PseudoConstant {
    *
    * The static array pcpStatus is returned
    *
-   * @access public
-   * @static
    *
-   * @return array - array reference of all PCP activity statuses
+   * @param string $column
+   * @return array
+   *   array reference of all PCP activity statuses
    */
   public static function &pcpStatus($column = 'label') {
+    if (NULL === self::$pcpStatus) {
+      self::$pcpStatus = array();
+    }
     if (!array_key_exists($column, self::$pcpStatus)) {
       self::$pcpStatus[$column] = array();
 
@@ -323,5 +378,67 @@ class CRM_Contribute_PseudoConstant extends CRM_Core_PseudoConstant {
     }
     return self::$pcpStatus[$column];
   }
-}
 
+  /**
+   * Get all financial accounts for a Financial type.
+   *
+   * The static array  $financialTypeAccount is returned
+   *
+   *
+   * @param int $financialTypeId
+   * @param int $relationTypeId
+   * @return array
+   *   array reference of all financial accounts for a Financial type
+   */
+  public static function financialAccountType($financialTypeId, $relationTypeId = NULL) {
+    if (!CRM_Utils_Array::value($financialTypeId, self::$financialTypeAccount)) {
+      $condition = " entity_id = $financialTypeId ";
+      CRM_Core_PseudoConstant::populate(
+        self::$financialTypeAccount[$financialTypeId],
+        'CRM_Financial_DAO_EntityFinancialAccount',
+        $all = TRUE,
+        $retrieve = 'financial_account_id',
+        $filter = NULL,
+        $condition,
+        NULL,
+        'account_relationship'
+      );
+    }
+
+    if ($relationTypeId) {
+      return CRM_Utils_Array::value($relationTypeId, self::$financialTypeAccount[$financialTypeId]);
+    }
+
+    return self::$financialTypeAccount[$financialTypeId];
+  }
+
+  /**
+   * Get all batches.
+   *
+   *
+   * @param int $id
+   * @return array
+   *   array reference of all batches if any
+   */
+  public static function &batch($id = NULL) {
+    if (!self::$batch) {
+      $orderBy = " id DESC ";
+      CRM_Core_PseudoConstant::populate(
+        self::$batch,
+        'CRM_Batch_DAO_Batch',
+        TRUE,
+        'title',
+        NULL,
+        NULL,
+        $orderBy
+      );
+    }
+
+    if ($id) {
+      $result = CRM_Utils_Array::value($id, self::$batch);
+      return $result;
+    }
+    return self::$batch;
+  }
+
+}

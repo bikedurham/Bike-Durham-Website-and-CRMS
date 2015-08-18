@@ -1,48 +1,69 @@
 <?php
-
-
-
-/*
- This demonstrates use of the 'format.id_only' param.
-    /* This param causes the id of the only entity to be returned as an integer.
-    /* it will be ignored if there is not exactly 1 result
+/**
+ * Test Generated example demonstrating the Contact.get API.
+ *
+ * This demonstrates use of the 'format.id_only' param.
+ * This param causes the id of the only entity to be returned as an integer.
+ * It will be ignored if there is not exactly 1 result
+ *
+ * @return array
+ *   API result array
  */
-function contact_get_example(){
-$params = array( 
-  'version' => 3,
-  'id' => 17,
-  'format.only_id' => 1,
-);
+function contact_get_example() {
+  $params = array(
+    'id' => 17,
+    'format.only_id' => 1,
+  );
 
-  require_once 'api/api.php';
-  $result = civicrm_api( 'contact','get',$params );
+  try{
+    $result = civicrm_api3('Contact', 'get', $params);
+  }
+  catch (CiviCRM_API3_Exception $e) {
+    // Handle error here.
+    $errorMessage = $e->getMessage();
+    $errorCode = $e->getErrorCode();
+    $errorData = $e->getExtraParams();
+    return array(
+      'error' => $errorMessage,
+      'error_code' => $errorCode,
+      'error_data' => $errorData,
+    );
+  }
 
   return $result;
 }
 
-/*
- * Function returns array of result expected from previous function
+/**
+ * Function returns array of result expected from previous function.
+ *
+ * @return array
+ *   API result array
  */
-function contact_get_expectedresult(){
+function contact_get_expectedresult() {
 
   $expectedResult = 17;
 
-  return $expectedResult  ;
+  return $expectedResult;
 }
 
-
-
-
 /*
-* This example has been generated from the API test suite. The test that created it is called
-* 
-* testContactGetFormatID_only and can be found in 
-* http://svn.civicrm.org/civicrm/branches/v3.4/tests/phpunit/CiviTest/api/v3/ContactTest.php
-* 
-* You can see the outcome of the API tests at 
-* http://tests.dev.civicrm.org/trunk/results-api_v3
-* and review the wiki at
-* http://wiki.civicrm.org/confluence/display/CRMDOC/CiviCRM+Public+APIs
+* This example has been generated from the API test suite.
+* The test that created it is called "testContactGetFormatIDOnly"
+* and can be found at:
+* https://github.com/civicrm/civicrm-core/blob/master/tests/phpunit/api/v3/ContactTest.php
+*
+* You can see the outcome of the API tests at
+* https://test.civicrm.org/job/CiviCRM-master-git/
+*
+* To Learn about the API read
+* http://wiki.civicrm.org/confluence/display/CRMDOC/Using+the+API
+*
+* Browse the api on your own site with the api explorer
+* http://MYSITE.ORG/path/to/civicrm/api
+*
 * Read more about testing here
 * http://wiki.civicrm.org/confluence/display/CRM/Testing
+*
+* API Standards documentation:
+* http://wiki.civicrm.org/confluence/display/CRM/API+Architecture+Standards
 */

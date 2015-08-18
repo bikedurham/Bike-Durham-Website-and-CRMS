@@ -182,6 +182,11 @@ define('DB_ERROR_NOSUCHDB', -27);
  * Tried to insert a null value into a column that doesn't allow nulls
  */
 define('DB_ERROR_CONSTRAINT_NOT_NULL',-29);
+
+/**
+ * Invalid view or no permissions
+ */
+define('DB_ERROR_INVALID_VIEW', -100);
 /**#@-*/
 
 
@@ -534,12 +539,13 @@ class DB
             // expose php errors with sufficient debug level
             include_once "DB/${type}.php";
         } else {
-            @include_once "DB/${type}.php";
+            include_once "DB/${type}.php";
         }
 
         $classname = "DB_${type}";
         if (!class_exists($classname)) {
-            $tmp = PEAR::raiseError(null, DB_ERROR_NOT_FOUND, null, null,
+            $obj = new PEAR;
+            $tmp = $obj->raiseError(null, DB_ERROR_NOT_FOUND, null, null,
                                     "Unable to include the DB/{$type}.php"
                                     . " file for '$dsn'",
                                     'DB_Error', true);
@@ -633,6 +639,7 @@ class DB
                 . 'CREATE|DROP|'
                 . 'LOAD DATA|SELECT .* INTO .* FROM|COPY|'
                 . 'ALTER|GRANT|REVOKE|'
+                . 'SAVEPOINT|ROLLBACK|'
                 . 'LOCK|UNLOCK';
         if (preg_match('/^\s*"?(' . $manips . ')\s+/i', $query)) {
             return true;
@@ -670,6 +677,7 @@ class DB
                 DB_ERROR_INVALID_DATE       => 'invalid date or time',
                 DB_ERROR_INVALID_DSN        => 'invalid DSN',
                 DB_ERROR_INVALID_NUMBER     => 'invalid number',
+                DB_ERROR_INVALID_VIEW       => 'invalid view',
                 DB_ERROR_MISMATCH           => 'mismatch',
                 DB_ERROR_NEED_MORE_DATA     => 'insufficient data supplied',
                 DB_ERROR_NODBSELECTED       => 'no database selected',
@@ -866,7 +874,7 @@ class DB
          * defined, and means that we deal with strings and array in the same
          * manner. */
         $dsnArray = DB::parseDSN($dsn);
-        
+
         if ($hidePassword) {
             $dsnArray['password'] = 'PASSWORD';
         }
@@ -876,7 +884,7 @@ class DB
         if (is_string($dsn) && strpos($dsn, 'tcp') === false && $dsnArray['protocol'] == 'tcp') {
             $dsnArray['protocol'] = false;
         }
-        
+
         // Now we just have to construct the actual string. This is ugly.
         $dsnString = $dsnArray['phptype'];
         if ($dsnArray['dbsyntax']) {
@@ -899,7 +907,7 @@ class DB
             $dsnString .= ':'.$dsnArray['port'];
         }
         $dsnString .= '/'.$dsnArray['database'];
-        
+
         /* Option handling. Unfortunately, parseDSN simply places options into
          * the top-level array, so we'll first get rid of the fields defined by
          * DB and see what's left. */
@@ -926,7 +934,7 @@ class DB
 
         return $dsnString;
     }
-    
+
     // }}}
 }
 

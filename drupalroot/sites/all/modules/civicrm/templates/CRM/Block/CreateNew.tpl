@@ -1,8 +1,7 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,42 +22,42 @@
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
 *}
-<div class="block-civicrm">
+<div class="block-civicrm crm-container">
 <div id="crm-create-new-wrapper">
-	<div id="crm-create-new-link"><span><div class="icon dropdown-icon"></div>{ts}Create New{/ts}</span></div>
-		<div id="crm-create-new-list" class="ac_results">
-			<div class="crm-create-new-list-inner">
-			<ul>
-			{foreach from=$shortCuts item=short}
-				    <li><a href="{$short.url}" class="crm-{$short.ref}">{$short.title}</a></li>
-			    {/foreach}
-			</ul>
-			</div>
-		</div>
-	</div>
+  <a id="crm-create-new-link" class="button" href="#"><span><div class="icon ui-icon-arrow-1-se css_right"></div>{ts}Create New{/ts}</span></a>
+    <div id="crm-create-new-list">
+      <div class="crm-create-new-list-inner">
+      <ul>
+        {foreach from=$shortCuts item=short}
+          <li><a href="{$short.url}" class="crm-{$short.ref}">{$short.title}</a>
+            {if $short.shortCuts}
+              <ul>
+                {foreach from=$short.shortCuts item=shortCut}
+                  <li><a href="{$shortCut.url}" class="crm-{$shortCut.ref}">{$shortCut.title}</a></li>
+                {/foreach}
+              </ul>
+            {/if}
+          </li>
+        {/foreach}
+      </ul>
+      </div>
+    </div>
+  </div>
 </div>
 <div class='clear'></div>
 {literal}
 <script>
-
-cj('body').click(function() {
-	 	cj('#crm-create-new-list').hide();
-	 	});
-	
-	 cj('#crm-create-new-list').click(function(event){
-	     event.stopPropagation();
-	 	});
-
-cj('#crm-create-new-list li').hover(
-	function(){ cj(this).addClass('ac_over');},
-	function(){ cj(this).removeClass('ac_over');}
-	);
-
-cj('#crm-create-new-link').click(function(event) {
-	cj('#crm-create-new-list').toggle();
-	event.stopPropagation();
-	});
-
+(function ($) {
+  $('#crm-create-new-list > div > ul').menu();
+  $('#crm-create-new-link').click(function (event) {
+    $('#crm-create-new-list').toggle();
+    $('body:not(#crm-create-new-list)').click(function () {
+      $('#crm-create-new-list').hide();
+    });
+    event.stopPropagation();
+    return false;
+  });
+})(CRM.$);
 </script>
 
 {/literal}

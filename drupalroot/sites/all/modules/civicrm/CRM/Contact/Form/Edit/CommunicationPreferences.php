@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -39,26 +39,22 @@
 class CRM_Contact_Form_Edit_CommunicationPreferences {
 
   /**
-   * greetings
+   * Greetings
    * @var array
-   * @static
    */
   static $greetings = array();
 
   /**
-   * build the form elements for Communication Preferences object
+   * Build the form object elements for Communication Preferences object.
    *
-   * @param CRM_Core_Form $form       reference to the form object
+   * @param CRM_Core_Form $form
+   *   Reference to the form object.
    *
    * @return void
-   * @access public
-   * @static
    */
-  static
-  function buildQuickForm(&$form) {
+  public static function buildQuickForm(&$form) {
     // since the pcm - preferred comminication method is logically
     // grouped hence we'll use groups of HTML_QuickForm
-
 
     // checkboxes for DO NOT phone, email, mail
     // we take labels from SelectValues
@@ -74,18 +70,13 @@ class CRM_Contact_Form_Edit_CommunicationPreferences {
     $form->addGroup($privacy, 'privacy', ts('Privacy'), '&nbsp;');
 
     // preferred communication method
-    $comm = CRM_Core_PseudoConstant::pcm(TRUE);
+    $comm = CRM_Core_PseudoConstant::get('CRM_Contact_DAO_Contact', 'preferred_communication_method', array('loclize' => TRUE));
     foreach ($comm as $value => $title) {
       $commPreff[] = $form->createElement('advcheckbox', $value, NULL, $title);
     }
     $form->addGroup($commPreff, 'preferred_communication_method', ts('Preferred Method(s)'));
 
-    $form->add('select', 'preferred_language',
-      ts('Preferred Language'),
-      array(
-        '' => ts('- select -')) +
-      CRM_Core_PseudoConstant::languages()
-    );
+    $form->addSelect('preferred_language');
 
     if (!empty($privacyOptions)) {
       $commPreference['privacy'] = $privacyOptions;
@@ -99,6 +90,18 @@ class CRM_Contact_Form_Edit_CommunicationPreferences {
 
     $form->add('select', 'preferred_mail_format', ts('Email Format'), CRM_Core_SelectValues::pmf());
     $form->add('checkbox', 'is_opt_out', ts('NO BULK EMAILS (User Opt Out)'));
+
+    $communicationStyleOptions = array();
+    $communicationStyle = CRM_Core_PseudoConstant::get('CRM_Contact_DAO_Contact', 'communication_style_id', array('localize' => TRUE));
+    foreach ($communicationStyle as $key => $var) {
+      $communicationStyleOptions[$key] = $form->createElement('radio', NULL,
+        ts('Communication Style'), $var, $key,
+        array('id' => "civicrm_communication_style_{$var}_{$key}")
+      );
+    }
+    if (!empty($communicationStyleOptions)) {
+      $form->addGroup($communicationStyleOptions, 'communication_style_id', ts('Communication Style'));
+    }
 
     //check contact type and build filter clause accordingly for greeting types, CRM-4575
     $greetings = self::getGreetingFields($form->_contactType);
@@ -114,7 +117,8 @@ class CRM_Contact_Form_Edit_CommunicationPreferences {
       if (!empty($greetingTokens)) {
         $form->addElement('select', $fields['field'], $fields['label'],
           array(
-            '' => ts('- select -')) + $greetingTokens
+            '' => ts('- select -'),
+          ) + $greetingTokens
         );
         //custom addressee
         $form->addElement('text', $fields['customField'], $fields['customLabel'],
@@ -125,26 +129,24 @@ class CRM_Contact_Form_Edit_CommunicationPreferences {
   }
 
   /**
-   * global form rule
+   * Global form rule.
    *
-   * @param array $fields  the input form values
-   * @param array $files   the uploaded files if any
-   * @param array $options additional user data
+   * @param array $fields
+   *   The input form values.
+   * @param array $files
+   *   The uploaded files if any.
+   * @param $self
    *
-   * @return true if no errors, else array of errors
-   * @access public
-   * @static
+   * @return bool|array
+   *   true if no errors, else array of errors
    */
-  static
-  function formRule($fields, $files, $self) {
+  public static function formRule($fields, $files, $self) {
     //CRM-4575
 
     $greetings = self::getGreetingFields($self->_contactType);
     foreach ($greetings as $greeting => $details) {
       $customizedValue = CRM_Core_OptionGroup::getValue($greeting, 'Customized', 'name');
-      if (CRM_Utils_Array::value($details['field'], $fields) == $customizedValue
-        && !CRM_Utils_Array::value($details['customField'], $fields)
-      ) {
+      if (CRM_Utils_Array::value($details['field'], $fields) == $customizedValue && empty($fields[$details['customField']])) {
         $errors[$details['customField']] = ts('Custom  %1 is a required field if %1 is of type Customized.',
           array(1 => $details['label'])
         );
@@ -154,18 +156,20 @@ class CRM_Contact_Form_Edit_CommunicationPreferences {
   }
 
   /**
-   * This function sets the default values for the form. Note that in edit/view mode
+   * Set default values for the form. Note that in edit/view mode
    * the default values are retrieved from the database
    *
-   * @access public
    *
-   * @return None
+   * @param CRM_Core_Form $form
+   * @param $defaults
+   *
+   * @return void
    */
-  function setDefaultValues(&$form, &$defaults) {
+  public static function setDefaultValues(&$form, &$defaults) {
 
     if (!empty($defaults['preferred_language'])) {
-      $languages = array_flip(CRM_Core_PseudoConstant::languages());
-      $defaults['preferred_language'] = $languages[$defaults['preferred_language']];
+      $languages = CRM_Contact_BAO_Contact::buildOptions('preferred_language');
+      $defaults['preferred_language'] = CRM_Utils_Array::key($defaults['preferred_language'], $languages);
     }
 
     // CRM-7119: set preferred_language to default if unset
@@ -174,12 +178,15 @@ class CRM_Contact_Form_Edit_CommunicationPreferences {
       $defaults['preferred_language'] = $config->lcMessages;
     }
 
+    if (empty($defaults['communication_style_id'])) {
+      $defaults['communication_style_id'] = array_pop(CRM_Core_OptionGroup::values('communication_style', TRUE, NULL, NULL, 'AND is_default = 1'));
+    }
+
     //set default from greeting types CRM-4575, CRM-9739
     if ($form->_action & CRM_Core_Action::ADD) {
       foreach (CRM_Contact_BAO_Contact::$_greetingTypes as $greeting) {
         if (empty($defaults[$greeting . '_id'])) {
-          if ($defaultGreetingTypeId =
-            CRM_Contact_BAO_Contact_Utils::defaultGreeting($form->_contactType, $greeting)
+          if ($defaultGreetingTypeId = CRM_Contact_BAO_Contact_Utils::defaultGreeting($form->_contactType, $greeting)
           ) {
             $defaults[$greeting . '_id'] = $defaultGreetingTypeId;
           }
@@ -195,13 +202,13 @@ class CRM_Contact_Form_Edit_CommunicationPreferences {
   }
 
   /**
-   *  set array of greeting fields
+   *  set array of greeting fields.
    *
-   * @return None
-   * @access public
+   * @param $contactType
+   *
+   * @return void
    */
-  static
-  function getGreetingFields($contactType) {
+  public static function getGreetingFields($contactType) {
     if (empty(self::$greetings[$contactType])) {
       self::$greetings[$contactType] = array();
 
@@ -237,5 +244,5 @@ class CRM_Contact_Form_Edit_CommunicationPreferences {
 
     return self::$greetings[$contactType];
   }
-}
 
+}

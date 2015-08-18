@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,12 +29,12 @@
  <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="top"}</div>
 
 {if $action eq 8}
-  <div class="messages status">
+  <div class="messages status no-popup">
       <div class="icon inform-icon"></div>
         {ts}WARNING: Deleting this Scheduled Job will cause some important site functionality to stop working.{/ts} {ts}Do you want to continue?{/ts}
   </div>
 {elseif $action eq 128}
-  <div class="messages status">
+  <div class="messages status no-popup">
       <div class="icon inform-icon"></div>
         {ts}Are you sure you would like to execute this job?{/ts}
   </div>
@@ -55,7 +55,6 @@
 
         <div id="fname"><br/>
         </div>
-        {$form.api_prefix.html}
         <select name="api_entity" type="text" id="api_entity" class="form-select required">
           {crmAPI entity="Entity" action="get" var="entities" version=3}
           {foreach from=$entities.values item=entity}
@@ -67,56 +66,50 @@
         <div class="description">{ts}Put in the API method name. You need to enter pieces of full API function name as described in the documentation.{/ts}</div>
 <script>
 {literal}
+CRM.$(function($) {
   function assembleName( ) {
 
     // dunno yet
     var apiName = "";
 
     // building prefix
-    var apiPrefixRaw = cj('#api_prefix').val();
-
-    if( apiPrefixRaw == '' ) {
-      cj('#fname').html( "<em>API name will start appearing here as you type in fields below.</em>" );
+    if( $('#api_action').val() == '' ) {
+      $('#fname').html( "<em>API name will start appearing here as you type in fields below.</em>" );
       return;
     }
 
-    if( apiPrefixRaw == 'civicrm_api3' ) {
-      apiPrefix = 'api'
-    } else {
-      apiPrefix = apiPrefixRaw;
-    }
+    var apiPrefix = 'api'
 
     // building entity
-    var apiEntity = cj('#api_entity').val().replace( /([A-Z])/g, function($1) {
-                                                   return $1.toLowerCase();
-                                                   });
+    var apiEntity = $('#api_entity').val().replace( /([A-Z])/g, function($1) {
+      return $1.toLowerCase();
+    });
     // building action
-    var apiAction = cj('#api_action').val().replace(/(\_[a-z])/g, function($1) {return $1.toUpperCase().replace('_','');});
+    var apiAction = $('#api_action').val().replace(/(\_[a-z])/g, function($1) {return $1.toUpperCase().replace('_','');});
     apiName = apiPrefix + '.' + apiEntity + '.' + apiAction;
-    cj('#fname').text( apiName );
+    $('#fname').text( apiName );
   }
 
   // bind to different events to build API name live
-  cj(document).ready( function() { assembleName() } );
-  cj('#api_prefix').keyup( function() { assembleName() } );
-  cj('#api_entity').change( function() { assembleName() } );
-  cj('#api_action').keyup( function() { assembleName() } );
+  $('#api_entity').change(assembleName)
+  $('#api_action').change(assembleName).keyup(assembleName);
+  assembleName();
+});
 
 {/literal}
 </script>
 
-</td>
+      </td>
     </tr>
     <tr class="crm-job-form-block-parameters">
-        <td class="label">{$form.parameters.label}<br />{docURL page="Managing Scheduled Jobs" resource="wiki"}</td><td>{$form.parameters.html}</td>
+      <td class="label">{$form.parameters.label}<br />{docURL page="Managing Scheduled Jobs" resource="wiki"}</td>
+      <td>{$form.parameters.html}</td>
     </tr>
     <tr class="crm-job-form-block-is_active">
-        <td></td><td>{$form.is_active.html}&nbsp;{$form.is_active.label}</td>
+      <td></td><td>{$form.is_active.html}&nbsp;{$form.is_active.label}</td>
     </tr>
   </table>
 {/if}
-</table>
-       <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
-  </fieldset>
+  <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
 </div>
 

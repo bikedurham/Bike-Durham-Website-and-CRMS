@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,18 +23,24 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 
 /*
  * This file check and update the survey respondents.
- * 
+ *
  */
 
 require_once '../civicrm.config.php';
 require_once 'CRM/Core/Config.php';
+
+/**
+ * Class CRM_RespondentProcessor
+ */
 class CRM_RespondentProcessor {
-  function __construct() {
+  /**
+   */
+  public function __construct() {
     $config = CRM_Core_Config::singleton();
 
     //this does not return on failure
@@ -59,14 +65,14 @@ class CRM_RespondentProcessor {
     $releasedCount = 0;
     if ($reserveStatusId && !empty($surveyActivityTypesIds)) {
       $query = '
-    SELECT  activity.id as id, 
+    SELECT  activity.id as id,
             activity.activity_date_time as activity_date_time,
             survey.id as surveyId,
             survey.release_frequency as release_frequency
       FROM  civicrm_activity activity
-INNER JOIN  civicrm_survey survey ON ( survey.id = activity.source_record_id ) 
-     WHERE  activity.is_deleted = 0 
-       AND  activity.status_id = %1 
+INNER JOIN  civicrm_survey survey ON ( survey.id = activity.source_record_id )
+     WHERE  activity.is_deleted = 0
+       AND  activity.status_id = %1
        AND  activity.activity_type_id IN ( ' . implode(', ', $surveyActivityTypesIds) . ' )';
       $activity = CRM_Core_DAO::executeQuery($query, array(1 => array($reserveStatusId, 'Positive')));
       $releasedIds = array();
@@ -95,11 +101,10 @@ UPDATE  civicrm_activity
 
     echo "<br /><br />Number of respondents released = {$releasedCount}";
   }
+
 }
 
 $obj = new CRM_RespondentProcessor();
 echo "Releasing..";
 $obj->releaseRespondent();
 echo "<br /><br />Respondent Release Done";
-
-

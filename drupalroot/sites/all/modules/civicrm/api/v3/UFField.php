@@ -1,11 +1,9 @@
 <?php
-// $Id$
-
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,63 +26,49 @@
  */
 
 /**
- * File for the CiviCRM APIv3 user framework group functions
+ * This api exposes CiviCRM profile field.
  *
  * @package CiviCRM_APIv3
- * @subpackage API_UF
- *
- * @copyright CiviCRM LLC (c) 2004-2012
- * @version $Id: UFField.php 30171 2010-10-14 09:11:27Z mover $
- *
  */
-
-/**
- * Include common API util functions
- */
-
-require_once 'CRM/Core/BAO/UFField.php';
-require_once 'CRM/Core/BAO/UFGroup.php';
 
 /**
  * Defines 'uf field' within a group.
  *
- * @param $groupId int Valid uf_group id
+ * @param array $params
+ *   Array per getfields metadata.
  *
- * @param $params  array  Associative array of property name/value pairs to create new uf field.
+ * @throws API_Exception
  *
- * @return Newly created $ufFieldArray array
- *
- * @access public
- * {@getfields UFField_create}
- * @example UFFieldCreate.php
+ * @return array
+ *   Newly created $ufFieldArray
  */
 function civicrm_api3_uf_field_create($params) {
-
   civicrm_api3_verify_one_mandatory($params, NULL, array('field_name', 'uf_group_id'));
   $groupId = CRM_Utils_Array::value('uf_group_id', $params);
   if ((int) $groupId < 1) {
-    return civicrm_api3_create_error('Params must be a field_name-carrying array and a positive integer.');
+    throw new API_Exception('Params must be a field_name-carrying array and a positive integer.');
   }
-
-
 
   $field_type       = CRM_Utils_Array::value('field_type', $params);
   $field_name       = CRM_Utils_Array::value('field_name', $params);
-  $location_type_id = CRM_Utils_Array::value('location_type_id', $params);
-  $phone_type       = CRM_Utils_Array::value('phone_type', $params);
+  $location_type_id = CRM_Utils_Array::value('location_type_id', $params, CRM_Utils_Array::value('website_type_id', $params));
+  $phone_type       = CRM_Utils_Array::value('phone_type_id', $params, CRM_Utils_Array::value('phone_type', $params));
 
+  if (strpos($field_name, 'formatting') !== 0 && !CRM_Core_BAO_UFField::isValidFieldName($field_name)) {
+    throw new API_Exception('The field_name is not valid');
+  }
   $params['field_name'] = array($field_type, $field_name, $location_type_id, $phone_type);
 
   if (!(CRM_Utils_Array::value('group_id', $params))) {
     $params['group_id'] = $groupId;
   }
 
-  $ids = array();
+  $ids = $ufFieldArray = array();
   $ids['uf_group'] = $groupId;
 
   $fieldId = CRM_Utils_Array::value('id', $params);
   if (!empty($fieldId)) {
-    $UFField = new CRM_core_BAO_UFField();
+    $UFField = new CRM_Core_BAO_UFField();
     $UFField->id = $fieldId;
     if ($UFField->find(TRUE)) {
       $ids['uf_group'] = $UFField->uf_group_id;
@@ -94,13 +78,17 @@ function civicrm_api3_uf_field_create($params) {
       }
     }
     else {
-      return civicrm_api3_create_error("there is no field for this fieldId");
+      throw new API_Exception("there is no field for this fieldId");
     }
     $ids['uf_field'] = $fieldId;
   }
 
   if (CRM_Core_BAO_UFField::duplicateField($params, $ids)) {
-    return civicrm_api3_create_error("The field was not added. It already exists in this profile.");
+    throw new API_Exception("The field was not added. It already exists in this profile.");
+  }
+  //@todo why is this even optional? Surely weight should just be 'managed' ??
+  if (CRM_Utils_Array::value('option.autoweight', $params, TRUE)) {
+    $params['weight'] = CRM_Core_BAO_UFField::autoWeight($params);
   }
   $ufField = CRM_Core_BAO_UFField::add($params, $ids);
 
@@ -108,56 +96,52 @@ function civicrm_api3_uf_field_create($params) {
   CRM_Core_BAO_UFGroup::updateGroupTypes($groupId, $fieldsType);
 
   _civicrm_api3_object_to_array($ufField, $ufFieldArray[$ufField->id]);
+  civicrm_api3('profile', 'getfields', array('cache_clear' => TRUE));
   return civicrm_api3_create_success($ufFieldArray, $params);
 }
 
 /**
- * Returns array of uf groups (profiles)  matching a set of one or more group properties
+ * Adjust metadata for civicrm_uf_field create.
  *
- * @param array $params  (reference) Array of one or more valid
- *                       property_name=>value pairs. If $params is set
- *                       as null, all surveys will be returned
+ * @param array $params
+ */
+function _civicrm_api3_uf_field_create_spec(&$params) {
+  $params['option.autoweight'] = array(
+    'title' => "Auto Weight",
+    'description' => "Automatically adjust weights in UFGroup to align with UFField",
+    'type' => CRM_Utils_Type::T_BOOLEAN,
+    'api.default' => TRUE,
+  );
+  $params['is_active']['api.default'] = TRUE;
+}
+
+/**
+ * Returns array of uf groups (profiles) matching a set of one or more group properties.
  *
- * @return array  (reference) Array
- * {@getfields UFField_get
- * @example UFFieldGet.php
- * @access public
+ * @param array $params
+ *   Array per getfields metadata.
+ *
+ * @return array
  */
 function civicrm_api3_uf_field_get($params) {
-
   return _civicrm_api3_basic_get('CRM_Core_BAO_UFField', $params);
 }
 
 /**
- * Delete uf field
+ * Delete uf field.
  *
- * @param $fieldId int  Valid uf_field id that to be deleted
+ * @param array $params
  *
- * @return true on successful delete or return error
+ * @throws API_Exception
  *
- * @access public
- * {@getfields UFField_delete}
- * @example UFFieldDelete.php
- */
-
-/**
- * Delete uf field
- *
- * @param $fieldId int  Valid uf_field id that to be deleted
- *
- * @return true on successful delete or return error
- *
- * @access public
- *
+ * @return array
  */
 function civicrm_api3_uf_field_delete($params) {
-
-
   $fieldId = $params['id'];
 
   $ufGroupId = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_UFField', $fieldId, 'uf_group_id');
   if (!$ufGroupId) {
-    return civicrm_api3_create_error('Invalid value for field_id.');
+    throw new API_Exception('Invalid value for field_id.');
   }
 
   $result = CRM_Core_BAO_UFField::del($fieldId);
@@ -167,11 +151,13 @@ function civicrm_api3_uf_field_delete($params) {
 
   return civicrm_api3_create_success($result, $params);
 }
-/* 
- * field id accepted for backward compat - unset required on id
+
+/**
+ * Field id accepted for backward compatibility - unset required on id.
+ *
+ * @param array $params
  */
 function _civicrm_api3_uf_field_delete_spec(&$params) {
   // legacy support for field_id
   $params['id']['api.aliases'] = array('field_id');
 }
-

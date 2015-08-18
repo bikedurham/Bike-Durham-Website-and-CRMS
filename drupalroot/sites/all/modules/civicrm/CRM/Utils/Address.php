@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,7 +23,7 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  * Address utilties
@@ -33,41 +33,44 @@
 class CRM_Utils_Address {
 
   /**
-   * format an address string from address fields and a format string
+   * Format an address string from address fields and a format string.
    *
    * Format an address basing on the address fields provided.
    * Use Setting's address_format if there's no format specified.
    *
-   * @param array   $fields            the address fields
-   * @param string  $format            the desired address format
-   * @param boolean $microformat       if true indicates, the address to be built in hcard-microformat standard.
-   * @param boolean $mailing           if true indicates, the call has been made from mailing label
-   * @param boolean $individualFormat  if true indicates, the call has been made for the contact of type 'individual'
+   * @param array $fields
+   *   The address fields.
+   * @param string $format
+   *   The desired address format.
+   * @param bool $microformat
+   *   If true indicates, the address to be built in hcard-microformat standard.
+   * @param bool $mailing
+   *   If true indicates, the call has been made from mailing label.
+   * @param bool $individualFormat
+   *   If true indicates, the call has been made for the contact of type 'individual'.
    *
-   * @return string  formatted address string
+   * @param null $tokenFields
    *
-   * @static
+   * @return string
+   *   formatted address string
+   *
    */
-  static
-  function format($fields,
-    $format           = NULL,
-    $microformat      = FALSE,
-    $mailing          = FALSE,
+  public static function format(
+    $fields,
+    $format = NULL,
+    $microformat = FALSE,
+    $mailing = FALSE,
     $individualFormat = FALSE,
-    $tokenFields      = NULL
+    $tokenFields = NULL
   ) {
     static $config = NULL;
 
     if (!$format) {
-      $format = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
-        'address_format'
-      );
+      $format = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'address_format');
     }
 
     if ($mailing) {
-      $format = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
-        'mailing_format'
-      );
+      $format = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'mailing_format');
     }
 
     $formatted = $format;
@@ -105,10 +108,11 @@ class CRM_Utils_Address {
     }
 
     if (!$microformat) {
-        // replacements in case of Individual Name Format
+      // replacements in case of Individual Name Format
       $replacements = array(
         'contact.display_name' => CRM_Utils_Array::value('display_name', $fields),
         'contact.individual_prefix' => CRM_Utils_Array::value('individual_prefix', $fields),
+        'contact.formal_title' => CRM_Utils_Array::value('formal_title', $fields),
         'contact.first_name' => CRM_Utils_Array::value('first_name', $fields),
         'contact.middle_name' => CRM_Utils_Array::value('middle_name', $fields),
         'contact.last_name' => CRM_Utils_Array::value('last_name', $fields),
@@ -139,7 +143,6 @@ class CRM_Utils_Address {
         'contact.birth_date' => CRM_Utils_Array::value('birth_date', $fields),
         'contact.gender' => CRM_Utils_Array::value('gender', $fields),
         'contact.is_opt_out' => CRM_Utils_Array::value('is_opt_out', $fields),
-        'contact.home_URL' => CRM_Utils_Array::value('home_URL', $fields),
         'contact.preferred_mail_format' => CRM_Utils_Array::value('preferred_mail_format', $fields),
         'contact.phone' => CRM_Utils_Array::value('phone', $fields),
         'contact.home_URL' => CRM_Utils_Array::value('home_URL', $fields),
@@ -150,6 +153,7 @@ class CRM_Utils_Address {
         'contact.organization_name' => CRM_Utils_Array::value('display_name', $fields),
         'contact.legal_name' => CRM_Utils_Array::value('legal_name', $fields),
         'contact.preferred_communication_method' => CRM_Utils_Array::value('preferred_communication_method', $fields),
+        'contact.communication_style' => CRM_Utils_Array::value('communication_style', $fields),
         'contact.addressee' => CRM_Utils_Array::value('addressee_display', $fields),
         'contact.email_greeting' => CRM_Utils_Array::value('email_greeting_display', $fields),
         'contact.postal_greeting' => CRM_Utils_Array::value('postal_greeting_display', $fields),
@@ -204,13 +208,14 @@ class CRM_Utils_Address {
     // for every token, replace {fooTOKENbar} with fooVALUEbar if
     // the value is not empty, otherwise drop the whole {fooTOKENbar}
     foreach ($replacements as $token => $value) {
-      if ($value) {
+      if ($value && is_string($value) || is_numeric($value)) {
         $formatted = preg_replace("/{([^{}]*)\b{$token}\b([^{}]*)}/u", "\${1}{$value}\${2}", $formatted);
       }
       else {
         $formatted = preg_replace("/{[^{}]*\b{$token}\b[^{}]*}/u", '', $formatted);
       }
     }
+
     // drop any {...} constructs from lines' ends
     if (!$microformat) {
       $formatted = "\n$formatted\n";
@@ -246,8 +251,8 @@ class CRM_Utils_Address {
     else {
       // remove \n from each line and only add at the end
       // this hack solves formatting issue, when we convert nl2br
-      $lines          = array();
-      $count          = 1;
+      $lines = array();
+      $count = 1;
       $finalFormatted = NULL;
       $formattedArray = explode("\n", $formatted);
       $formattedArray = array_filter($formattedArray);
@@ -266,8 +271,12 @@ class CRM_Utils_Address {
     return $finalFormatted;
   }
 
-  static
-  function sequence($format) {
+  /**
+   * @param $format
+   *
+   * @return array
+   */
+  public static function sequence($format) {
     // also compute and store the address sequence
     $addressSequence = array(
       'address_name',
@@ -297,5 +306,5 @@ class CRM_Utils_Address {
     $newSequence = array_unique($newSequence);
     return $newSequence;
   }
-}
 
+}

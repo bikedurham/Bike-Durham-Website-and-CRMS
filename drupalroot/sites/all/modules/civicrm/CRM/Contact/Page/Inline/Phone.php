@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -45,15 +45,13 @@ class CRM_Contact_Page_Inline_Phone extends CRM_Core_Page {
    * This method is called after the page is created.
    *
    * @return void
-   * @access public
-   *
    */
-  function run() {
+  public function run() {
     // get the emails for this contact
     $contactId = CRM_Utils_Request::retrieve('cid', 'Positive', CRM_Core_DAO::$_nullObject, TRUE, NULL, $_REQUEST);
 
-    $locationTypes = CRM_Core_PseudoConstant::locationDisplayName();
-    $phoneTypes = CRM_Core_PseudoConstant::phoneType();
+    $locationTypes = CRM_Core_PseudoConstant::get('CRM_Core_DAO_Address', 'location_type_id', array('labelColumn' => 'display_name'));
+    $phoneTypes = CRM_Core_PseudoConstant::get('CRM_Core_DAO_Phone', 'phone_type_id');
 
     $entityBlock = array('contact_id' => $contactId);
     $phones = CRM_Core_BAO_Phone::getValues($entityBlock);
@@ -64,12 +62,12 @@ class CRM_Contact_Page_Inline_Phone extends CRM_Core_Page {
       }
     }
 
-    $contact = new CRM_Contact_BAO_Contact( );
+    $contact = new CRM_Contact_BAO_Contact();
     $contact->id = $contactId;
-    $contact->find(true);
-    $privacy = array( );
-    foreach ( CRM_Contact_BAO_Contact::$_commPrefs as $name ) {
-      if ( isset( $contact->$name ) ) {
+    $contact->find(TRUE);
+    $privacy = array();
+    foreach (CRM_Contact_BAO_Contact::$_commPrefs as $name) {
+      if (isset($contact->$name)) {
         $privacy[$name] = $contact->$name;
       }
     }
@@ -80,9 +78,9 @@ class CRM_Contact_Page_Inline_Phone extends CRM_Core_Page {
 
     // check logged in user permission
     CRM_Contact_Page_View::checkUserPermission($this, $contactId);
-    
-    // finally call parent 
+
+    // finally call parent
     parent::run();
   }
-}
 
+}

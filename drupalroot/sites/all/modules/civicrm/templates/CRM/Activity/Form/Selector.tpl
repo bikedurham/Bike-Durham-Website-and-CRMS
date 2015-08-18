@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,13 +24,12 @@
  +--------------------------------------------------------------------+
 *}
 
-<span id='fileOnCaseStatusMsg' style="display:none;"></span>
 {if $context EQ 'Search'}
     {include file="CRM/common/pager.tpl" location="top"}
 {/if}
 
 {strip}
-<table class="selector">
+<table class="selector row-highlight">
    <tr class="sticky">
      {if !$single and $context eq 'Search' }
         <th scope="col" title="Select Rows">{$form.toggleSelect.html}</th>
@@ -59,7 +58,13 @@
 
     {/if}
 
-    <td>{$row.activity_type}</td>
+    <td>
+      {$row.activity_type}
+      {if $row.repeat}
+        <br/>
+        <span><b>{$row.repeat}</b></span>
+      {/if}
+    </td>
 
   <td>{$row.activity_subject}</td>
 
@@ -119,14 +124,6 @@
 {/strip}
 {include file="CRM/Case/Form/ActivityToCase.tpl"}
 
-
-{if $context EQ 'Search'}
- <script type="text/javascript">
- {* this function is called to change the color of selected row(s) *}
-    var fname = "{$form.formName}";
-    on_load_init_checkboxes(fname);
- </script>
-{/if}
 
 {if $context EQ 'Search'}
     {include file="CRM/common/pager.tpl" location="bottom"}

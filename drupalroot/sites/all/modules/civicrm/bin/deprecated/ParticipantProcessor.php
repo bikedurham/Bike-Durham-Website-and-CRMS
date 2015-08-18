@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,19 +23,25 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 
 /*
  * This file check and updates the status of all participant records.
- * 
+ *
  * EventParticipantion.php prior to running this script.
  */
 
 require_once '../civicrm.config.php';
 require_once 'CRM/Core/Config.php';
+
+/**
+ * Class CRM_ParticipantProcessor
+ */
 class CRM_ParticipantProcessor {
-  function __construct() {
+  /**
+   */
+  public function __construct() {
     $config = CRM_Core_Config::singleton();
 
     //this does not return on failure
@@ -81,8 +87,8 @@ class CRM_ParticipantProcessor {
 LEFT JOIN  civicrm_event event ON ( event.id = participant.event_id )
     WHERE  participant.status_id IN {$statusIds}
      AND   (event.end_date > now() OR event.end_date IS NULL)
-     AND   event.is_active = 1 
- ORDER BY  participant.register_date, participant.id 
+     AND   event.is_active = 1
+ ORDER BY  participant.register_date, participant.id
 ";
     $dao = CRM_Core_DAO::executeQuery($query);
     while ($dao->fetch()) {
@@ -107,7 +113,7 @@ LEFT JOIN  civicrm_event event ON ( event.id = participant.event_id )
       foreach ($participantDetails as $participantId => $values) {
         //process the additional participant at the time of
         //primary participant, don't process separately.
-        if (CRM_Utils_Array::value('registered_by_id', $values)) {
+        if (!empty($values['registered_by_id'])) {
           continue;
         }
 
@@ -126,9 +132,9 @@ LEFT JOIN  civicrm_event event ON ( event.id = participant.event_id )
             $transaction = new CRM_Core_Transaction();
 
             require_once 'CRM/Event/BAO/Participant.php';
-            $ids       = array($participantId);
+            $ids = array($participantId);
             $expiredId = array_search('Expired', $expiredStatuses);
-            $results   = CRM_Event_BAO_Participant::transitionParticipants($ids, $expiredId, $values['status_id'], TRUE, TRUE);
+            $results = CRM_Event_BAO_Participant::transitionParticipants($ids, $expiredId, $values['status_id'], TRUE, TRUE);
             $transaction->commit();
 
             if (!empty($results)) {
@@ -156,7 +162,7 @@ LEFT JOIN  civicrm_event event ON ( event.id = participant.event_id )
       foreach ($participantDetails as $participantId => $values) {
         //process the additional participant at the time of
         //primary participant, don't process separately.
-        if (CRM_Utils_Array::value('registered_by_id', $values)) {
+        if (!empty($values['registered_by_id'])) {
           continue;
         }
 
@@ -251,11 +257,10 @@ LEFT JOIN  civicrm_event event ON ( event.id = participant.event_id )
       }
     }
   }
+
 }
 
 $obj = new CRM_ParticipantProcessor();
 echo "Updating..";
 $obj->updateParticipantStatus();
 echo "<br />Participant records updated. (Done)";
-
-

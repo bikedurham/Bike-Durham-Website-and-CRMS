@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,24 +23,33 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Activity_Import_Controller extends CRM_Core_Controller {
 
   /**
-   * class constructor
+   * Class constructor.
+   *
+   * @param null $title
+   * @param bool|int $action
+   * @param bool $modal
    */
-  function __construct($title = NULL, $action = CRM_Core_Action::NONE, $modal = TRUE) {
+  public function __construct($title = NULL, $action = CRM_Core_Action::NONE, $modal = TRUE) {
     parent::__construct($title, $modal);
 
-    $this->_stateMachine = new CRM_Activity_Import_StateMachine($this, $action);
+    // lets get around the time limit issue if possible, CRM-2113
+    if (!ini_get('safe_mode')) {
+      set_time_limit(0);
+    }
+
+    $this->_stateMachine = new CRM_Import_StateMachine($this, $action);
 
     // create and instantiate the pages
     $this->addPages($this->_stateMachine, $action);
@@ -49,5 +58,5 @@ class CRM_Activity_Import_Controller extends CRM_Core_Controller {
     $config = CRM_Core_Config::singleton();
     $this->addActions($config->uploadDir, array('uploadFile'));
   }
-}
 
+}

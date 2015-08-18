@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,7 +24,7 @@
  +--------------------------------------------------------------------+
 *}
 {* No matches for submitted search request or viewing an empty group. *}
-<div class="messages status">
+<div class="messages status no-popup">
   <div class="icon inform-icon"></div>&nbsp;
         {if $context EQ 'smog'}
             {capture assign=crmURL}{crmURL q="context=amtg&amtgID=`$group.id`&reset=1"}{/capture}{ts 1=$group.title 2=$crmURL}%1 has no contacts which match your search criteria. You can <a href='%2'>add contacts here.</a>{/ts}
@@ -33,7 +33,7 @@
                 {include file="CRM/common/displaySearchCriteria.tpl"}
                 <br />
             {else}
-            {ts}No matches found.{/ts}
+            {ts}None found.{/ts}
             {/if}
             {ts}Suggestions:{/ts}
             <ul>

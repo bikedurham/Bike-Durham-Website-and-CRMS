@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,41 +23,39 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 
 /**
  * State machine for managing different states of the Import process.
- *
  */
 class CRM_Import_StateMachine extends CRM_Core_StateMachine {
 
   /**
-   * class constructor
+   * Class constructor.
    *
-   * @param object  CRM_Import_Controller
-   * @param int     $action
-   *
-   * @return object CRM_Import_StateMachine
+   * @param object $controller
+   * @param \const|int $action
    */
-  function __construct(&$controller, $action = CRM_Core_Action::NONE) {
+  public function __construct($controller, $action = CRM_Core_Action::NONE) {
     parent::__construct($controller, $action);
 
+    $classType = str_replace('_Controller', '', get_class($controller));
     $this->_pages = array(
-      'CRM_Import_Form_DataSource' => NULL,
-      'CRM_Import_Form_MapField' => NULL,
-      'CRM_Import_Form_Preview' => NULL,
-      'CRM_Import_Form_Summary' => NULL,
+      $classType . '_Form_DataSource' => NULL,
+      $classType . '_Form_MapField' => NULL,
+      $classType . '_Form_Preview' => NULL,
+      $classType . '_Form_Summary' => NULL,
     );
 
     $this->addSequentialPages($this->_pages, $action);
   }
-}
 
+}

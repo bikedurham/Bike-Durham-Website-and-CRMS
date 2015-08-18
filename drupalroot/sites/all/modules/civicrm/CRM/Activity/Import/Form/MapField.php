@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -36,139 +36,13 @@
 /**
  * This class gets the name of the file to upload
  */
-class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
+class CRM_Activity_Import_Form_MapField extends CRM_Import_Form_MapField {
+
 
   /**
-   * cache of preview data values
-   *
-   * @var array
-   * @access protected
-   */
-  protected $_dataValues;
-
-  /**
-   * mapper fields
-   *
-   * @var array
-   * @access protected
-   */
-  protected $_mapperFields;
-
-  /**
-   * loaded mapping ID
-   *
-   * @var int
-   * @access protected
-   */
-  protected $_loadedMappingId;
-
-  /**
-   * number of columns in import file
-   *
-   * @var int
-   * @access protected
-   */
-  protected $_columnCount;
-
-  /**
-   * column headers, if we have them
-   *
-   * @var array
-   * @access protected
-   */
-  protected $_columnHeaders;
-
-  /**
-   * an array of booleans to keep track of whether a field has been used in
-   * form building already.
-   *
-   * @var array
-   * @access protected
-   */
-  protected $_fieldUsed;
-
-  /**
-   * Attempt to resolve the header with our mapper fields
-   *
-   * @param header
-   * @param mapperFields
-   *
-   * @return string
-   * @access public
-   */
-  public function defaultFromHeader($header, &$patterns) {
-    foreach ($patterns as $key => $re) {
-      /* Skip the first (empty) key/pattern */
-
-      if (empty($re)) {
-
-        continue;
-
-      }
-
-      /* if we've already used this field, move on */
-
-      //             if ($this->_fieldUsed[$key])
-      //                 continue;
-      /* Scan through the headerPatterns defined in the schema for a
-             * match */
-
-      if (preg_match($re, $header)) {
-        $this->_fieldUsed[$key] = TRUE;
-        return $key;
-      }
-    }
-    return '';
-  }
-
-  /**
-   * Guess at the field names given the data and patterns from the schema
-   *
-   * @param patterns
-   * @param index
-   *
-   * @return string
-   * @access public
-   */
-  public function defaultFromData(&$patterns, $index) {
-    $best     = '';
-    $bestHits = 0;
-    $n        = count($this->_dataValues);
-
-    foreach ($patterns as $key => $re) {
-      if (empty($re)) {
-        continue;
-      }
-
-      //             if ($this->_fieldUsed[$key])
-      //                 continue;
-
-      /* Take a vote over the preview data set */
-
-      $hits = 0;
-      for ($i = 0; $i < $n; $i++) {
-        if (preg_match($re, $this->_dataValues[$i][$index])) {
-          $hits++;
-        }
-      }
-
-      if ($hits > $bestHits) {
-        $bestHits = $hits;
-        $best = $key;
-      }
-    }
-
-    if ($best != '') {
-      $this->_fieldUsed[$best] = TRUE;
-    }
-    return $best;
-  }
-
-  /**
-   * Function to set variables up before form is built
+   * Set variables up before form is built.
    *
    * @return void
-   * @access public
    */
   public function preProcess() {
     $this->_mapperFields = $this->get('fields');
@@ -180,7 +54,7 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
     $this->_dataValues = $this->get('dataValues');
     $this->assign('dataValues', $this->_dataValues);
 
-    $skipColumnHeader = $this->controller->exportValue('UploadFile', 'skipColumnHeader');
+    $skipColumnHeader = $this->controller->exportValue('DataSource', 'skipColumnHeader');
 
     if ($skipColumnHeader) {
       $this->assign('skipColumnHeader', $skipColumnHeader);
@@ -193,7 +67,13 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
       $this->assign('rowDisplayCount', 2);
     }
     $highlightedFields = array();
-    $requiredFields = array('activity_date_time', 'activity_type_id', 'activity_label', 'target_contact_id', 'activity_subject');
+    $requiredFields = array(
+      'activity_date_time',
+      'activity_type_id',
+      'activity_label',
+      'target_contact_id',
+      'activity_subject',
+    );
     foreach ($requiredFields as $val) {
       $highlightedFields[] = $val;
     }
@@ -201,10 +81,9 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
   }
 
   /**
-   * Function to actually build the form
+   * Build the form object.
    *
    * @return void
-   * @access public
    */
   public function buildQuickForm() {
     //to save the current mappings
@@ -221,17 +100,17 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
       list($mappingName, $mappingContactType, $mappingLocation, $mappingPhoneType, $mappingRelation) = CRM_Core_BAO_Mapping::getMappingFields($savedMapping);
 
       //get loaded Mapping Fields
-      $mappingName        = CRM_Utils_Array::value('1', $mappingName);
+      $mappingName = CRM_Utils_Array::value('1', $mappingName);
       $mappingContactType = CRM_Utils_Array::value('1', $mappingContactType);
-      $mappingLocation    = CRM_Utils_Array::value('1', $mappingLocation);
-      $mappingPhoneType   = CRM_Utils_Array::value('1', $mappingPhoneType);
-      $mappingRelation    = CRM_Utils_Array::value('1', $mappingRelation);
+      $mappingLocation = CRM_Utils_Array::value('1', $mappingLocation);
+      $mappingPhoneType = CRM_Utils_Array::value('1', $mappingPhoneType);
+      $mappingRelation = CRM_Utils_Array::value('1', $mappingRelation);
 
       $this->assign('loadedMapping', $savedMapping);
       $this->set('loadedMapping', $savedMapping);
 
-      $params         = array('id' => $savedMapping);
-      $temp           = array();
+      $params = array('id' => $savedMapping);
+      $temp = array();
       $mappingDetails = CRM_Core_BAO_Mapping::retrieve($params, $temp);
 
       $this->assign('savedName', $mappingDetails->name);
@@ -253,18 +132,17 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
     $defaults = array();
     $mapperKeys = array_keys($this->_mapperFields);
 
-    $hasHeaders       = !empty($this->_columnHeaders);
-    $headerPatterns   = $this->get('headerPatterns');
-    $dataPatterns     = $this->get('dataPatterns');
+    $hasHeaders = !empty($this->_columnHeaders);
+    $headerPatterns = $this->get('headerPatterns');
+    $dataPatterns = $this->get('dataPatterns');
     $hasLocationTypes = $this->get('fieldTypes');
-
 
     /* Initialize all field usages to false */
 
     foreach ($mapperKeys as $key) {
       $this->_fieldUsed[$key] = FALSE;
     }
-    $this->_location_types = CRM_Core_PseudoConstant::locationType();
+    $this->_location_types = CRM_Core_PseudoConstant::get('CRM_Core_DAO_Address', 'location_type_id');
     $sel1 = $this->_mapperFields;
 
     $sel2[''] = NULL;
@@ -274,7 +152,6 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
 
     //used to warn for mismatch column count or mismatch mapping
     $warning = 0;
-
 
     for ($i = 0; $i < $this->_columnCount; $i++) {
       $sel = &$this->addElement('hierselect', "mapper[$i]", ts('Mapper for Field %1', array(1 => $i)), NULL);
@@ -318,7 +195,8 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
             $defaults["mapper[$i]"] = array(
               $this->defaultFromHeader($this->_columnHeaders[$i],
                 $headerPatterns
-              ));
+              ),
+            );
           }
           else {
             $defaults["mapper[$i]"] = array($this->defaultFromData($dataPatterns, $i));
@@ -373,11 +251,11 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
     $this->addButtons(array(
         array(
           'type' => 'back',
-          'name' => ts('<< Previous'),
+          'name' => ts('Previous'),
         ),
         array(
           'type' => 'next',
-          'name' => ts('Continue >>'),
+          'name' => ts('Continue'),
           'spacing' => '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
           'isDefault' => TRUE,
         ),
@@ -390,16 +268,15 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
   }
 
   /**
-   * global validation rules for the form
+   * Global validation rules for the form.
    *
-   * @param array $fields posted values of the form
+   * @param array $fields
+   *   Posted values of the form.
    *
-   * @return array list of errors to be posted back to the form
-   * @static
-   * @access public
+   * @return array
+   *   list of errors to be posted back to the form
    */
-  static
-  function formRule($fields) {
+  public static function formRule($fields) {
     $errors = array();
     // define so we avoid notices below
     $errors['_qf_default'] = '';
@@ -415,11 +292,11 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
         'target_contact_id' => ts('Contact ID'),
         'activity_date_time' => ts('Activity Date'),
         'activity_subject' => ts('Activity Subject'),
-        'activity_type_id' => ts('Activity Type Id'),
+        'activity_type_id' => ts('Activity Type ID'),
       );
 
       $params = array(
-        'level' => 'Strict',
+        'used' => 'Unsupervised',
         'contact_type' => 'Individual',
       );
       list($ruleFields, $threshold) = CRM_Dedupe_BAO_RuleGroup::dedupeRuleFieldsWeight($params);
@@ -451,10 +328,10 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
             }
             else {
               $errors['_qf_default'] .= ts('Missing required field: Provide %1 or %2',
-                array(
-                  1 => $title,
-                  2 => 'Activity Type Label'
-                )) . '<br />';
+                  array(
+                    1 => $title,
+                    2 => 'Activity Type Label',
+                  )) . '<br />';
             }
           }
           else {
@@ -464,7 +341,7 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
       }
     }
 
-    if (CRM_Utils_Array::value('saveMapping', $fields)) {
+    if (!empty($fields['saveMapping'])) {
       $nameField = CRM_Utils_Array::value('saveMappingName', $fields);
       if (empty($nameField)) {
         $errors['saveMappingName'] = ts('Name is required to save Import Mapping');
@@ -493,11 +370,10 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
   }
 
   /**
-   * Process the mapped fields and map it into the uploaded file
+   * Process the mapped fields and map it into the uploaded file.
    * preview the file and extract some summary statistics
    *
    * @return void
-   * @access public
    */
   public function postProcess() {
     $params = $this->controller->exportValues('MapField');
@@ -508,17 +384,17 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
       return;
     }
 
-    $fileName = $this->controller->exportValue('UploadFile', 'uploadFile');
-    $skipColumnHeader = $this->controller->exportValue('UploadFile', 'skipColumnHeader');
+    $fileName = $this->controller->exportValue('DataSource', 'uploadFile');
+    $skipColumnHeader = $this->controller->exportValue('DataSource', 'skipColumnHeader');
 
     $config = CRM_Core_Config::singleton();
     $seperator = $config->fieldSeparator;
 
-    $mapperKeys      = array();
-    $mapper          = array();
-    $mapperKeys      = $this->controller->exportValue($this->_name, 'mapper');
-    $mapperKeysMain  = array();
-    $mapperLocType   = array();
+    $mapperKeys = array();
+    $mapper = array();
+    $mapperKeys = $this->controller->exportValue($this->_name, 'mapper');
+    $mapperKeysMain = array();
+    $mapperLocType = array();
     $mapperPhoneType = array();
 
     for ($i = 0; $i < $this->_columnCount; $i++) {
@@ -542,12 +418,12 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
 
     $this->set('mapper', $mapper);
     // store mapping Id to display it in the preview page
-    if (CRM_Utils_Array::value('mappingId', $params)) {
+    if (!empty($params['mappingId'])) {
       $this->set('loadMappingId', $params['mappingId']);
     }
 
     //Updating Mapping Records
-    if (CRM_Utils_Array::value('updateMapping', $params)) {
+    if (!empty($params['updateMapping'])) {
 
       $mappingFields = new CRM_Core_DAO_MappingField();
       $mappingFields->mapping_id = $params['mappingId'];
@@ -572,7 +448,7 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
     }
 
     //Saving Mapping Details and Records
-    if (CRM_Utils_Array::value('saveMapping', $params)) {
+    if (!empty($params['saveMapping'])) {
       $mappingParams = array(
         'name' => $params['saveMappingName'],
         'description' => $params['saveMappingDesc'],
@@ -594,24 +470,13 @@ class CRM_Activity_Import_Form_MapField extends CRM_Core_Form {
       $this->set('savedMapping', $saveMappingFields->mapping_id);
     }
 
-
     $parser = new CRM_Activity_Import_Parser_Activity($mapperKeysMain, $mapperLocType, $mapperPhoneType);
     $parser->run($fileName, $seperator, $mapper, $skipColumnHeader,
-      CRM_Activity_Import_Parser::MODE_PREVIEW
+      CRM_Import_Parser::MODE_PREVIEW
     );
 
     // add all the necessary variables to the form
     $parser->set($this);
   }
 
-  /**
-   * Return a descriptive name for the page, used in wizard header
-   *
-   * @return string
-   * @access public
-   */
-  public function getTitle() {
-    return ts('Match Fields');
-  }
 }
-

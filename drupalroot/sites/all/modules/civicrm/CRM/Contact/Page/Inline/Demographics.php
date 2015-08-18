@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,13 +28,13 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 
 /**
- * Dummy page for details of demographics 
+ * Dummy page for details of demographics
  *
  */
 class CRM_Contact_Page_Inline_Demographics extends CRM_Core_Page {
@@ -45,34 +45,32 @@ class CRM_Contact_Page_Inline_Demographics extends CRM_Core_Page {
    * This method is called after the page is created.
    *
    * @return void
-   * @access public
-   *
    */
-  function run() {
+  public function run() {
     // get the emails for this contact
     $contactId = CRM_Utils_Request::retrieve('cid', 'Positive', CRM_Core_DAO::$_nullObject, TRUE, NULL, $_REQUEST);
 
     $params = array('id' => $contactId);
 
     $defaults = array();
-    CRM_Contact_BAO_Contact::getValues( $params, $defaults );
+    CRM_Contact_BAO_Contact::getValues($params, $defaults);
 
-    if (CRM_Utils_Array::value('gender_id', $defaults)) {
-      $gender = CRM_Core_PseudoConstant::gender();
+    if (!empty($defaults['gender_id'])) {
+      $gender = CRM_Core_PseudoConstant::get('CRM_Contact_DAO_Contact', 'gender_id');
       $defaults['gender_display'] = $gender[CRM_Utils_Array::value('gender_id', $defaults)];
     }
 
     $this->assign('contactId', $contactId);
     $this->assign($defaults);
- 
+
     //for birthdate format with respect to birth format set
     $this->assign('birthDateViewFormat', CRM_Utils_Array::value('qfMapping', CRM_Utils_Date::checkBirthDateFormat()));
 
     // check logged in user permission
     CRM_Contact_Page_View::checkUserPermission($this, $contactId);
-    
-    // finally call parent 
+
+    // finally call parent
     parent::run();
   }
-}
 
+}

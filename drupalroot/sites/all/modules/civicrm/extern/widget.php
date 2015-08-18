@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,14 +23,13 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
- *
  */
 require_once '../civicrm.config.php';
 require_once 'CRM/Core/Config.php';
@@ -39,9 +38,9 @@ $config = CRM_Core_Config::singleton();
 $template = CRM_Core_Smarty::singleton();
 
 require_once 'CRM/Utils/Request.php';
-$cpageId  = CRM_Utils_Request::retrieve('cpageId', 'Positive', CRM_Core_DAO::$_nullObject);
+$cpageId = CRM_Utils_Request::retrieve('cpageId', 'Positive', CRM_Core_DAO::$_nullObject);
 $widgetId = CRM_Utils_Request::retrieve('widgetId', 'Positive', CRM_Core_DAO::$_nullObject);
-$format   = CRM_Utils_Request::retrieve('format', 'Positive', CRM_Core_DAO::$_nullObject);
+$format = CRM_Utils_Request::retrieve('format', 'Positive', CRM_Core_DAO::$_nullObject);
 
 require_once 'CRM/Contribute/BAO/Widget.php';
 
@@ -58,4 +57,3 @@ $output = '
 
 echo $output;
 CRM_Utils_System::civiExit();
-

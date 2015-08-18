@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,7 +24,7 @@
  +--------------------------------------------------------------------+
 *}
 <div id="help">
-    {ts}This screen presents the list of scheduled jobs (cron tasks) log entries.{/ts} {$docLink}
+    {ts}This screen presents the list of most recent 1,000 scheduled jobs log entries.{/ts} {$docLink}
 </div>
 
 {if $jobId}
@@ -32,28 +32,28 @@
 {/if}
 
 <div class="action-link">
-  <a href="{crmURL p='civicrm/admin/job' q="reset=1"}" id="jobsList-top" class="button"><span><div class="icon back-icon"></div>{ts}Back to Scheduled Jobs Listing{/ts}</span></a>
+  <a href="{crmURL p='civicrm/admin/job' q="reset=1"}" id="jobsList-top" class="button"><span><div class="icon ui-icon-arrowreturnthick-1-w"></div>{ts}Back to Scheduled Jobs Listing{/ts}</span></a>
 </div>
 
 {if $rows}
 <div id="ltype">
         {strip}
         {* handle enable/disable actions*}
- 	{include file="CRM/common/enableDisable.tpl"}
-        <table class="selector">
+   {include file="CRM/common/enableDisableApi.tpl"}
+        <table class="selector row-highlight">
         <tr class="columnheader">
             <th >{ts}Date{/ts}</th>
             <th >{ts}Job Name{/ts}</th>
             <th >{ts}Command{/ts}/{ts}Job Status{/ts}/{ts}Additional Information{/ts}</th>
         </tr>
         {foreach from=$rows item=row}
-        <tr id="row_{$row.id}" class="crm-job {cycle values="odd-row,even-row"} {$row.class}">
+        <tr id="job-{$row.id}" class="crm-entity {cycle values="odd-row,even-row"} {$row.class}">
             <td class="crm-joblog-run_datetime">{$row.run_time}</td>
             <td class="crm-joblog-name">{$row.name}</td>
             <td class="crm-joblog-details">
                 <div class="crm-joblog-command">{$row.command}</div>
                 {if $row.description}<div class="crm-joblog-description"><span class="bold">Summary</span><br/>{$row.description}</div>{/if}
-	            {if $row.data}<div class="crm-joblog-data" style="border-top:1px solid #ccc; margin-top: 10px;"><span class="bold">Details</span><br/><pre>{$row.data}</pre></div>{/if}
+              {if $row.data}<div class="crm-joblog-data" style="border-top:1px solid #ccc; margin-top: 10px;"><span class="bold">Details</span><br/><pre>{$row.data}</pre></div>{/if}
             </td>
         </tr>
         {/foreach}
@@ -62,16 +62,16 @@
 
 </div>
 {elseif $action ne 1}
-    <div class="messages status">
+    <div class="messages status no-popup">
       <div class="icon inform-icon"></div>&nbsp;
       {if $jobId}
         {ts}This scheduled job does not have any log entries.{/ts}
       {else}
         {ts}There are no scheduled job log entries.{/ts}
       {/if}
-     </div>    
+     </div>
 {/if}
 
 <div class="action-link">
-  <a href="{crmURL p='civicrm/admin/job' q="reset=1"}" id="jobsList-bottom" class="button"><span><div class="icon back-icon"></div>{ts}Back to Scheduled Jobs Listing{/ts}</span></a>
+  <a href="{crmURL p='civicrm/admin/job' q="reset=1"}" id="jobsList-bottom" class="button"><span><div class="icon ui-icon-arrowreturnthick-1-w"></div>{ts}Back to Scheduled Jobs Listing{/ts}</span></a>
 </div>

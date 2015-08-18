@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -37,99 +37,106 @@
  * This class is for activity assignment functions
  *
  */
-class CRM_Activity_BAO_ActivityAssignment extends CRM_Activity_DAO_ActivityAssignment {
+class CRM_Activity_BAO_ActivityAssignment extends CRM_Activity_DAO_ActivityContact {
 
   /**
-   * class constructor
+   * Class constructor.
    */
-  function __construct() {
+  public function __construct() {
     parent::__construct();
   }
 
   /**
    * Add activity assignment.
    *
-   * @param array  $params       (reference ) an assoc array of name/value pairs
-   * @param array  $ids          (reference ) the array that holds all the db ids
+   * @param array $params
+   *   (reference ) an assoc array of name/value pairs.
    *
-   * @return object activity type of object that is added
-   * @access public
-   *
+   * @return object
+   *   activity type of object that is added
    */
   public static function create(&$params) {
-    $assignment = new CRM_Activity_BAO_ActivityAssignment();
+    $assignment = new CRM_Activity_BAO_ActivityContact();
+    $activityContacts = CRM_Core_OptionGroup::values('activity_contacts', FALSE, FALSE, FALSE, NULL, 'name');
+    $assigneeID = CRM_Utils_Array::key('Activity Assignees', $activityContacts);
 
     $assignment->copyValues($params);
+    $assignment->record_type_id = $assigneeID;
+
     return $assignment->save();
   }
 
   /**
-   * Retrieve assignee_id by activity_id
+   * Retrieve assignee_id by activity_id.
    *
-   * @param int    $id  ID of the activity
+   * @param int $activity_id
    *
-   * @return void
-   *
-   * @access public
-   *
+   * @return array
    */
-  static
-  function retrieveAssigneeIdsByActivityId($activity_id) {
+  public static function retrieveAssigneeIdsByActivityId($activity_id) {
     $assigneeArray = array();
     if (!CRM_Utils_Rule::positiveInteger($activity_id)) {
       return $assigneeArray;
     }
 
-    $sql = '
-            SELECT assignee_contact_id
-            FROM civicrm_activity_assignment
-            JOIN civicrm_contact ON assignee_contact_id = civicrm_contact.id
-            WHERE activity_id = %1 AND civicrm_contact.is_deleted = 0
-        ';
+    $activityContacts = CRM_Core_OptionGroup::values('activity_contacts', FALSE, FALSE, FALSE, NULL, 'name');
+    $assigneeID = CRM_Utils_Array::key('Activity Assignees', $activityContacts);
+
+    $sql = "
+SELECT     contact_id
+FROM       civicrm_activity_contact
+INNER JOIN civicrm_contact ON contact_id = civicrm_contact.id
+WHERE      activity_id = %1
+AND        record_type_id = $assigneeID
+AND        civicrm_contact.is_deleted = 0
+";
     $assignment = CRM_Core_DAO::executeQuery($sql, array(1 => array($activity_id, 'Integer')));
     while ($assignment->fetch()) {
-      $assigneeArray[] = $assignment->assignee_contact_id;
+      $assigneeArray[] = $assignment->contact_id;
     }
 
     return $assigneeArray;
   }
 
   /**
-   * Retrieve assignee names by activity_id
+   * Retrieve assignee names by activity_id.
    *
-   * @param int      $id             ID of the activity
-   * @param boolean  $isDisplayName  if set returns display names of assignees
-   * @param boolean  $skipDetails    if false returns all details of assignee contact.
+   * @param array $activityIDs
+   *   IDs of the activities.
+   * @param bool $isDisplayName
+   *   If set returns display names of assignees.
+   * @param bool $skipDetails
+   *   If false returns all details of assignee contact.
    *
    * @return array
-   *
-   * @access public
-   *
    */
-  static
-  function getAssigneeNames($activityID, $isDisplayName = FALSE, $skipDetails = TRUE) {
+  public static function getAssigneeNames($activityIDs, $isDisplayName = FALSE, $skipDetails = TRUE) {
     $assigneeNames = array();
-    if (empty($activityID)) {
+    if (empty($activityIDs)) {
       return $assigneeNames;
     }
+    $activityContacts = CRM_Core_OptionGroup::values('activity_contacts', FALSE, FALSE, FALSE, NULL, 'name');
+    $assigneeID = CRM_Utils_Array::key('Activity Assignees', $activityContacts);
 
     $whereClause = "";
     if (!$skipDetails) {
       $whereClause = "  AND ce.is_primary= 1";
     }
+    $inClause = implode(",", $activityIDs);
 
-    $query = "SELECT contact_a.id, contact_a.sort_name, contact_a.display_name, ce.email   
-                  FROM civicrm_contact contact_a 
-                  LEFT JOIN civicrm_activity_assignment 
-                         ON civicrm_activity_assignment.assignee_contact_id = contact_a.id
-                  LEFT JOIN civicrm_email ce 
-                         ON ce.contact_id = contact_a.id
-                  WHERE civicrm_activity_assignment.activity_id = %1
-                        AND contact_a.is_deleted = 0
-                        {$whereClause}";
+    $query = "
+SELECT     contact_a.id, contact_a.sort_name, contact_a.display_name, ce.email,
+           civicrm_activity_contact.activity_id
+FROM       civicrm_contact contact_a
+INNER JOIN civicrm_activity_contact ON civicrm_activity_contact.contact_id = contact_a.id
+LEFT JOIN  civicrm_email ce ON ce.contact_id = contact_a.id
+WHERE      civicrm_activity_contact.activity_id IN ( $inClause )
+AND        contact_a.is_deleted = 0
+AND        civicrm_activity_contact.record_type_id = $assigneeID
+           {$whereClause}
+";
 
-    $queryParam = array(1 => array($activityID, 'Integer'));
-    $dao = CRM_Core_DAO::executeQuery($query, $queryParam);
+    $dao = CRM_Core_DAO::executeQuery($query);
     while ($dao->fetch()) {
       if (!$isDisplayName) {
         $assigneeNames[$dao->id] = $dao->sort_name;
@@ -144,10 +151,11 @@ class CRM_Activity_BAO_ActivityAssignment extends CRM_Activity_DAO_ActivityAssig
           $assigneeNames[$dao->id]['sort_name'] = $dao->sort_name;
           $assigneeNames[$dao->id]['email'] = $dao->email;
           $assigneeNames[$dao->id]['role'] = ts('Activity Assignee');
+          $assigneeNames[$dao->id]['activity_id'] = $dao->activity_id;
         }
       }
     }
     return $assigneeNames;
   }
-}
 
+}

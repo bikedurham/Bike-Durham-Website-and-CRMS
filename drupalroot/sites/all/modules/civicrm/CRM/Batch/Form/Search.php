@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,12 +28,15 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Batch_Form_Search extends CRM_Core_Form {
-  function setDefaultValues() {
+  /**
+   * @return array
+   */
+  public function setDefaultValues() {
     $defaults = array();
 
     $status = CRM_Utils_Request::retrieve('status', 'Positive', CRM_Core_DAO::$_nullObject, FALSE, 1);
@@ -44,11 +47,7 @@ class CRM_Batch_Form_Search extends CRM_Core_Form {
 
   public function buildQuickForm() {
     $this->add('text', 'title', ts('Find'),
-      CRM_Core_DAO::getAttribute('CRM_Core_DAO_Batch', 'title')
-    );
-
-    $this->add('select', 'batch_status', ts('Status'),
-      array('' => ts('- all -')) + CRM_Core_PseudoConstant::getBatchStatus()
+      CRM_Core_DAO::getAttribute('CRM_Batch_DAO_Batch', 'title')
     );
 
     $this->addButtons(
@@ -64,5 +63,5 @@ class CRM_Batch_Form_Search extends CRM_Core_Form {
     parent::buildQuickForm();
     $this->assign('suppressForm', TRUE);
   }
-}
 
+}

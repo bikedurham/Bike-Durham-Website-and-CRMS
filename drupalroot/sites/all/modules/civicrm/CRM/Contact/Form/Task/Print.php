@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -40,12 +40,11 @@
 class CRM_Contact_Form_Task_Print extends CRM_Contact_Form_Task {
 
   /**
-   * build all the data structures needed to build the form
+   * Build all the data structures needed to build the form.
    *
    * @return void
-   * @access public
    */
-  function preProcess() {
+  public function preProcess() {
     parent::preprocess();
 
     // set print view, so that print templates are called
@@ -61,7 +60,10 @@ class CRM_Contact_Form_Task_Print extends CRM_Contact_Form_Task {
         $params[] = array(
           CRM_Core_Form::CB_PREFIX . $contactId,
           '=',
-          1, 0, 0);
+          1,
+          0,
+          0,
+        );
       }
     }
 
@@ -82,18 +84,16 @@ class CRM_Contact_Form_Task_Print extends CRM_Contact_Form_Task {
     }
 
     $selectorName = $this->controller->selectorName();
-    require_once (str_replace('_', DIRECTORY_SEPARATOR, $selectorName) . '.php');
+    require_once str_replace('_', DIRECTORY_SEPARATOR, $selectorName) . '.php';
 
     $returnP = isset($returnPropeties) ? $returnPropeties : "";
     $customSearchClass = $this->get('customSearchClass');
-    eval('$selector   = new ' .
-      $selectorName .
-      '( $customSearchClass,
-         $fv,
-         $params,
-         $returnP,
-         $this->_action,
-         $includeContactIds );'
+    $selector = new $selectorName($customSearchClass,
+      $fv,
+      $params,
+      $returnP,
+      $this->_action,
+      $includeContactIds
     );
     $controller = new CRM_Core_Selector_Controller($selector,
       NULL,
@@ -107,15 +107,14 @@ class CRM_Contact_Form_Task_Print extends CRM_Contact_Form_Task {
   }
 
   /**
-   * Build the form - it consists of
+   * Build the form object - it consists of
    *    - displaying the QILL (query in local language)
    *    - displaying elements for saving the search
    *
-   * @access public
    *
    * @return void
    */
-  function buildQuickForm() {
+  public function buildQuickForm() {
     //
     // just need to add a javacript to popup the window for printing
     //
@@ -135,14 +134,13 @@ class CRM_Contact_Form_Task_Print extends CRM_Contact_Form_Task {
   }
 
   /**
-   * process the form after the input has been submitted and validated
+   * Process the form after the input has been submitted and validated.
    *
-   * @access public
    *
    * @return void
    */
   public function postProcess() {
     // redirect to the main search page after printing is over
   }
-}
 
+}

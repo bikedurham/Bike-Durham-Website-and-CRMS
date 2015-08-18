@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,14 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
- *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
- *
  */
 
 session_start();
@@ -40,35 +38,23 @@ require_once '../civicrm.config.php';
 /* Cache the real UF, override it with the SOAP environment */
 
 $config = CRM_Core_Config::singleton();
-
+$log = new CRM_Utils_SystemLogger();
 if (empty($_GET)) {
-  $rpInvoiceArray = array();
-  $rpInvoiceArray = explode('&', $_POST['rp_invoice_id']);
-  foreach ($rpInvoiceArray as $rpInvoiceValue) {
-    $rpValueArray = explode('=', $rpInvoiceValue);
-    if ($rpValueArray[0] == 'm') {
-      $value = $rpValueArray[1];
-    }
-  }
-  $paypalIPN = new CRM_Core_Payment_PayPalProIPN();
+  $log->alert('payment_notification processor_name=PayPal', $_REQUEST);
+  $paypalIPN = new CRM_Core_Payment_PayPalProIPN($_REQUEST);
 }
 else {
-  $value = CRM_Utils_Array::value('module', $_GET);
+  $log->alert('payment_notification PayPal_Standard', $_REQUEST);
   $paypalIPN = new CRM_Core_Payment_PayPalIPN();
+  // @todo upgrade standard per Pro
 }
-
-switch ($value) {
-  case 'contribute':
-    $paypalIPN->main('contribute');
-    break;
-
-  case 'event':
-    $paypalIPN->main('event');
-    break;
-
-  default:
-    CRM_Core_Error::debug_log_message("Could not get module name from request url");
-    echo "Could not get module name from request url<p>";
-    break;
+try {
+  $paypalIPN->main();
 }
-
+catch (CRM_Core_Exception $e) {
+  CRM_Core_Error::debug_log_message($e->getMessage());
+  CRM_Core_Error::debug_var('error data', $e->getErrorData(), TRUE, TRUE);
+  CRM_Core_Error::debug_var('REQUEST', $_REQUEST, TRUE, TRUE);
+  //@todo give better info to logged in user - ie dev
+  echo "The transaction has failed. Please review the log for more detail";
+}

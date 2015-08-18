@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,245 +23,111 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
-
-
-
-abstract class CRM_Contribute_Import_Parser {
-  CONST MAX_ERRORS = 250, MAX_WARNINGS = 25, VALID = 1, WARNING = 2, ERROR = 3, CONFLICT = 4, STOP = 5, DUPLICATE = 6, MULTIPLE_DUPE = 7, NO_MATCH = 8, SOFT_CREDIT = 9, SOFT_CREDIT_ERROR = 10, PLEDGE_PAYMENT = 11, PLEDGE_PAYMENT_ERROR = 12;
+abstract class CRM_Contribute_Import_Parser extends CRM_Import_Parser {
 
   /**
-   * various parser modes
+   * Contribution-specific result codes
+   * @see CRM_Import_Parser result code constants
    */
-  CONST MODE_MAPFIELD = 1, MODE_PREVIEW = 2, MODE_SUMMARY = 4, MODE_IMPORT = 8;
-
-  /**
-   * codes for duplicate record handling
-   */
-  CONST DUPLICATE_SKIP = 1, DUPLICATE_REPLACE = 2, DUPLICATE_UPDATE = 4, DUPLICATE_FILL = 8, DUPLICATE_NOCHECK = 16;
-
-  /**
-   * various Contact types
-   */
-  CONST CONTACT_INDIVIDUAL = 1, CONTACT_HOUSEHOLD = 2, CONTACT_ORGANIZATION = 4;
+  const SOFT_CREDIT = 512, SOFT_CREDIT_ERROR = 1024, PLEDGE_PAYMENT = 2048, PLEDGE_PAYMENT_ERROR = 4096;
 
   protected $_fileName;
 
-  /**#@+
-   * @access protected
-   * @var integer
-   */
-
   /**
-   * imported file size
+   * Imported file size
    */
   protected $_fileSize;
 
   /**
-   * seperator being used
+   * Seperator being used
    */
   protected $_seperator;
 
   /**
-   * total number of lines in file
+   * Total number of lines in file
    */
   protected $_lineCount;
 
   /**
-   * total number of non empty lines
-   */
-  protected $_totalCount;
-
-  /**
-   * running total number of valid lines
-   */
-  protected $_validCount;
-
-  /**
-   * running total number of invalid rows
-   */
-  protected $_invalidRowCount;
-
-  /**
-   * running total number of valid soft credit rows
+   * Running total number of valid soft credit rows
    */
   protected $_validSoftCreditRowCount;
 
   /**
-   * running total number of invalid soft credit rows
+   * Running total number of invalid soft credit rows
    */
   protected $_invalidSoftCreditRowCount;
 
   /**
-   * running total number of valid pledge payment rows
+   * Running total number of valid pledge payment rows
    */
   protected $_validPledgePaymentRowCount;
 
   /**
-   * running total number of invalid pledge payment rows
+   * Running total number of invalid pledge payment rows
    */
   protected $_invalidPledgePaymentRowCount;
 
   /**
-   * maximum number of invalid rows to store
-   */
-  protected $_maxErrorCount;
-
-  /**
-   * array of error lines, bounded by MAX_ERROR
-   */
-  protected $_errors;
-
-  /**
-   * array of pledge payment error lines, bounded by MAX_ERROR
+   * Array of pledge payment error lines, bounded by MAX_ERROR
    */
   protected $_pledgePaymentErrors;
 
   /**
-   * array of pledge payment error lines, bounded by MAX_ERROR
+   * Array of pledge payment error lines, bounded by MAX_ERROR
    */
   protected $_softCreditErrors;
 
   /**
-   * total number of conflict lines
-   */
-  protected $_conflictCount;
-
-  /**
-   * array of conflict lines
-   */
-  protected $_conflicts;
-
-  /**
-   * total number of duplicate (from database) lines
-   */
-  protected $_duplicateCount;
-
-  /**
-   * array of duplicate lines
-   */
-  protected $_duplicates;
-
-  /**
-   * running total number of warnings
-   */
-  protected $_warningCount;
-
-  /**
-   * maximum number of warnings to store
-   */
-  protected $_maxWarningCount = self::MAX_WARNINGS;
-
-  /**
-   * array of warning lines, bounded by MAX_WARNING
-   */
-  protected $_warnings;
-
-  /**
-   * array of all the fields that could potentially be part
-   * of this import process
-   * @var array
-   */
-  protected $_fields;
-
-  /**
-   * array of the fields that are actually part of the import process
-   * the position in the array also dictates their position in the import
-   * file
-   * @var array
-   */
-  protected $_activeFields;
-
-  /**
-   * cache the count of active fields
-   *
-   * @var int
-   */
-  protected $_activeFieldCount;
-
-  /**
-   * maximum number of non-empty/comment lines to process
-   *
-   * @var int
-   */
-  protected $_maxLinesToProcess;
-
-  /**
-   * cache of preview rows
-   *
-   * @var array
-   */
-  protected $_rows;
-
-  /**
-   * filename of error data
-   *
-   * @var string
-   */
-  protected $_errorFileName;
-
-  /**
-   * filename of pledge payment error data
+   * Filename of pledge payment error data
    *
    * @var string
    */
   protected $_pledgePaymentErrorsFileName;
 
   /**
-   * filename of soft credit error data
+   * Filename of soft credit error data
    *
    * @var string
    */
   protected $_softCreditErrorsFileName;
 
   /**
-   * filename of conflict data
-   *
-   * @var string
-   */
-  protected $_conflictFileName;
-
-  /**
-   * filename of duplicate data
-   *
-   * @var string
-   */
-  protected $_duplicateFileName;
-
-  /**
-   * whether the file has a column header or not
+   * Whether the file has a column header or not
    *
    * @var boolean
    */
   protected $_haveColumnHeader;
 
   /**
-   * contact type
+   * @param string $fileName
+   * @param string $seperator
+   * @param $mapper
+   * @param bool $skipColumnHeader
+   * @param int $mode
+   * @param int $contactType
+   * @param int $onDuplicate
    *
-   * @var int
+   * @return mixed
+   * @throws Exception
    */
-
-  public $_contactType; function __construct() {
-    $this->_maxLinesToProcess = 0;
-    $this->_maxErrorCount = self::MAX_ERRORS;
-  }
-
-  abstract function init();
-  function run($fileName,
+  public function run(
+    $fileName,
     $seperator = ',',
     &$mapper,
     $skipColumnHeader = FALSE,
-    $mode             = self::MODE_PREVIEW,
-    $contactType      = self::CONTACT_INDIVIDUAL,
-    $onDuplicate      = self::DUPLICATE_SKIP
+    $mode = self::MODE_PREVIEW,
+    $contactType = self::CONTACT_INDIVIDUAL,
+    $onDuplicate = self::DUPLICATE_SKIP
   ) {
     if (!is_array($fileName)) {
       CRM_Core_Error::fatal();
@@ -439,7 +305,7 @@ abstract class CRM_Contribute_Import_Parser {
       if ($returnCode == self::DUPLICATE) {
         if ($returnCode == self::MULTIPLE_DUPE) {
           /* TODO: multi-dupes should be counted apart from singles
-                     * on non-skip action */
+           * on non-skip action */
         }
         $this->_duplicateCount++;
         $recordNumber = $this->_lineCount;
@@ -478,7 +344,8 @@ abstract class CRM_Contribute_Import_Parser {
       }
       if ($this->_invalidRowCount) {
         // removed view url for invlaid contacts
-        $headers = array_merge(array(ts('Line Number'),
+        $headers = array_merge(array(
+            ts('Line Number'),
             ts('Reason'),
           ),
           $customHeaders
@@ -489,7 +356,8 @@ abstract class CRM_Contribute_Import_Parser {
 
       if ($this->_invalidPledgePaymentRowCount) {
         // removed view url for invlaid contacts
-        $headers = array_merge(array(ts('Line Number'),
+        $headers = array_merge(array(
+            ts('Line Number'),
             ts('Reason'),
           ),
           $customHeaders
@@ -500,7 +368,8 @@ abstract class CRM_Contribute_Import_Parser {
 
       if ($this->_invalidSoftCreditRowCount) {
         // removed view url for invlaid contacts
-        $headers = array_merge(array(ts('Line Number'),
+        $headers = array_merge(array(
+            ts('Line Number'),
             ts('Reason'),
           ),
           $customHeaders
@@ -510,7 +379,8 @@ abstract class CRM_Contribute_Import_Parser {
       }
 
       if ($this->_conflictCount) {
-        $headers = array_merge(array(ts('Line Number'),
+        $headers = array_merge(array(
+            ts('Line Number'),
             ts('Reason'),
           ),
           $customHeaders
@@ -519,7 +389,8 @@ abstract class CRM_Contribute_Import_Parser {
         self::exportCSV($this->_conflictFileName, $headers, $this->_conflicts);
       }
       if ($this->_duplicateCount) {
-        $headers = array_merge(array(ts('Line Number'),
+        $headers = array_merge(array(
+            ts('Line Number'),
             ts('View Contribution URL'),
           ),
           $customHeaders
@@ -529,27 +400,18 @@ abstract class CRM_Contribute_Import_Parser {
         self::exportCSV($this->_duplicateFileName, $headers, $this->_duplicates);
       }
     }
-    //echo "$this->_totalCount,$this->_invalidRowCount,$this->_conflictCount,$this->_duplicateCount";
     return $this->fini();
   }
-
-  abstract function mapField(&$values);
-  abstract function preview(&$values);
-  abstract function summary(&$values);
-  abstract function import($onDuplicate, &$values);
-
-  abstract function fini();
 
   /**
    * Given a list of the importable field keys that the user has selected
    * set the active fields array to this list
    *
-   * @param array mapped array of values
+   * @param array $fieldKeys mapped array of values
    *
    * @return void
-   * @access public
    */
-  function setActiveFields($fieldKeys) {
+  public function setActiveFields($fieldKeys) {
     $this->_activeFieldCount = count($fieldKeys);
     foreach ($fieldKeys as $key) {
       if (empty($this->_fields[$key])) {
@@ -561,43 +423,31 @@ abstract class CRM_Contribute_Import_Parser {
     }
   }
 
-  function setActiveFieldSoftCredit($elements) {
+  /**
+   * @param array $elements
+   */
+  public function setActiveFieldSoftCredit($elements) {
     for ($i = 0; $i < count($elements); $i++) {
       $this->_activeFields[$i]->_softCreditField = $elements[$i];
     }
   }
 
-  function setActiveFieldValues($elements, &$erroneousField) {
-    $maxCount = count($elements) < $this->_activeFieldCount ? count($elements) : $this->_activeFieldCount;
-    for ($i = 0; $i < $maxCount; $i++) {
-      $this->_activeFields[$i]->setValue($elements[$i]);
+  /**
+   * @param array $elements
+   */
+  public function setActiveFieldSoftCreditType($elements) {
+    for ($i = 0; $i < count($elements); $i++) {
+      $this->_activeFields[$i]->_softCreditType = $elements[$i];
     }
-
-    // reset all the values that we did not have an equivalent import element
-    for (; $i < $this->_activeFieldCount; $i++) {
-      $this->_activeFields[$i]->resetValue();
-    }
-
-    // now validate the fields and return false if error
-    $valid = self::VALID;
-    for ($i = 0; $i < $this->_activeFieldCount; $i++) {
-      if (!$this->_activeFields[$i]->validate()) {
-        // no need to do any more validation
-        $erroneousField = $i;
-        $valid = self::ERROR;
-        break;
-      }
-    }
-    return $valid;
   }
 
   /**
-   * function to format the field values for input to the api
+   * Format the field values for input to the api.
    *
-   * @return array (reference ) associative array of name/value pairs
-   * @access public
+   * @return array
+   *   (reference ) associative array of name/value pairs
    */
-  function &getActiveFieldParams() {
+  public function &getActiveFieldParams() {
     $params = array();
     for ($i = 0; $i < $this->_activeFieldCount; $i++) {
       if (isset($this->_activeFields[$i]->_value)) {
@@ -605,7 +455,10 @@ abstract class CRM_Contribute_Import_Parser {
           if (!isset($params[$this->_activeFields[$i]->_name])) {
             $params[$this->_activeFields[$i]->_name] = array();
           }
-          $params[$this->_activeFields[$i]->_name][$this->_activeFields[$i]->_softCreditField] = $this->_activeFields[$i]->_value;
+          $params[$this->_activeFields[$i]->_name][$i][$this->_activeFields[$i]->_softCreditField] = $this->_activeFields[$i]->_value;
+          if (isset($this->_activeFields[$i]->_softCreditType)) {
+            $params[$this->_activeFields[$i]->_name][$i]['soft_credit_type_id'] = $this->_activeFields[$i]->_softCreditType;
+          }
         }
 
         if (!isset($params[$this->_activeFields[$i]->_name])) {
@@ -618,43 +471,14 @@ abstract class CRM_Contribute_Import_Parser {
     return $params;
   }
 
-  function getSelectValues() {
-    $values = array();
-    foreach ($this->_fields as $name => $field) {
-      $values[$name] = $field->_title;
-    }
-    return $values;
-  }
-
-  function getSelectTypes() {
-    $values = array();
-    foreach ($this->_fields as $name => $field) {
-      if (isset($field->_hasLocationType)) {
-        $values[$name] = $field->_hasLocationType;
-      }
-    }
-    return $values;
-  }
-
-  function getHeaderPatterns() {
-    $values = array();
-    foreach ($this->_fields as $name => $field) {
-      if (isset($field->_headerPattern)) {
-        $values[$name] = $field->_headerPattern;
-      }
-    }
-    return $values;
-  }
-
-  function getDataPatterns() {
-    $values = array();
-    foreach ($this->_fields as $name => $field) {
-      $values[$name] = $field->_dataPattern;
-    }
-    return $values;
-  }
-
-  function addField($name, $title, $type = CRM_Utils_Type::T_INT, $headerPattern = '//', $dataPattern = '//') {
+  /**
+   * @param string $name
+   * @param $title
+   * @param int $type
+   * @param string $headerPattern
+   * @param string $dataPattern
+   */
+  public function addField($name, $title, $type = CRM_Utils_Type::T_INT, $headerPattern = '//', $dataPattern = '//') {
     if (empty($name)) {
       $this->_fields['doNotImport'] = new CRM_Contribute_Import_Field($name, $title, $type, $headerPattern, $dataPattern);
     }
@@ -664,7 +488,7 @@ abstract class CRM_Contribute_Import_Parser {
         $this->_fields[$name] = new CRM_Contribute_Import_Field($name, $title, $type, $headerPattern, $dataPattern);
       }
       else {
-        $this->_fields[$name] = new CRM_Import_Field($name, $title, $type, $headerPattern, $dataPattern,
+        $this->_fields[$name] = new CRM_Contact_Import_Field($name, $title, $type, $headerPattern, $dataPattern,
           CRM_Utils_Array::value('hasLocationType', $tempField[$name])
         );
       }
@@ -672,26 +496,13 @@ abstract class CRM_Contribute_Import_Parser {
   }
 
   /**
-   * setter function
-   *
-   * @param int $max
-   *
-   * @return void
-   * @access public
-   */
-  function setMaxLinesToProcess($max) {
-    $this->_maxLinesToProcess = $max;
-  }
-
-  /**
-   * Store parser values
+   * Store parser values.
    *
    * @param CRM_Core_Session $store
    *
-   * @return void
-   * @access public
+   * @param int $mode
    */
-  function set($store, $mode = self::MODE_SUMMARY) {
+  public function set($store, $mode = self::MODE_SUMMARY) {
     $store->set('fileSize', $this->_fileSize);
     $store->set('lineCount', $this->_lineCount);
     $store->set('seperator', $this->_seperator);
@@ -713,15 +524,15 @@ abstract class CRM_Contribute_Import_Parser {
 
     switch ($this->_contactType) {
       case 'Individual':
-        $store->set('contactType', CRM_Contribute_Import_Parser::CONTACT_INDIVIDUAL);
+        $store->set('contactType', CRM_Import_Parser::CONTACT_INDIVIDUAL);
         break;
 
       case 'Household':
-        $store->set('contactType', CRM_Contribute_Import_Parser::CONTACT_HOUSEHOLD);
+        $store->set('contactType', CRM_Import_Parser::CONTACT_HOUSEHOLD);
         break;
 
       case 'Organization':
-        $store->set('contactType', CRM_Contribute_Import_Parser::CONTACT_ORGANIZATION);
+        $store->set('contactType', CRM_Import_Parser::CONTACT_ORGANIZATION);
     }
 
     if ($this->_invalidRowCount) {
@@ -748,21 +559,18 @@ abstract class CRM_Contribute_Import_Parser {
         $store->set('duplicatesFileName', $this->_duplicateFileName);
       }
     }
-    //echo "$this->_totalCount,$this->_invalidRowCount,$this->_conflictCount,$this->_duplicateCount";
   }
 
   /**
-   * Export data to a CSV file
+   * Export data to a CSV file.
    *
-   * @param string $filename
+   * @param string $fileName
    * @param array $header
-   * @param data $data
+   * @param array $data
    *
    * @return void
-   * @access public
    */
-  static
-  function exportCSV($fileName, $header, $data) {
+  public static function exportCSV($fileName, $header, $data) {
     $output = array();
     $fd = fopen($fileName, 'w');
 
@@ -774,7 +582,7 @@ abstract class CRM_Contribute_Import_Parser {
 
     foreach ($data as $datum) {
       foreach ($datum as $key => $value) {
-        if (is_array($value[0])) {
+        if (isset($value[0]) && is_array($value)) {
           foreach ($value[0] as $k1 => $v1) {
             if ($k1 == 'location_type_id') {
               continue;
@@ -793,27 +601,14 @@ abstract class CRM_Contribute_Import_Parser {
   }
 
   /**
-   * Remove single-quote enclosures from a value array (row)
+   * Determines the file extension based on error code.
    *
-   * @param array $values
-   * @param string $enclosure
+   * @param int $type
+   *   Error code constant.
    *
-   * @return void
-   * @static
-   * @access public
+   * @return string
    */
-  static
-  function encloseScrub(&$values, $enclosure = "'") {
-    if (empty($values)) {
-      return;
-    }
-
-    foreach ($values as $k => $v) {
-      $values[$k] = preg_replace("/^$enclosure(.*) $enclosure$/", '$1', $v);
-    }
-  }
-
-  function errorFileName($type) {
+  public static function errorFileName($type) {
     $fileName = NULL;
     if (empty($type)) {
       return $fileName;
@@ -823,26 +618,6 @@ abstract class CRM_Contribute_Import_Parser {
     $fileName = $config->uploadDir . "sqlImport";
 
     switch ($type) {
-      case CRM_Contribute_Import_Parser::ERROR:
-      case CRM_Contribute_Import_Parser::NO_MATCH:
-      case CRM_Contribute_Import_Parser::CONFLICT:
-      case CRM_Contribute_Import_Parser::DUPLICATE:
-        //here constants get collides.
-        if ($type == CRM_Contribute_Import_Parser::ERROR) {
-          $type = CRM_Import_Parser::ERROR;
-        }
-        elseif ($type == CRM_Contribute_Import_Parser::NO_MATCH) {
-          $type = CRM_Import_Parser::NO_MATCH;
-        }
-        elseif ($type == CRM_Contribute_Import_Parser::CONFLICT) {
-          $type = CRM_Import_Parser::CONFLICT;
-        }
-        else {
-          $type = CRM_Import_Parser::DUPLICATE;
-        }
-        $fileName = CRM_Import_Parser::errorFileName($type);
-        break;
-
       case CRM_Contribute_Import_Parser::SOFT_CREDIT_ERROR:
         $fileName .= '.softCreditErrors';
         break;
@@ -850,38 +625,30 @@ abstract class CRM_Contribute_Import_Parser {
       case CRM_Contribute_Import_Parser::PLEDGE_PAYMENT_ERROR:
         $fileName .= '.pledgePaymentErrors';
         break;
+
+      default:
+        $fileName = parent::errorFileName($type);
+        break;
     }
 
     return $fileName;
   }
 
-  function saveFileName($type) {
+  /**
+   * Determines the file name based on error code.
+   *
+   * @param int $type
+   *   Error code constant.
+   *
+   * @return string
+   */
+  public static function saveFileName($type) {
     $fileName = NULL;
     if (empty($type)) {
       return $fileName;
     }
 
     switch ($type) {
-      case CRM_Contribute_Import_Parser::ERROR:
-      case CRM_Contribute_Import_Parser::NO_MATCH:
-      case CRM_Contribute_Import_Parser::CONFLICT:
-      case CRM_Contribute_Import_Parser::DUPLICATE:
-        //here constants get collides.
-        if ($type == CRM_Contribute_Import_Parser::ERROR) {
-          $type = CRM_Import_Parser::ERROR;
-        }
-        elseif ($type == CRM_Contribute_Import_Parser::NO_MATCH) {
-          $type = CRM_Import_Parser::NO_MATCH;
-        }
-        elseif ($type == CRM_Contribute_Import_Parser::CONFLICT) {
-          $type = CRM_Import_Parser::CONFLICT;
-        }
-        else {
-          $type = CRM_Import_Parser::DUPLICATE;
-        }
-        $fileName = CRM_Import_Parser::saveFileName($type);
-        break;
-
       case CRM_Contribute_Import_Parser::SOFT_CREDIT_ERROR:
         $fileName = 'Import_Soft_Credit_Errors.csv';
         break;
@@ -889,9 +656,13 @@ abstract class CRM_Contribute_Import_Parser {
       case CRM_Contribute_Import_Parser::PLEDGE_PAYMENT_ERROR:
         $fileName = 'Import_Pledge_Payment_Errors.csv';
         break;
+
+      default:
+        $fileName = parent::saveFileName($type);
+        break;
     }
 
     return $fileName;
   }
-}
 
+}

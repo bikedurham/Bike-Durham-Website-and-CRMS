@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,14 +23,13 @@
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
 *}
-{if $context EQ 'Search'}
     {include file="CRM/common/pager.tpl" location="top"}
-{/if}
 
-{capture assign=iconURL}<img src="{$config->resourceBase}i/TreePlus.gif" alt="{ts}open section{/ts}"/>{/capture}
-{ts 1=$iconURL}Click %1 to view pledge payments.{/ts}
+<p class="description">
+  {ts}Click arrow to view pledge payments.{/ts}
+</p>
 {strip}
-<table class="selector">
+<table class="selector row-highlight">
     <thead class="sticky">
         {if ! $single and $context eq 'Search' }
             <th scope="col" title="Select Rows">{$form.toggleSelect.html}</th>
@@ -53,37 +52,37 @@
     {foreach from=$rows item=row}
         {cycle values="odd-row,even-row" assign=rowClass}
         <tr id='rowid{$row.pledge_id}' class='{$rowClass} {if $row.pledge_status_name eq 'Overdue' } status-overdue{/if}'>
-            {if $context eq 'Search' }       
+            {if $context eq 'Search' }
                 {assign var=cbName value=$row.checkbox}
-                <td>{$form.$cbName.html}</td> 
+                <td>{$form.$cbName.html}</td>
             {/if}
             <td>
-                {if ! $single }	
+                {if ! $single }
                     &nbsp;{$row.contact_type}<br/>
                 {/if}
-                <span id="{$row.pledge_id}_show">
+                <span id="{$row.pledge_id}_show" title="{ts}Show payments{/ts}">
                     <a href="#" onclick="cj('#paymentDetails{$row.pledge_id},#minus{$row.pledge_id}_hide,#{$row.pledge_id}_hide').show();
-                        buildPaymentDetails('{$row.pledge_id}','{$row.contact_id}'); 
+                        buildPaymentDetails('{$row.pledge_id}','{$row.contact_id}');
                         cj('#{$row.pledge_id}_show').hide();
-                        return false;"><img src="{$config->resourceBase}i/TreePlus.gif" class="action-icon" alt="{ts}open section{/ts}"/></a>
+                        return false;"><img src="{$config->resourceBase}i/TreePlus.gif" class="action-icon" alt="&gt;"/></a>
                 </span>
-                <span id="minus{$row.pledge_id}_hide">
-                    <a href="#" onclick="cj('#paymentDetails{$row.pledge_id},#{$row.pledge_id}_hide,#minus{$row.pledge_id}_hide').hide(); 
+                <span id="minus{$row.pledge_id}_hide" title="{ts}Hide payments{/ts}">
+                    <a href="#" onclick="cj('#paymentDetails{$row.pledge_id},#{$row.pledge_id}_hide,#minus{$row.pledge_id}_hide').hide();
                             cj('#{$row.pledge_id}_show').show();
-                            return false;"><img src="{$config->resourceBase}i/TreeMinus.gif" class="action-icon" alt="{ts}open section{/ts}"/></a>
+                            return false;"><img src="{$config->resourceBase}i/TreeMinus.gif" class="action-icon" alt="^"/></a>
                 </span>
             </td>
-            {if ! $single }	
+            {if ! $single }
                 <td><a href="{crmURL p='civicrm/contact/view' q="reset=1&cid=`$row.contact_id`"}">{$row.sort_name}</a></td>
             {/if}
             <td class="right">{$row.pledge_amount|crmMoney:$row.pledge_currency}</td>
             <td class="right">{$row.pledge_total_paid|crmMoney:$row.pledge_currency}</td>
             <td class="right">{$row.pledge_amount-$row.pledge_total_paid|crmMoney:$row.pledge_currency}</td>
-            <td>{$row.pledge_contribution_type}</td>
+            <td>{$row.pledge_financial_type}</td>
             <td>{$row.pledge_create_date|truncate:10:''|crmDate}</td>
             <td>{$row.pledge_next_pay_date|truncate:10:''|crmDate}</td>
             <td class="right">{$row.pledge_next_pay_amount|crmMoney:$row.pledge_currency}</td>
-            <td>{$row.pledge_status}</td>	
+            <td>{$row.pledge_status}</td>
             <td>{$row.action|replace:'xx':$row.pledge_id}</td>
         </tr>
         <tr id="{$row.pledge_id}_hide" class='{$rowClass}'>
@@ -91,8 +90,8 @@
             <td colspan= {if $context EQ 'Search'} "10" {else} "8" {/if} class="enclosingNested" id="paymentDetails{$row.pledge_id}">&nbsp;</td>
         </tr>
         <script type="text/javascript">
-            hide('{$row.pledge_id}_hide');
-            hide('minus{$row.pledge_id}_hide');
+            cj('#{$row.pledge_id}_hide').hide();
+            cj('#minus{$row.pledge_id}_hide').hide();
         </script>
     {/foreach}
 
@@ -106,37 +105,19 @@
 </table>
 {/strip}
 
-{if $context EQ 'Search'}
-    <script type="text/javascript">
-    {* this function is called to change the color of selected row(s) *}
-    var fname = "{$form.formName}";	
-    on_load_init_checkboxes(fname);
- </script>
-{/if}
-
-{if $context EQ 'Search'}
     {include file="CRM/common/pager.tpl" location="bottom"}
-{/if}
 
 {* Build pledge payment details*}
 {literal}
 <script type="text/javascript">
-
-    function buildPaymentDetails( pledgeId, contactId )
-    {
-        var dataUrl = {/literal}"{crmURL p='civicrm/pledge/payment' h=0 q="action=browse&snippet=4&context=`$context`&pledgeId="}"{literal} + pledgeId + '&cid=' + contactId;
-            
-        cj.ajax({
-                url     : dataUrl,
-                dataType: "html",
-                timeout : 5000, //Time in milliseconds
-                success : function( data ){
-                            cj( '#paymentDetails' + pledgeId ).html( data );
-                          },
-                error   : function( XMLHttpRequest, textStatus, errorThrown ) {
-                            console.error( 'Error: '+ textStatus );
-                          }
-             });
-    }
+  (function($) {
+    // FIXME global function
+    window.buildPaymentDetails = function(pledgeId, contactId) {
+      var dataUrl = {/literal}"{crmURL p='civicrm/pledge/payment' h=0 q="action=browse&snippet=4&context=`$context`&pledgeId="}"{literal} + pledgeId + '&cid=' + contactId;
+      $('#paymentDetails' + pledgeId).load(dataUrl, function() {
+        $(this).trigger('crmLoad');
+      });
+    };
+  })(CRM.$);
 </script>
-{/literal}	
+{/literal}

@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,33 +23,34 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Contact_BAO_Contact_Location {
 
   /**
-   * function to get the display name, primary email, location type and location id of a contact
+   * Get the display name, primary email, location type and location id of a contact
    *
-   * @param  int    $id id of the contact
+   * @param int $id
+   *   Id of the contact.
    *
-   * @return array  of display_name, email, location type and location id if found, or (null,null,null, null)
-   * @static
-   * @access public
+   * @param bool $isPrimary
+   * @param int $locationTypeID
+   *
+   * @return array
+   *   Array of display_name, email, location type and location id if found, or (null,null,null, null)
    */
-  static
-  function getEmailDetails($id, $isPrimary = TRUE, $locationTypeID = NULL) {
+  public static function getEmailDetails($id, $isPrimary = TRUE, $locationTypeID = NULL) {
     $primaryClause = NULL;
     if ($isPrimary) {
       $primaryClause = " AND civicrm_email.is_primary = 1";
     }
-
 
     $locationClause = NULL;
     if ($locationTypeID) {
@@ -74,16 +75,17 @@ WHERE     civicrm_contact.id = %1";
   }
 
   /**
-   * function to get the sms number and display name of a contact
+   * Get the sms number and display name of a contact.
    *
-   * @param  int    $id id of the contact
+   * @param int $id
+   *   Id of the contact.
    *
-   * @return array    tuple of display_name and sms if found, or (null,null)
-   * @static
-   * @access public
+   * @param null $type
+   *
+   * @return array
+   *   tuple of display_name and sms if found, or (null,null)
    */
-  static
-  function getPhoneDetails($id, $type = NULL) {
+  public static function getPhoneDetails($id, $type = NULL) {
     if (!$id) {
       return array(NULL, NULL);
     }
@@ -92,7 +94,6 @@ WHERE     civicrm_contact.id = %1";
     if ($type) {
       $cond = " AND civicrm_phone.phone_type_id = '$type'";
     }
-
 
     $sql = "
    SELECT civicrm_contact.display_name, civicrm_phone.phone, civicrm_contact.do_not_sms
@@ -111,17 +112,19 @@ LEFT JOIN civicrm_phone ON ( civicrm_phone.contact_id = civicrm_contact.id )
   }
 
   /**
-   * function to get the information to map a contact
+   * Get the information to map a contact.
    *
-   * @param  array  $ids    the list of ids for which we want map info
+   * @param array $ids
+   *   The list of ids for which we want map info.
    * $param  int    $locationTypeID
    *
-   * @return null|string     display name of the contact if found
-   * @static
-   * @access public
+   * @param int $locationTypeID
+   * @param bool $imageUrlOnly
+   *
+   * @return null|string
+   *   display name of the contact if found
    */
-  static
-  function &getMapInfo($ids, $locationTypeID = NULL, $imageUrlOnly = FALSE) {
+  public static function &getMapInfo($ids, $locationTypeID = NULL, $imageUrlOnly = FALSE) {
     $idString = ' ( ' . implode(',', $ids) . ' ) ';
     $sql = "
    SELECT civicrm_contact.id as contact_id,
@@ -144,8 +147,8 @@ LEFT JOIN civicrm_address ON civicrm_address.contact_id = civicrm_contact.id
 LEFT JOIN civicrm_state_province ON civicrm_address.state_province_id = civicrm_state_province.id
 LEFT JOIN civicrm_country ON civicrm_address.country_id = civicrm_country.id
 LEFT JOIN civicrm_location_type ON civicrm_location_type.id = civicrm_address.location_type_id
-WHERE civicrm_address.geo_code_1 IS NOT NULL 
-AND civicrm_address.geo_code_2 IS NOT NULL 
+WHERE civicrm_address.geo_code_1 IS NOT NULL
+AND civicrm_address.geo_code_2 IS NOT NULL
 AND civicrm_contact.id IN $idString ";
 
     $params = array();
@@ -189,15 +192,14 @@ AND civicrm_contact.id IN $idString ";
         array($dao->country)
       );
       $location['address'] = addslashes($address);
-      $location['displayAddress'] = str_replace('<br />', ', ', $address);
+      $location['displayAddress'] = str_replace('<br />', ', ', addslashes($address));
       $location['url'] = CRM_Utils_System::url('civicrm/contact/view', 'reset=1&cid=' . $dao->contact_id);
       $location['location_type'] = $dao->location_type;
-      $location['image'] = CRM_Contact_BAO_Contact_Utils::getImage(isset($dao->contact_sub_type) ?
-        $dao->contact_sub_type : $dao->contact_type, $imageUrlOnly, $dao->contact_id
+      $location['image'] = CRM_Contact_BAO_Contact_Utils::getImage(isset($dao->contact_sub_type) ? $dao->contact_sub_type : $dao->contact_type, $imageUrlOnly, $dao->contact_id
       );
       $locations[] = $location;
     }
     return $locations;
   }
-}
 
+}

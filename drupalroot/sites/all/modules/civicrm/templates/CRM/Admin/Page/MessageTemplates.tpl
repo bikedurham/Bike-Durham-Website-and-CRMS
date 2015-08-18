@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -26,7 +26,7 @@
 {capture assign=crmURL}{crmURL p='civicrm/admin/messageTemplates/add' q="action=add&reset=1"}{/capture}
 {if $action eq 1 or $action eq 2 or $action eq 8}
    {include file="CRM/Admin/Form/MessageTemplates.tpl"}
-   
+
 {elseif $action eq 4}
   {* View a system default workflow template *}
 
@@ -49,7 +49,7 @@
       </div>
     </div>
   </div>
-  
+
   <div class="crm-section msg_txt-section">
   <h3 class="header-dark">{$form.msg_text.label}</h3>
     <div class="text">
@@ -80,29 +80,33 @@
       {$form.pdf_format_id.html}
     </div>
   </div>
-    
+
   <div id="crm-submit-buttons">{$form.buttons.html}</div>
   </fieldset>
 {/if}
 
 {if $rows and $action ne 2 and $action ne 4}
 
+  {* include wysiwyg related files*}
+  {include file="CRM/common/wysiwyg.tpl" includeWysiwygEditor=true}
+
   <div id='mainTabContainer'>
     <ul>
       <li id='tab_user'>    <a href='#user'     title='{ts}User-driven Messages{/ts}'>    {ts}User-driven Messages{/ts}    </a></li>
       <li id='tab_workflow'><a href='#workflow' title='{ts}System Workflow Messages{/ts}'>{ts}System Workflow Messages{/ts}</a></li>
     </ul>
-  
+
     {* create two selector tabs, first being the ‘user’ one, the second being the ‘workflow’ one *}
-    {include file="CRM/common/enableDisable.tpl"}
+    {include file="CRM/common/enableDisableApi.tpl"}
     {include file="CRM/common/jsortable.tpl"}
     {foreach from=$rows item=template_row key=type}
       <div id="{if $type eq 'userTemplates'}user{else}workflow{/if}" class='ui-tabs-panel ui-widget-content ui-corner-bottom'>
           <div class="help">
           {if $type eq 'userTemplates'}
-            {ts}User-driven message templates allow you to save and re-use messages with layouts. They are useful if you need to send similar emails to contacts on a recurring basis. You can also use them in CiviMail Mailings and they are required for CiviMember membership renewal reminders.{/ts} {help id="id-intro"}
+            {capture assign=schedRemURL}{crmURL p='civicrm/admin/scheduleReminders' q="reset=1"}{/capture}
+            {ts 1=$schedRemURL}User-driven message templates allow you to save and re-use messages with layouts. They are useful if you need to send similar emails or letters to contacts on a recurring basis. You can also use them in CiviMail mailings. Messages used for membership renewal reminders, as well as event and activity related reminders should be created via <a href="%1">Scheduled Reminders</a>.{/ts} {help id="id-intro"}
           {else}
-            {ts}System workflow message templates are used to generate the emails sent to consituents and administrators for contribution receipts, event confirmations and many other workflows. You can customize the style and wording of these messages here.{/ts} {help id="id-system-workflow"}
+            {ts}System workflow message templates are used to generate the emails sent to constituents and administrators for contribution receipts, event confirmations and many other workflows. You can customize the style and wording of these messages here.{/ts} {help id="id-system-workflow"}
           {/if}
           </div>
         <div>
@@ -121,7 +125,7 @@
                 </thead>
                 <tbody>
                 {foreach from=$template_row item=row}
-                    <tr id="row_{$row.id}" class="{$row.class}{if NOT $row.is_active} disabled{/if}">
+                    <tr id="message_template-{$row.id}" class="crm-entity {$row.class}{if NOT $row.is_active} disabled{/if}">
                       <td>{$row.msg_title}</td>
                       {if $type eq 'userTemplates'}
                         <td>{$row.msg_subject}</td>
@@ -136,13 +140,13 @@
 
             {if $action ne 1 and $action ne 2 and $type eq 'userTemplates'}
               <div class="action-link">
-                <a href="{crmURL p='civicrm/admin/messageTemplates/add' q="action=add&reset=1"}" id="newMessageTemplates" class="button"><span><div class="icon add-icon"></div>{ts}Add Message Template{/ts}</span></a>
+                {crmButton p='civicrm/admin/messageTemplates/add' q="action=add&reset=1" id="newMessageTemplates"  icon="circle-plus"}{ts}Add Message Template{/ts}{/crmButton}
               </div>
               <div class="spacer"></div>
             {/if}
-            
+
             {if empty( $template_row) }
-                <div class="messages status">
+                <div class="messages status no-popup">
                     <div class="icon inform-icon"></div>&nbsp;
                     {ts 1=$crmURL}There are no User-driven Message Templates entered. You can <a href='%1'>add one</a>.{/ts}
                 </div>
@@ -156,15 +160,15 @@
     var selectedTab = 'user';
     {if $selectedChild}selectedTab = '{$selectedChild}';{/if}
     {literal}
-      cj( function() {
-        var tabIndex = cj('#tab_' + selectedTab).prevAll().length
-        cj("#mainTabContainer").tabs( {selected: tabIndex} );
+      CRM.$(function($) {
+        var tabIndex = $('#tab_' + selectedTab).prevAll().length
+        $("#mainTabContainer").tabs( {active: tabIndex} );
       });
     {/literal}
   </script>
 
 {elseif $action ne 1 and $action ne 2 and $action ne 4 and $action ne 8}
-  <div class="messages status">
+  <div class="messages status no-popup">
       <img src="{$config->resourceBase}i/Inform.gif" alt="{ts}status{/ts}"/>
       {ts 1=$crmURL}There are no Message Templates entered. You can <a href='%1'>add one</a>.{/ts}
   </div>

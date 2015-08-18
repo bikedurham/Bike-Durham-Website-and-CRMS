@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -40,21 +40,27 @@
 class CRM_Contact_Page_DashBoard extends CRM_Core_Page {
 
   /**
-   * Run dashboard
+   * Run dashboard.
    *
-   * @return none
-   * @access public
+   * @return void
    */
-  function run() {
-    $resetCache = CRM_Utils_Request::retrieve('resetCache', 'Positive', CRM_Core_DAO::$_nullObject);
+  public function run() {
+    // Add dashboard js and css
+    $resources = CRM_Core_Resources::singleton();
+    $resources->addScriptFile('civicrm', 'js/jquery/jquery.dashboard.js', 0, 'html-header', FALSE);
+    $resources->addStyleFile('civicrm', 'css/dashboard.css');
 
-    if ($resetCache) {
-      CRM_Core_BAO_Dashboard::resetDashletCache();
-    }
+    $config = CRM_Core_Config::singleton();
+
+    $resetCache = CRM_Utils_Request::retrieve('resetCache', 'Positive', CRM_Core_DAO::$_nullObject);
 
     CRM_Utils_System::setTitle(ts('CiviCRM Home'));
     $session = CRM_Core_Session::singleton();
     $contactID = $session->get('userID');
+
+    if ($resetCache) {
+      CRM_Core_BAO_Dashboard::resetDashletCache($contactID);
+    }
 
     // call hook to get html from other modules
     // ignored but needed to prevent warnings
@@ -66,13 +72,14 @@ class CRM_Contact_Page_DashBoard extends CRM_Core_Page {
     }
 
     //check that default FROM email address, owner (domain) organization name and default mailbox are configured.
-    $fromEmailOK      = TRUE;
-    $ownerOrgOK       = TRUE;
+    $fromEmailOK = TRUE;
+    $ownerOrgOK = TRUE;
     $defaultMailboxOK = TRUE;
 
     // Don't put up notices if user doesn't have administer CiviCRM permission
     if (CRM_Core_Permission::check('administer CiviCRM')) {
-      $destination = CRM_Utils_System::url('civicrm/dashboard',
+      $destination = CRM_Utils_System::url(
+        'civicrm/dashboard',
         'reset=1',
         FALSE, NULL, FALSE
       );
@@ -81,7 +88,7 @@ class CRM_Contact_Page_DashBoard extends CRM_Core_Page {
 
       list($domainEmailName, $domainEmailAddress) = CRM_Core_BAO_Domain::getNameAndEmail(TRUE);
 
-      if (!$domainEmailAddress || $domainEmailAddress == 'info@FIXME.ORG') {
+      if (!$domainEmailAddress || $domainEmailAddress == 'info@EXAMPLE.ORG') {
         $fixEmailUrl = CRM_Utils_System::url("civicrm/admin/domain", "action=update&reset=1&civicrmDestination={$destination}");
         $this->assign('fixEmailUrl', $fixEmailUrl);
         $fromEmailOK = FALSE;
@@ -95,9 +102,8 @@ class CRM_Contact_Page_DashBoard extends CRM_Core_Page {
         $ownerOrgOK = FALSE;
       }
 
-      $config = CRM_Core_Config::singleton();
       if (in_array('CiviMail', $config->enableComponents) &&
-        CRM_Core_BAO_MailSettings::defaultDomain() == "FIXME.ORG"
+        CRM_Core_BAO_MailSettings::defaultDomain() == "EXAMPLE.ORG"
       ) {
         $fixDefaultMailbox = CRM_Utils_System::url('civicrm/admin/mailSettings', "reset=1&civicrmDestination={$destination}");
         $this->assign('fixDefaultMailbox', $fixDefaultMailbox);
@@ -109,7 +115,15 @@ class CRM_Contact_Page_DashBoard extends CRM_Core_Page {
     $this->assign('ownerOrgOK', $ownerOrgOK);
     $this->assign('defaultMailboxOK', $defaultMailboxOK);
 
+    $communityMessages = CRM_Core_CommunityMessages::create();
+    if ($communityMessages->isEnabled()) {
+      $message = $communityMessages->pick();
+      if ($message) {
+        $this->assign('communityMessages', $communityMessages->evalMarkup($message['markup']));
+      }
+    }
+
     return parent::run();
   }
-}
 
+}

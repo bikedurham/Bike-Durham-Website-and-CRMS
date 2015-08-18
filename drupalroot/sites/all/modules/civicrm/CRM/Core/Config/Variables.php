@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,7 +23,7 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  * Variables class contains definitions of all the core config settings that are allowed on
@@ -31,28 +31,28 @@
  * it need to be defined here first.
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
 
   /**
-   * the debug level for civicrm
+   * The debug level for civicrm.
    * @var int
    */
   public $debug = 0;
   public $backtrace = 0;
 
   /**
-   * the directory where Smarty and plugins are installed
+   * The directory where Smarty and plugins are installed.
    * @var string
    */
   public $smartyDir = NULL;
   public $pluginsDir = NULL;
 
   /**
-   * the root directory of our template tree
+   * The root directory of our template tree.
    * @var string
    */
   public $templateDir = NULL;
@@ -85,6 +85,11 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   public $imageUploadURL = NULL;
 
   /**
+   * The local path to the default extension container
+   */
+  public $extensionsDir;
+
+  /**
    * The url for resources defined by extensions
    */
   public $extensionsURL = NULL;
@@ -101,6 +106,13 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
    * @var string
    */
   public $countryLimit = array('1228');
+
+  /**
+   * Id of default state/province for contact.
+   * 1046 is an id for Washington(country:United States).
+   * @var int
+   */
+  public $defaultContactStateProvince;
 
   /**
    * List of country codes limiting the province list.
@@ -241,7 +253,17 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   public $userFrameworkUsersTableName = 'users';
   public $userFrameworkClass = 'CRM_Utils_System_Drupal';
   public $userHookClass = 'CRM_Utils_Hook_Drupal';
+
+  /**
+   * @var string|CRM_Core_Permission_Base
+   */
   public $userPermissionClass = 'CRM_Core_Permission_Drupal';
+
+  /**
+   * @var NULL|CRM_Core_Permission_Temp
+   */
+  public $userPermissionTemp = NULL;
+
   public $userFrameworkURLVar = 'q';
   public $userFrameworkDSN = NULL;
   public $userFrameworkBaseURL = NULL;
@@ -250,11 +272,10 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   public $userFrameworkLogging = FALSE;
 
   /**
-   * the handle for import file size
+   * The handle for import file size
    * @var int
    */
   public $maxImportFileSize = 1048576;
-  public $maxAttachments = 3;
   public $maxFileSize = 2;
 
   /**
@@ -306,11 +327,6 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
    */
   public $mapGeoCoding = 1;
 
-  /**
-   * Whether deleted contacts should be moved to trash instead
-   * @var boolean
-   */
-  public $contactUndelete = TRUE;
 
   /**
    * Whether database-level logging should be performed
@@ -319,11 +335,11 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   public $logging = FALSE;
 
   /**
-   * Whether CiviCRM should check for newer versions
+   * Whether public pages should display "empowered by CiviCRM"
    *
    * @var boolean
    */
-  public $versionCheck = TRUE;
+  public $empoweredBy = TRUE;
 
   /**
    * Array of enabled add-on components (e.g. CiviContribute, CiviMail...)
@@ -331,8 +347,12 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
    * @var array
    */
   public $enableComponents = array(
-    'CiviContribute', 'CiviPledge', 'CiviMember',
-    'CiviEvent', 'CiviMail', 'CiviReport',
+    'CiviContribute',
+    'CiviPledge',
+    'CiviMember',
+    'CiviEvent',
+    'CiviMail',
+    'CiviReport',
   );
   public $enableComponentIDs = array(1, 6, 2, 3, 4, 8);
 
@@ -344,49 +364,49 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   public $enableSSL = FALSE;
 
   /**
-   * error template to use for fatal errors
+   * Error template to use for fatal errors
    *
    * @var string
    */
   public $fatalErrorTemplate = 'CRM/common/fatal.tpl';
 
   /**
-   * fatal error handler
+   * Fatal error handler
    *
    * @var string
    */
   public $fatalErrorHandler = NULL;
 
   /**
-   * legacy encoding for file encoding conversion
+   * Legacy encoding for file encoding conversion
    *
    * @var string
    */
   public $legacyEncoding = 'Windows-1252';
 
   /**
-   * field separator for import/export csv file
+   * Field separator for import/export csv file
    *
    * @var string
    */
   public $fieldSeparator = ',';
 
   /**
-   * max location blocks in address
+   * Max location blocks in address
    *
    * @var integer
    */
   public $maxLocationBlocks = 2;
 
   /**
-   * the font path where captcha fonts are stored
+   * The font path where captcha fonts are stored
    *
    * @var string
    */
   public $captchaFontPath = '/usr/X11R6/lib/X11/fonts/';
 
   /**
-   * the font to use for captcha
+   * The font to use for captcha
    *
    * @var string
    */
@@ -398,7 +418,8 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   public $includeWildCardInName = 1;
   public $includeEmailInName = 1;
   public $includeNickNameInName = 0;
-  public $smartGroupCacheTimeout = 0;
+
+  public $smartGroupCacheTimeout = 5;
 
   public $defaultSearchProfileID = NULL;
 
@@ -408,7 +429,7 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   public $dashboardCacheTimeout = 1440;
 
   /**
-   * flag to indicate if acl cache is NOT to be reset
+   * Flag to indicate if acl cache is NOT to be reset
    */
   public $doNotResetCache = 0;
 
@@ -420,24 +441,24 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   public $oldInputStyle = 1;
 
   /**
-   * should we disbable key generation for forms
+   * Should we disable key generation for forms
    *
    * @var boolean
    */
   public $formKeyDisable = FALSE;
 
   /**
-   * to determine wether the call is from cms or civicrm
+   * determine whether the call is from cms or civicrm
    */
   public $inCiviCRM = FALSE;
 
   /**
-   * component registry object (of CRM_Core_Component type)
+   * Component registry object (of CRM_Core_Component type)
    */
   public $componentRegistry = NULL;
 
   /**
-   * PDF reciept as attachment is disabled by default (CRM-8350)
+   * PDF receipt as attachment is disabled by default (CRM-8350)
    */
   public $doNotAttachPDFReceipt = FALSE;
 
@@ -447,7 +468,18 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   public $wkhtmltopdfPath = FALSE;
 
   /**
-   * Provide addressSequence
+   * Allow second-degree relations permission to edit contacts
+   */
+  public $secondDegRelPermissions = FALSE;
+
+
+  /**
+   * Allow second-degree relations permission to edit contacts
+   */
+  public $wpBasePage = NULL;
+
+  /**
+   * Provide addressSequence.
    *
    * @param
    *
@@ -462,7 +494,7 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   }
 
   /**
-   * Provide cached default currency symbol
+   * Provide cached default currency symbol.
    *
    * @param
    *
@@ -472,10 +504,10 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
     static $cachedSymbol = NULL;
     if (!$cachedSymbol || $defaultCurrency) {
       if ($this->defaultCurrency || $defaultCurrency) {
-        $currencySymbolName = CRM_Core_PseudoConstant::currencySymbols('name');
-        $currencySymbol = CRM_Core_PseudoConstant::currencySymbols();
-
-        $this->currencySymbols = array_combine($currencySymbolName, $currencySymbol);
+        $this->currencySymbols = CRM_Core_PseudoConstant::get('CRM_Contribute_DAO_Contribution', 'currency', array(
+          'labelColumn' => 'symbol',
+          'orderColumn' => TRUE,
+        ));
         $currency = $defaultCurrency ? $defaultCurrency : $this->defaultCurrency;
         $cachedSymbol = CRM_Utils_Array::value($currency, $this->currencySymbols, '');
       }
@@ -487,7 +519,7 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   }
 
   /**
-   * Provide cached default currency symbol
+   * Provide cached default currency symbol.
    *
    * @param
    *
@@ -508,7 +540,7 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   }
 
   /**
-   * Provide cached default country name
+   * Provide cached default country name.
    *
    * @param
    *
@@ -516,7 +548,7 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
    */
   public function defaultContactCountryName() {
     static $cachedContactCountryName = NULL;
-    if (!$cachedContactCountryName) {
+    if (!$cachedContactCountryName && $this->defaultContactCountry) {
       $countryCodes = CRM_Core_PseudoConstant::country();
       $cachedContactCountryName = $countryCodes[$this->defaultContactCountry];
     }
@@ -524,7 +556,7 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   }
 
   /**
-   * Provide cached country limit translated to names
+   * Provide cached country limit translated to names.
    *
    * @param
    *
@@ -537,7 +569,12 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
       $country = array();
       if (is_array($this->countryLimit)) {
         foreach ($this->countryLimit as $val) {
-          $country[] = $countryIsoCodes[$val];
+          // CRM-12007
+          // some countries have disappeared and hence they might be in country limit
+          // but not in the country table
+          if (isset($countryIsoCodes[$val])) {
+            $country[] = $countryIsoCodes[$val];
+          }
         }
       }
       else {
@@ -549,7 +586,7 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
   }
 
   /**
-   * Provide cached province limit translated to names
+   * Provide cached province limit translated to names.
    *
    * @param
    *
@@ -562,7 +599,12 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
       $country = array();
       if (is_array($this->provinceLimit)) {
         foreach ($this->provinceLimit as $val) {
-          $country[] = $countryIsoCodes[$val];
+          // CRM-12007
+          // some countries have disappeared and hence they might be in country limit
+          // but not in the country table
+          if (isset($countryIsoCodes[$val])) {
+            $country[] = $countryIsoCodes[$val];
+          }
         }
       }
       else {
@@ -572,6 +614,6 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
     }
     return $cachedProvinceLimit;
   }
+
 }
 // end CRM_Core_Config
-

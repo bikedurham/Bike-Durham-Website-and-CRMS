@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,14 +29,20 @@
 /*
  * This file checks and updates the status of all pledge records for a
  * given domain using the updatePledgePaymentStatus.
- * 
+ *
  * UpdatePledgeRecord.php prior to running this script.
  */
 
 require_once '../civicrm.config.php';
 require_once 'CRM/Core/Config.php';
+
+/**
+ * Class CRM_UpdatePledgeRecord
+ */
 class CRM_UpdatePledgeRecord {
-  function __construct() {
+  /**
+   */
+  public function __construct() {
     $config = CRM_Core_Config::singleton();
     // this does not return on failure
     require_once 'CRM/Utils/System.php';
@@ -49,6 +55,11 @@ class CRM_UpdatePledgeRecord {
     CRM_Core_Error::debug_log_message('UpdatePledgeRecord.php');
   }
 
+  /**
+   * @param bool $sendReminders
+   *
+   * @throws Exception
+   */
   public function updatePledgeStatus($sendReminders = FALSE) {
 
     // *** Uncomment the next line if you want automated reminders to be sent
@@ -59,7 +70,10 @@ class CRM_UpdatePledgeRecord {
 
     //unset statues that we never use for pledges
     foreach (array(
-      'Completed', 'Cancelled', 'Failed') as $statusKey) {
+               'Completed',
+               'Cancelled',
+               'Failed',
+             ) as $statusKey) {
       if ($key = CRM_Utils_Array::key($statusKey, $allStatus)) {
         unset($allStatus[$key]);
       }
@@ -86,12 +100,12 @@ SELECT  pledge.contact_id              as contact_id,
         pledge.is_test                 as is_test,
         pledge.campaign_id             as campaign_id,
         SUM(payment.scheduled_amount)  as amount_due,
-        ( SELECT sum(civicrm_pledge_payment.actual_amount) 
-        FROM civicrm_pledge_payment 
+        ( SELECT sum(civicrm_pledge_payment.actual_amount)
+        FROM civicrm_pledge_payment
         WHERE civicrm_pledge_payment.status_id = 1
         AND  civicrm_pledge_payment.pledge_id = pledge.id
         ) as amount_paid
-        FROM      civicrm_pledge pledge, civicrm_pledge_payment payment 
+        FROM      civicrm_pledge pledge, civicrm_pledge_payment payment
         WHERE     pledge.id = payment.pledge_id
         AND     payment.status_id IN ( {$statusIds} ) AND pledge.status_id IN ( {$statusIds} )
         GROUP By  payment.id
@@ -132,7 +146,8 @@ SELECT  pledge.contact_id              as contact_id,
 
       if (CRM_Utils_Date::overdue(CRM_Utils_Date::customFormat($dao->scheduled_date, '%Y%m%d'),
           $now
-        ) && $dao->payment_status != array_search('Overdue', $allStatus)) {
+        ) && $dao->payment_status != array_search('Overdue', $allStatus)
+      ) {
         $pledgePayments[$dao->pledge_id][$dao->payment_id] = $dao->payment_id;
       }
     }
@@ -158,7 +173,8 @@ SELECT  pledge.contact_id              as contact_id,
       require_once 'CRM/Core/BAO/Domain.php';
       require_once 'CRM/Core/SelectValues.php';
       $domain = CRM_Core_BAO_Domain::getDomain();
-      $tokens = array('domain' => array('name', 'phone', 'address', 'email'),
+      $tokens = array(
+        'domain' => array('name', 'phone', 'address', 'email'),
         'contact' => CRM_Core_SelectValues::contactTokens(),
       );
 
@@ -241,8 +257,8 @@ SELECT  pledge.contact_id              as contact_id,
             $template->assign('amount', $details['amount']);
             $template->assign('create_date', $details['create_date']);
 
-            require_once 'CRM/Core/BAO/MessageTemplates.php';
-            list($mailSent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplates::sendTemplate(
+            require_once 'CRM/Core/BAO/MessageTemplate.php';
+            list($mailSent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplate::sendTemplate(
               array(
                 'groupName' => 'msg_tpl_workflow_pledge',
                 'valueName' => 'pledge_reminder',
@@ -285,11 +301,10 @@ SELECT  pledge.contact_id              as contact_id,
     // end if ( $sendReminders )
     echo "<br />{$updateCnt} records updated.";
   }
+
 }
 
 $obj = new CRM_UpdatePledgeRecord();
 echo "Updating<br />";
 $obj->updatePledgeStatus();
 echo "<br />Pledge records update script finished.";
-
-

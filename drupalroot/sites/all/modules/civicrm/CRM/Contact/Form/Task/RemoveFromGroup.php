@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -41,29 +41,28 @@
 class CRM_Contact_Form_Task_RemoveFromGroup extends CRM_Contact_Form_Task {
 
   /**
-   * Build the form
+   * Build the form object.
    *
-   * @access public
    *
    * @return void
    */
-  function buildQuickForm() {
+  public function buildQuickForm() {
     // add select for groups
-    $group = array('' => ts('- select group -')) + CRM_Core_PseudoConstant::group();
-    $groupElement = $this->add('select', 'group_id', ts('Select Group'), $group, TRUE);
+    $group = array('' => ts('- select group -')) + CRM_Core_PseudoConstant::nestedGroup();
+    $groupElement = $this->add('select', 'group_id', ts('Select Group'), $group, TRUE, array('class' => 'crm-select2 huge'));
 
     CRM_Utils_System::setTitle(ts('Remove Contacts from Group'));
     $this->addDefaultButtons(ts('Remove from Group'));
   }
 
   /**
-   * Set the default form values
+   * Set the default form values.
    *
-   * @access protected
    *
-   * @return array the default array reference
+   * @return array
+   *   the default array reference
    */
-  function &setDefaultValues() {
+  public function setDefaultValues() {
     $defaults = array();
 
     if ($this->get('context') === 'smog') {
@@ -73,30 +72,35 @@ class CRM_Contact_Form_Task_RemoveFromGroup extends CRM_Contact_Form_Task {
   }
 
   /**
-   * process the form after the input has been submitted and validated
+   * Process the form after the input has been submitted and validated.
    *
-   * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     $groupId = $this->controller->exportValue('RemoveFromGroup', 'group_id');
     $group = CRM_Core_PseudoConstant::group();
 
     list($total, $removed, $notRemoved) = CRM_Contact_BAO_GroupContact::removeContactsFromGroup($this->_contactIds, $groupId);
-    $status = array(
-      ts('Removed Contact(s) from %1', array(1 => $group[$groupId])),
-      ts('Total Selected Contact(s): %1', array(1 => $total)),
-    );
-    if ($removed) {
-      $status[] = ts('Total Contact(s) removed from group: %1', array(1 => $removed));
-    }
-    if ($notRemoved) {
-      $status[] = ts('Total Contact(s) not in group: %1', array(1 => $notRemoved));
-      $status[] = ts('Total Contact(s) with negative membership in group: %1', array(1 => $notRemoved));
-    }
-    CRM_Core_Session::setStatus($status);
-  }
-  //end of function
-}
 
+    $status = array(
+      ts("%count contact removed from '%2'", array(
+        'count' => $removed,
+        'plural' => "%count contacts removed from '%2'",
+        2 => $group[$groupId],
+      )),
+    );
+    if ($notRemoved) {
+      $status[] = ts('1 contact was already not in this group', array(
+          'count' => $notRemoved,
+          'plural' => '%count contacts were already not in this group',
+        ));
+    }
+    $status = '<ul><li>' . implode('</li><li>', $status) . '</li></ul>';
+    CRM_Core_Session::setStatus($status, ts("Removed Contact From Group", array(
+          'plural' => "Removed Contacts From Group",
+          'count' => $removed,
+        )), 'success', array('expires' => 0));
+  }
+
+}

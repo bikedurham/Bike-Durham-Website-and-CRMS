@@ -1,15 +1,15 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
  | CiviCRM is free software; you can copy, modify, and distribute it  |
  | under the terms of the GNU Affero General Public License           |
- | Version 3, 19 November 2007.                                       |
+ | Version 3, 19 November 2007 and the CiviCRM Licensing Exception.   |
  |                                                                    |
  | CiviCRM is distributed in the hope that it will be useful, but     |
  | WITHOUT ANY WARRANTY; without even the implied warranty of         |
@@ -17,7 +17,8 @@
  | See the GNU Affero General Public License for more details.        |
  |                                                                    |
  | You should have received a copy of the GNU Affero General Public   |
- | License along with this program; if not, contact CiviCRM LLC       |
+ | License and the CiviCRM Licensing Exception along                  |
+ | with this program; if not, contact CiviCRM LLC                     |
  | at info[AT]civicrm[DOT]org. If you have questions about the        |
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
@@ -27,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * @copyright DharmaTech  (c) 2009
  * $Id$
  *
@@ -111,7 +112,7 @@ class Engage_Report_Form_WalkList extends Engage_Report_Form_List {
           'birth_date' =>
           array('title' => ts('Age'),
             'required' => TRUE,
-            'type' => CRM_Report_FORM::OP_INT,
+            'type' => CRM_Report_Form::OP_INT,
           ),
           'id' =>
           array('title' => ts('Contact ID'),
@@ -129,7 +130,7 @@ class Engage_Report_Form_WalkList extends Engage_Report_Form_List {
           array('title' => ts('Sex'),
             'operatorType' => CRM_Report_Form::OP_SELECT,
             'type' => CRM_Report_Form::OP_STRING,
-            'options' => array('' => '') + CRM_Core_PseudoConstant::gender(),
+            'options' => array('' => '') + CRM_Core_PseudoConstant::get('CRM_Contact_DAO_Contact', 'gender_id'),
           ),
           'sort_name' =>
           array('title' => ts('Contact Name'),
@@ -307,7 +308,7 @@ class Engage_Report_Form_WalkList extends Engage_Report_Form_List {
           }
           //var_dump($clause);
           if (!empty($clause)) {
-            if (CRM_Utils_Array::value('group', $field)) {
+            if (!empty($field['group'])) {
               $clauses[] = $this->engageWhereGroupClause($clause);
             }
             else {
@@ -341,7 +342,7 @@ class Engage_Report_Form_WalkList extends Engage_Report_Form_List {
     }
     // custom code to alter rows
     //var_dump($rows);
-    $genderList = CRM_Core_PseudoConstant::gender();
+    $genderList = CRM_Core_PseudoConstant::get('CRM_Contact_DAO_Contact', 'gender_id');
     $entryFound = FALSE;
     foreach ($rows as $rowNum => $row) {
       // handle state province
@@ -422,7 +423,7 @@ class Engage_Report_Form_WalkList extends Engage_Report_Form_List {
       $receiveDate = ', date_received   DATE';
     }
     if (array_key_exists('civicrm_contribution_cont_total_amount', $rows[0])) {
-      $contAmount = ' , total_amount    INT';
+      $contAmount = ' , total_amount FLOAT';
     }
     //  Separate out fields and build a temporary table
     $tempTable = "WalkList_" . uniqid();
@@ -442,23 +443,25 @@ class Engage_Report_Form_WalkList extends Engage_Report_Form_List {
                   lang            CHAR(2),
                   party           CHAR(1),
                   vh              CHAR(1),
-                  contact_type    VARCHAR(32),
+                  contact_type    VARCHAR(128),
                   other_name      VARCHAR(128),
-                  contact_id      INT 
+                  contact_id      INT
                   $receiveDate $contAmount
                   )
                  ENGINE=HEAP
                  DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci";
     CRM_Core_DAO::executeQuery($sql);
 
-    $gender = CRM_Core_PseudoConstant::gender();
+    $gender = CRM_Core_PseudoConstant::get('CRM_Contact_DAO_Contact', 'gender_id');
 
     foreach ($rows as $key => $value) {
 
       $dob  = $value['civicrm_contact_birth_date'];
       $age  = empty($dob) ? 0 : $this->dob2age($dob);
-      $sex  = $gender[CRM_Utils_Array::value('civicrm_contact_gender_id', $value)];
-      $sex  = is_null($sex) ? '' : $sex;
+      if (!empty($value['civicrm_contact_gender_id'])){
+        $sex  = $gender[CRM_Utils_Array::value('civicrm_contact_gender_id', $value)];
+      }
+      $sex  = empty($sex) ? '' : $sex;
       $lang = strtoupper(substr($value[$this->_demoTable . '_' . $this->_demoLangCol], 0, 2
         ));
       $party       = substr($value["{$this->_voterInfoTable}_{$this->_partyCol}"], 0, 1);
@@ -488,7 +491,7 @@ class Engage_Report_Form_WalkList extends Engage_Report_Form_List {
                        street_name     = %1,
                        s_street_number = %2,
                        i_street_number = %3,
-                       odd             = %4, 
+                       odd             = %4,
                        apt_number      = %5,
                        city            = %6,
                        state           = %7,
@@ -505,34 +508,34 @@ class Engage_Report_Form_WalkList extends Engage_Report_Form_List {
                        contact_id      = %18";
       $params = array(
         1 => array($value['civicrm_address_street_name'] ? $value['civicrm_address_street_name'] : '', 'String'),
-        2 => array((String)$sStreetNumber, 'String'),
+        2 => array((String )$sStreetNumber, 'String'),
         3 => array($iStreetNumber, 'Integer'),
         4 => array($odd, 'Integer'),
-        5 => array($apt_number, 'String'),
+        5 => array((String) $apt_number , 'String'),
         6 => array($value['civicrm_address_city'] ? $value['civicrm_address_city'] : '', 'String'),
-        7 => array($state, 'String'),
+        7 => array((String) $state , 'String'),
         8 => array($value['civicrm_address_postal_code'] ? $value['civicrm_address_postal_code'] : '', 'String'),
         9 => array($value['civicrm_contact_display_name'] ? $value['civicrm_contact_display_name'] : '', 'String'),
-        10 => array($phone_number, 'String'),
+        10 => array((String)  $phone_number, 'String'),
         11 => array($age, 'Integer'),
-        12 => array($sex, 'String'),
-        13 => array($lang, 'String'),
-        14 => array($party, 'String'),
-        15 => array($vh, 'String'),
-        16 => array($type, 'String'),
-        17 => array($otherName, 'String'),
-        18 => array($contact_id, 'Integer'),
+        12 => array((String) $sex, 'String'),
+        13 => array((String) $lang, 'String'),
+        14 => array((String) $party, 'String'),
+        15 => array((String) $vh, 'String'),
+        16 => array((String) $type, 'String'),
+        17 => array((String) $otherName, 'String'),
+        18 => array((String) $contact_id, 'Integer'),
       );
 
       if (!empty($contAmount)) {
-        $query       .= ",total_amount      = %19";
-        $total_amount = $value['civicrm_contribution_cont_total_amount'] ? $value['civicrm_contribution_cont_total_amount'] : '';
-        $params[19]   = array($total_amount, 'String');
+        $query       .= ", total_amount = %19";
+        $total_amount = $value['civicrm_contribution_cont_total_amount'] ? $value['civicrm_contribution_cont_total_amount'] : 0;
+        $params[19]   = array($total_amount, 'Money');
       }
       if (!empty($receiveDate)) {
-        $query        .= ",date_received      = %20";
-        $date_received = $value['civicrm_contribution_cont_receive_date'] ? $value['civicrm_contribution_cont_receive_date'] : '';
-        $params[20]    = array($date_received, 'String');
+        $query        .= ",date_received  = %20";
+        $date_received = $value['civicrm_contribution_cont_receive_date'] ? CRM_Utils_Date::isoToMysql($value['civicrm_contribution_cont_receive_date']) : NULL;
+        $params[20]    = array($date_received, 'Timestamp');
       }
       CRM_Core_DAO::executeQuery($query, $params);
     }
@@ -608,7 +611,7 @@ class Engage_Report_Form_WalkList extends Engage_Report_Form_List {
         $street_name = $dao->street_name;
         $odd         = $dao->odd;
         $pageRow     = 0;
-        unset($groupRow['city_zip']);
+        $groupRow['city_zip'] = '';
         $groupRow['org'] = $this->_orgName;
         if (variable_get('civicrm_engage_groupbreak_street', "1") == 1) {
           $groupRow['street_name'] = $street_name;

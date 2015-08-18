@@ -1,11 +1,9 @@
 <?php
-// $Id$
-
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,34 +23,29 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
- *
  * APIv3 functions for registering/processing mailing group events.
  *
+ * @deprecated
  * @package CiviCRM_APIv3
- * @subpackage API_MailerGroup
- * @copyright CiviCRM LLC (c) 2004-2012
- * $Id$
+ */
+
+/**
+ * Declare deprecated functions.
  *
+ * @deprecated api notice
+ * @return string
+ *   to indicate this entire api entity is deprecated
  */
+function _civicrm_api3_mailing_group_deprecation() {
+  return 'The MailingGroup api is deprecated. Use the mailing_event apis instead.';
+}
 
 /**
- * Files required for this package
- */
-
-
-
-require_once 'CRM/Contact/BAO/Group.php';
-require_once 'CRM/Mailing/Event/BAO/Queue.php';
-require_once 'CRM/Mailing/Event/BAO/Subscribe.php';
-require_once 'CRM/Mailing/Event/BAO/Unsubscribe.php';
-require_once 'CRM/Mailing/Event/BAO/Resubscribe.php';
-require_once 'CRM/Mailing/Event/BAO/TrackableURLOpen.php';
-
-/**
- * Handle an unsubscribe event
+ * Handle an unsubscribe event.
+ *
  * @deprecated
  *
  * @param array $params
@@ -64,7 +57,9 @@ function civicrm_api3_mailing_group_event_unsubscribe($params) {
 }
 
 /**
- * Handle a site-level unsubscribe event
+ * Handle a site-level unsubscribe event.
+ *
+ * @deprecated
  *
  * @param array $params
  *
@@ -76,7 +71,8 @@ function civicrm_api3_mailing_group_event_domain_unsubscribe($params) {
 }
 
 /**
- * Handle a resubscription event
+ * Handle a re-subscription event.
+ *
  * @deprecated
  *
  * @param array $params
@@ -88,7 +84,8 @@ function civicrm_api3_mailing_group_event_resubscribe($params) {
 }
 
 /**
- * Handle a subscription event
+ * Handle a subscription event.
+ *
  * @deprecated
  *
  * @param array $params
@@ -99,21 +96,64 @@ function civicrm_api3_mailing_group_event_subscribe($params) {
   return civicrm_api('mailing_event_subscribe', 'create', $params);
 }
 
+/**
+ * Create mailing group.
+ *
+ * @param array $params
+ *
+ * @return array
+ * @throws \API_Exception
+ */
+function civicrm_api3_mailing_group_create($params) {
+  return _civicrm_api3_basic_create(_civicrm_api3_get_BAO(__FUNCTION__), $params);
+}
+
+/**
+ * Get mailing group.
+ *
+ * @param array $params
+ *
+ * @return array
+ */
+function civicrm_api3_mailing_group_get($params) {
+  return _civicrm_api3_basic_get(_civicrm_api3_get_BAO(__FUNCTION__), $params);
+}
+
+/**
+ * Delete mailing group.
+ *
+ * @param array $params
+ *
+ * @return array
+ * @throws \API_Exception
+ */
+function civicrm_api3_mailing_group_delete($params) {
+  return _civicrm_api3_basic_delete(_civicrm_api3_get_BAO(__FUNCTION__), $params);
+}
+
+/**
+ * Get metadata for mailing group functions.
+ *
+ * @param array $params
+ *
+ * @return array
+ */
 function civicrm_api3_mailing_group_getfields($params) {
   $dao = _civicrm_api3_get_DAO('Subscribe');
-  $file = str_replace('_', '/', $dao) . ".php";
-  require_once ($file);
   $d = new $dao();
   $fields = $d->fields();
   $d->free();
 
   $dao = _civicrm_api3_get_DAO('Unsubscribe');
-  $file = str_replace('_', '/', $dao) . ".php";
-  require_once ($file);
   $d = new $dao();
   $fields = $fields + $d->fields();
   $d->free();
 
-  return civicrm_api3_create_success($fields);
-}
+  // CRM-13830 - prevent the api wrapper from helping out with pseudoconstants
+  // Since these fields don't belong to this entity it will fail
+  foreach ($fields as &$field) {
+    unset($field['pseudoconstant']);
+  }
 
+  return civicrm_api3_create_success($fields, $params, 'MailingGroup', 'getfields');
+}

@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -40,16 +40,15 @@
 class CRM_Admin_Form_RelationshipType extends CRM_Admin_Form {
 
   /**
-   * Function to build the form
+   * Build the form object.
    *
-   * @return None
-   * @access public
+   * @return void
    */
   public function buildQuickForm() {
     parent::buildQuickForm();
+    $this->setPageTitle(ts('Relationship Type'));
 
     if ($this->_action & CRM_Core_Action::DELETE) {
-
       return;
     }
 
@@ -74,18 +73,18 @@ class CRM_Admin_Form_RelationshipType extends CRM_Admin_Form {
       CRM_Core_DAO::getAttribute('CRM_Contact_DAO_RelationshipType', 'description')
     );
 
-
-
-    $contactTypes = CRM_Contact_BAO_ContactType::getSelectElements();
+    $contactTypes = CRM_Contact_BAO_ContactType::getSelectElements(FALSE, TRUE, '__');
 
     // add select for contact type
     $contactTypeA = &$this->add('select', 'contact_types_a', ts('Contact Type A') . ' ',
       array(
-        '' => ts('All Contacts')) + $contactTypes
+        '' => ts('All Contacts'),
+      ) + $contactTypes
     );
     $contactTypeB = &$this->add('select', 'contact_types_b', ts('Contact Type B') . ' ',
       array(
-        '' => ts('All Contacts')) + $contactTypes
+        '' => ts('All Contacts'),
+      ) + $contactTypes
     );
 
     $isActive = &$this->add('checkbox', 'is_active', ts('Enabled?'));
@@ -94,32 +93,35 @@ class CRM_Admin_Form_RelationshipType extends CRM_Admin_Form {
     if ($this->_id &&
       CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_RelationshipType', $this->_id, 'is_reserved')
     ) {
-      foreach (array('contactTypeA', 'contactTypeB', 'isActive') as $field)$$field->freeze();
+      foreach (array('contactTypeA', 'contactTypeB', 'isActive') as $field) {
+        $$field->freeze();
+      }
     }
 
     if ($this->_action & CRM_Core_Action::VIEW) {
       $this->freeze();
-      $url = CRM_Utils_System::url('civicrm/admin/reltype&reset=1');
-      $location = "window.location='$url'";
-      $this->addElement('button', 'done', ts('Done'), array('onclick' => $location));
     }
   }
 
-  function setDefaultValues() {
+  /**
+   * @return array
+   */
+  public function setDefaultValues() {
     if ($this->_action != CRM_Core_Action::DELETE &&
       isset($this->_id)
     ) {
       $defaults = $params = array();
       $params = array('id' => $this->_id);
-      eval($this->_BAOName . '::retrieve( $params, $defaults );');
+      $baoName = $this->_BAOName;
+      $baoName::retrieve($params, $defaults);
       $defaults['contact_types_a'] = CRM_Utils_Array::value('contact_type_a', $defaults);
-      if (CRM_Utils_Array::value('contact_sub_type_a', $defaults)) {
-        $defaults['contact_types_a'] .= CRM_Core_DAO::VALUE_SEPARATOR . $defaults['contact_sub_type_a'];
+      if (!empty($defaults['contact_sub_type_a'])) {
+        $defaults['contact_types_a'] .= '__' . $defaults['contact_sub_type_a'];
       }
 
       $defaults['contact_types_b'] = $defaults['contact_type_b'];
-      if (CRM_Utils_Array::value('contact_sub_type_b', $defaults)) {
-        $defaults['contact_types_b'] .= CRM_Core_DAO::VALUE_SEPARATOR . $defaults['contact_sub_type_b'];
+      if (!empty($defaults['contact_sub_type_b'])) {
+        $defaults['contact_types_b'] .= '__' . $defaults['contact_sub_type_b'];
       }
       return $defaults;
     }
@@ -129,16 +131,15 @@ class CRM_Admin_Form_RelationshipType extends CRM_Admin_Form {
   }
 
   /**
-   * Function to process the form
+   * Process the form submission.
    *
-   * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     if ($this->_action & CRM_Core_Action::DELETE) {
       CRM_Contact_BAO_RelationshipType::del($this->_id);
-      CRM_Core_Session::setStatus(ts('Selected Relationship type has been deleted.'));
+      CRM_Core_Session::setStatus(ts('Selected Relationship type has been deleted.'), ts('Record Deleted'), 'success');
     }
     else {
       $params = array();
@@ -152,11 +153,11 @@ class CRM_Admin_Form_RelationshipType extends CRM_Admin_Form {
         $ids['relationshipType'] = $this->_id;
       }
 
-      $cTypeA = CRM_Utils_System::explode(CRM_Core_DAO::VALUE_SEPARATOR,
+      $cTypeA = CRM_Utils_System::explode('__',
         $params['contact_types_a'],
         2
       );
-      $cTypeB = CRM_Utils_System::explode(CRM_Core_DAO::VALUE_SEPARATOR,
+      $cTypeB = CRM_Utils_System::explode('__',
         $params['contact_types_b'],
         2
       );
@@ -169,9 +170,8 @@ class CRM_Admin_Form_RelationshipType extends CRM_Admin_Form {
 
       CRM_Contact_BAO_RelationshipType::add($params, $ids);
 
-      CRM_Core_Session::setStatus(ts('The Relationship Type has been saved.'));
+      CRM_Core_Session::setStatus(ts('The Relationship Type has been saved.'), ts('Saved'), 'success');
     }
   }
-  //end of function
-}
 
+}

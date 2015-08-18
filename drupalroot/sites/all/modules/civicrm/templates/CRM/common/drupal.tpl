@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -30,26 +30,23 @@
 {* include wysiwyg related files*}
 {include file="CRM/common/wysiwyg.tpl"}
 
-<div id="crm-container" lang="{$config->lcMessages|truncate:2:"":true}" xml:lang="{$config->lcMessages|truncate:2:"":true}">
+<div id="crm-container" class="crm-container{if $urlIsPublic} crm-public{/if}" lang="{$config->lcMessages|truncate:2:"":true}" xml:lang="{$config->lcMessages|truncate:2:"":true}">
 
 
-{include file="CRM/common/action.tpl"}
-{if $buildNavigation }
-    {include file="CRM/common/Navigation.tpl"}
-{/if}
+{crmNavigationMenu is_default=1}
 
 {if isset($browserPrint) and $browserPrint}
 {* Javascript window.print link. Used for public pages where we can't do printer-friendly view. *}
 <div id="printer-friendly">
-<a href="javascript:window.print()" title="{ts}Print this page.{/ts}">
-	<div class="ui-icon ui-icon-print"></div>
+<a href="#" onclick="window.print(); return false;" title="{ts}Print this page.{/ts}">
+  <div class="ui-icon ui-icon-print"></div>
 </a>
 </div>
 {else}
 {* Printer friendly link/icon. *}
 <div id="printer-friendly">
-<a href="{$printerFriendly}" title="{ts}Printer-friendly view of this page.{/ts}">
-	<div class="ui-icon ui-icon-print"></div>
+<a href="{$printerFriendly}" target='_blank' title="{ts}Printer-friendly view of this page.{/ts}">
+  <div class="ui-icon ui-icon-print"></div>
 </a>
 </div>
 {/if}
@@ -61,37 +58,25 @@
 {if isset($localTasks) and $localTasks}
     {include file="CRM/common/localNav.tpl"}
 {/if}
-
-{include file="CRM/common/status.tpl"}
-
-{crmRegion name='page-body'}
-<!-- .tpl file invoked: {$tplFile}. Call via form.tpl if we have a form in the page. -->
-{if isset($isForm) and $isForm}
-    {include file="CRM/Form/$formTpl.tpl"}
-{else}
-    {include file=$tplFile}
-{/if}
-{/crmRegion}
+<div id="crm-main-content-wrapper">
+  {include file="CRM/common/status.tpl"}
+  {crmRegion name='page-body'}
+    <!-- .tpl file invoked: {$tplFile}. Call via form.tpl if we have a form in the page. -->
+    {if isset($isForm) and $isForm and isset($formTpl)}
+      {include file="CRM/Form/$formTpl.tpl"}
+    {else}
+      {include file=$tplFile}
+    {/if}
+  {/crmRegion}
+</div>
 
 {crmRegion name='page-footer'}
-{if ! $urlIsPublic}
-{include file="CRM/common/footer.tpl"}
+{if $urlIsPublic}
+  {include file="CRM/common/publicFooter.tpl"}
+{else}
+  {include file="CRM/common/footer.tpl"}
 {/if}
 {/crmRegion}
 
-{literal}
-<script type="text/javascript">
-cj(function() {
-   cj().crmtooltip();
-});
 
-cj(document).ready(function() {
-  advmultiselectResize();
-});
-
-cj(window).resize(function() {
-  advmultiselectResize();
-});
-</script>
-{/literal}
 </div> {* end crm-container div *}

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -21,16 +21,15 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 
 /*
-   * Copyright (C) 2009
-   * Licensed to CiviCRM under the Academic Free License version 3.0.
-   *
-   * Written and contributed by Kirkdesigns (http://www.kirkdesigns.co.uk)
-   *
-   */
+ * Copyright (C) 2009
+ * Licensed to CiviCRM under the Academic Free License version 3.0.
+ *
+ * Written and contributed by Kirkdesigns (http://www.kirkdesigns.co.uk)
+ */
 
 /**
  *
@@ -39,28 +38,31 @@
  * $Id$
  */
 class CRM_Core_Payment_Realex extends CRM_Core_Payment {
-  CONST AUTH_APPROVED = '00';
+  const AUTH_APPROVED = '00';
 
-  static protected $_mode = NULL;
+  protected $_mode = NULL;
 
-  static protected $_params = array();
+  protected $_params = array();
 
   /**
    * We only need one instance of this object. So we use the singleton
    * pattern and cache the instance in this variable
    *
    * @var object
-   * @static
    */
   static private $_singleton = NULL;
 
   /**
-   * Constructor
+   * Constructor.
    *
-   * @param string $mode the mode of operation: live or test
+   * @param string $mode
+   *   The mode of operation: live or test.
    *
-   * @return void
-   */ function __construct($mode, &$paymentProcessor) {
+   * @param $paymentProcessor
+   *
+   * @return \CRM_Core_Payment_Realex
+   */
+  public function __construct($mode, &$paymentProcessor) {
     $this->_mode = $mode;
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName = ts('Realex');
@@ -75,51 +77,54 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
   }
 
   /**
-   * singleton function used to manage this object
+   * @param array $params
    *
-   * @param string $mode the mode of operation: live or test
-   *
-   * @return object
-   * @static
-   *
+   * @throws Exception
    */
-  static
-  function &singleton($mode, &$paymentProcessor) {
-    $processorName = $paymentProcessor['name'];
-    if (self::$_singleton[$processorName] === NULL) {
-      self::$_singleton[$processorName] = new CRM_Core_Payment_Realex($mode, $paymentProcessor);
-    }
-    return self::$_singleton[$processorName];
-  }
-
-  function setExpressCheckOut(&$params) {
-    CRM_Core_Error::fatal(ts('This function is not implemented'));
-  }
-
-  function getExpressCheckoutDetails($token) {
-    CRM_Core_Error::fatal(ts('This function is not implemented'));
-  }
-
-  function doExpressCheckout(&$params) {
-    CRM_Core_Error::fatal(ts('This function is not implemented'));
-  }
-
-  function doTransferCheckout(&$params) {
+  public function setExpressCheckOut(&$params) {
     CRM_Core_Error::fatal(ts('This function is not implemented'));
   }
 
   /**
-   * Submit a payment using Advanced Integration Method
+   * @param $token
    *
-   * @param  array $params assoc array of input parameters for this transaction
-   *
-   * @return array the result in a nice formatted array (or an error object)
-   * @public
+   * @throws Exception
    */
-  function doDirectPayment(&$params) {
+  public function getExpressCheckoutDetails($token) {
+    CRM_Core_Error::fatal(ts('This function is not implemented'));
+  }
+
+  /**
+   * @param array $params
+   *
+   * @throws Exception
+   */
+  public function doExpressCheckout(&$params) {
+    CRM_Core_Error::fatal(ts('This function is not implemented'));
+  }
+
+  /**
+   * @param array $params
+   *
+   * @throws Exception
+   */
+  public function doTransferCheckout(&$params) {
+    CRM_Core_Error::fatal(ts('This function is not implemented'));
+  }
+
+  /**
+   * Submit a payment using Advanced Integration Method.
+   *
+   * @param array $params
+   *   Assoc array of input parameters for this transaction.
+   *
+   * @return array
+   *   the result in a nice formatted array (or an error object)
+   */
+  public function doDirectPayment(&$params) {
 
     if (!defined('CURLOPT_SSLCERT')) {
-      return self::error(9001, 'RealAuth requires curl with SSL support');
+      return self::error(9001, ts('RealAuth requires curl with SSL support'));
     }
 
     $result = $this->setRealexFields($params);
@@ -132,42 +137,41 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
      * Check to see if we have a duplicate before we send
      **********************************************************/
     if ($this->_checkDupe($this->_getParam('order_id'))) {
-      return self::error(9004, 'It appears that this transaction is a duplicate.  Have you already submitted the form once?  If so there may have been a connection problem.  Check your email for a receipt from Authorize.net.  If you do not receive a receipt within 2 hours you can try your transaction again.  If you continue to have problems please contact the site administrator.');
+      return self::error(9004, ts('It appears that this transaction is a duplicate.  Have you already submitted the form once?  If so there may have been a connection problem.  Check your email for a receipt from Authorize.net.  If you do not receive a receipt within 2 hours you can try your transaction again.  If you continue to have problems please contact the site administrator.'));
     }
 
     // Create sha1 hash for request
-    $hashme   = "{$this->_getParam('timestamp')}.{$this->_getParam('merchant_ref')}.{$this->_getParam('order_id')}.{$this->_getParam('amount')}.{$this->_getParam('currency')}.{$this->_getParam('card_number')}";
+    $hashme = "{$this->_getParam('timestamp')}.{$this->_getParam('merchant_ref')}.{$this->_getParam('order_id')}.{$this->_getParam('amount')}.{$this->_getParam('currency')}.{$this->_getParam('card_number')}";
     $sha1hash = sha1($hashme);
-    $hashme   = "$sha1hash.{$this->_getParam('secret')}";
+    $hashme = "$sha1hash.{$this->_getParam('secret')}";
     $sha1hash = sha1($hashme);
-
 
     // Generate the request xml that is send to Realex Payments.
     $request_xml = "<request type='auth' timestamp='{$this->_getParam('timestamp')}'>
-			    <merchantid>{$this->_getParam('merchant_ref')}</merchantid>
-			    <account>{$this->_getParam('account')}</account>
-			    <orderid>{$this->_getParam('order_id')}</orderid>
-			    <amount currency='{$this->_getParam('currency')}'>{$this->_getParam('amount')}</amount>
-			    <card>
-				<number>{$this->_getParam('card_number')}</number>
-				<expdate>{$this->_getParam('exp_date')}</expdate>
-				<type>{$this->_getParam('card_type')}</type>
-				<chname>{$this->_getParam('card_name')}</chname>
-				<issueno>{$this->_getParam('issue_number')}</issueno>
-				<cvn>
-				    <number>{$this->_getParam('cvn')}</number>
-				    <presind>1</presind>
-				</cvn>
-			    </card>
-			    <autosettle flag='1'/>
-			    <sha1hash>$sha1hash</sha1hash>
+          <merchantid>{$this->_getParam('merchant_ref')}</merchantid>
+          <account>{$this->_getParam('account')}</account>
+          <orderid>{$this->_getParam('order_id')}</orderid>
+          <amount currency='{$this->_getParam('currency')}'>{$this->_getParam('amount')}</amount>
+          <card>
+        <number>{$this->_getParam('card_number')}</number>
+        <expdate>{$this->_getParam('exp_date')}</expdate>
+        <type>{$this->_getParam('card_type')}</type>
+        <chname>{$this->_getParam('card_name')}</chname>
+        <issueno>{$this->_getParam('issue_number')}</issueno>
+        <cvn>
+            <number>{$this->_getParam('cvn')}</number>
+            <presind>1</presind>
+        </cvn>
+          </card>
+          <autosettle flag='1'/>
+          <sha1hash>$sha1hash</sha1hash>
           <comments>
             <comment id='1'>{$this->_getParam('comments')}</comment>
           </comments>
           <tssinfo>
             <varref>{$this->_getParam('varref')}</varref>
           </tssinfo>
-			</request>";
+      </request>";
 
     /**********************************************************
      * Send to the payment processor using cURL
@@ -176,7 +180,7 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
     $submit = curl_init($this->_paymentProcessor['url_site']);
 
     if (!$submit) {
-      return self::error(9002, 'Could not initiate connection to payment gateway');
+      return self::error(9002, ts('Could not initiate connection to payment gateway'));
     }
 
     curl_setopt($submit, CURLOPT_HTTPHEADER, array('SOAPAction: ""'));
@@ -223,9 +227,9 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
     }
 
     // Check the response hash
-    $hashme   = "{$this->_getParam('timestamp')}.{$this->_getParam('merchant_ref')}.{$this->_getParam('order_id')}.{$response['RESULT']}.{$response['MESSAGE']}.{$response['PASREF']}.{$response['AUTHCODE']}";
+    $hashme = "{$this->_getParam('timestamp')}.{$this->_getParam('merchant_ref')}.{$this->_getParam('order_id')}.{$response['RESULT']}.{$response['MESSAGE']}.{$response['PASREF']}.{$response['AUTHCODE']}";
     $sha1hash = sha1($hashme);
-    $hashme   = "$sha1hash.{$this->_getParam('secret')}";
+    $hashme = "$sha1hash.{$this->_getParam('secret')}";
     $sha1hash = sha1($hashme);
 
     if ($response['SHA1HASH'] != $sha1hash) {
@@ -255,16 +259,13 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
   /**
    * Helper function to convert XML string to multi-dimension array.
    *
-   * @param $xml
+   * @param string $xml
    *   an XML string.
    *
-   * @return
+   * @return array
    *   An array of the result with following keys:
-   *   - error  : false, if no error. Otherwise, it is the error message
-   *   - return : a multi-dimension associative array represent the value
-   *               of the XML input string.
    */
-  function xml_parse_into_assoc($xml) {
+  public function xml_parse_into_assoc($xml) {
     $input = array();
     $result = array();
 
@@ -288,7 +289,7 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
           array(
             1 => xml_get_error_code($xmlparser),
             2 => xml_get_current_line_number($xmlparser),
-            3 => xml_get_current_column_number($xmlparser)
+            3 => xml_get_current_column_number($xmlparser),
           )
         );
       }
@@ -296,8 +297,14 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
     return $result;
   }
 
-  // private helper for  xml_parse_into_assoc, to recusively parsing the result
-  function _xml_parse($input, $depth = 1) {
+  /**
+   * Private helper for  xml_parse_into_assoc, to recusively parsing the result
+   * @param $input
+   * @param int $depth
+   *
+   * @return array
+   */
+  public function _xml_parse($input, $depth = 1) {
     $output = array();
     $children = array();
 
@@ -305,7 +312,7 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
       if ($data['level'] == $depth) {
         switch ($data['type']) {
           case 'complete':
-            $output[$data['tag']] = $data['value'];
+            $output[$data['tag']] = isset($data['value']) ? $data['value'] : '';
             break;
 
           case 'open':
@@ -325,11 +332,11 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
   }
 
   /**
-   *	Format the params from the form ready for sending to Realex.  Also perform some validation
+   *  Format the params from the form ready for sending to Realex.  Also perform some validation
    */
-  function setRealexFields(&$params) {
-    if ((int)$params['amount'] <= 0) {
-      return self::error(9001, 'Amount must be positive');
+  public function setRealexFields(&$params) {
+    if ((int) $params['amount'] <= 0) {
+      return self::error(9001, ts('Amount must be positive'));
     }
 
     // format amount to be in smallest possible units
@@ -366,7 +373,7 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
         break;
 
       default:
-        return self::error(9001, 'Credit card type not supported by Realex: ' . $params['credit_card_type']);
+        return self::error(9001, ts('Credit card type not supported by Realex:') . ' ' . $params['credit_card_type']);
     }
 
     // get the card holder name - cater cor customized billing forms
@@ -399,17 +406,17 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
     $this->_setParam('currency', $config->defaultCurrency);
 
     // Format the expiry date to MMYY
-    $expmonth = (string)$params['credit_card_exp_date']['M'];
+    $expmonth = (string) $params['month'];
     $expmonth = (strlen($expmonth) === 1) ? '0' . $expmonth : $expmonth;
-    $expyear  = substr((string)$params['credit_card_exp_date']['Y'], 2, 2);
+    $expyear = substr((string) $params['year'], 2, 2);
     $this->_setParam('exp_date', $expmonth . $expyear);
 
     if (isset($params['credit_card_start_date']) && (strlen($params['credit_card_start_date']['M']) !== 0) &&
       (strlen($params['credit_card_start_date']['Y']) !== 0)
     ) {
-      $startmonth = (string)$params['credit_card_start_date']['M'];
+      $startmonth = (string) $params['credit_card_start_date']['M'];
       $startmonth = (strlen($startmonth) === 1) ? '0' . $startmonth : $startmonth;
-      $startyear  = substr((string)$params['credit_card_start_date']['Y'], 2, 2);
+      $startyear = substr((string) $params['credit_card_start_date']['Y'], 2, 2);
       $this->_setParam('start_date', $startmonth . $startyear);
     }
 
@@ -421,27 +428,31 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
   }
 
   /**
-   * Checks to see if invoice_id already exists in db
+   * Checks to see if invoice_id already exists in db.
    *
-   * @param  int     $invoiceId   The ID to check
+   * @param int $invoiceId
+   *   The ID to check.
    *
-   * @return bool                  True if ID exists, else false
+   * @return bool
+   *   True if ID exists, else false
    */
-  function _checkDupe($invoiceId) {
+  public function _checkDupe($invoiceId) {
     $contribution = new CRM_Contribute_DAO_Contribution();
     $contribution->invoice_id = $invoiceId;
     return $contribution->find();
   }
 
   /**
-   * Get the value of a field if set
+   * Get the value of a field if set.
    *
-   * @param string $field the field
+   * @param string $field
+   *   The field.
    *
-   * @return mixed value of the field, or empty string if the field is
-   * not set
+   * @return mixed
+   *   value of the field, or empty string if the field is
+   *   not set
    */
-  function _getParam($field) {
+  public function _getParam($field) {
     if (isset($this->_params[$field])) {
       return $this->_params[$field];
     }
@@ -457,9 +468,10 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
    * @param string $field
    * @param mixed $value
    *
-   * @return bool false if value is not a scalar, true if successful
+   * @return bool
+   *   false if value is not a scalar, true if successful
    */
-  function _setParam($field, $value) {
+  public function _setParam($field, $value) {
     if (!is_scalar($value)) {
       return FALSE;
     }
@@ -468,40 +480,46 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
     }
   }
 
-  function &error($errorCode = NULL, $errorMessage = NULL) {
+  /**
+   * @param null $errorCode
+   * @param null $errorMessage
+   *
+   * @return object
+   */
+  public function &error($errorCode = NULL, $errorMessage = NULL) {
     $e = CRM_Core_Error::singleton();
 
     if ($errorCode) {
       if ($errorCode == '101' || $errorCode == '102') {
-        $display_error = 'Card declined by bank. Please try with a different card.';
+        $display_error = ts('Card declined by bank. Please try with a different card.');
       }
       elseif ($errorCode == '103') {
-        $display_error = 'Card reported lot or stolen - This incident will be reported.';
+        $display_error = ts('Card reported lost or stolen. This incident will be reported.');
       }
       elseif ($errorCode == '501') {
-        $display_error = "It appears that this transaction is a duplicate. Have you already submitted the form once? If so there may have been a connection problem. Check your email for a receipt for this transaction.  If you do not receive a receipt within 2 hours you can try your transaction again.  If you continue to have problems please contact the site administrator.";
+        $display_error = ts("It appears that this transaction is a duplicate. Have you already submitted the form once? If so there may have been a connection problem. Check your email for a receipt for this transaction.  If you do not receive a receipt within 2 hours you can try your transaction again.  If you continue to have problems please contact the site administrator.");
       }
       elseif ($errorCode == '509') {
         $display_error = $errorMessage;
       }
       else {
-        $display_error = 'We were unable to process your payment at this time. Please try again later.';
+        $display_error = ts('We were unable to process your payment at this time. Please try again later.');
       }
       $e->push($errorCode, 0, NULL, $display_error);
     }
     else {
-      $e->push(9001, 0, NULL, 'We were unable to process your payment at this time. Please try again later.');
+      $e->push(9001, 0, NULL, ts('We were unable to process your payment at this time. Please try again later.'));
     }
     return $e;
   }
 
   /**
-   * This function checks to see if we have the right config values
+   * This function checks to see if we have the right config values.
    *
-   * @return string the error message if any
-   * @public
+   * @return string
+   *   the error message if any
    */
-  function checkConfig() {
+  public function checkConfig() {
     $error = array();
     if (empty($this->_paymentProcessor['user_name'])) {
       $error[] = ts('Merchant ID is not set for this payment processor');
@@ -518,5 +536,5 @@ class CRM_Core_Payment_Realex extends CRM_Core_Payment {
       return NULL;
     }
   }
-}
 
+}

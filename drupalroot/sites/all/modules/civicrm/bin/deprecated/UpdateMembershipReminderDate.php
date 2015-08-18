@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,18 +23,24 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 
 /*
  * This file updates the Reminder dates of all valid membership records.
  *
  */
+
+/**
+ * Class CRM_UpdateMembershipReminderDate
+ */
 class CRM_UpdateMembershipReminderDate {
-  function __construct() {
+  /**
+   */
+  public function __construct() {
     // you can run this program either from an apache command, or from the cli
     if (php_sapi_name() == "cli") {
-      require_once ("cli.php");
+      require_once "cli.php";
       $cli = new civicrm_cli();
       //if it doesn't die, it's authenticated
     }
@@ -52,7 +58,7 @@ class CRM_UpdateMembershipReminderDate {
     }
   }
 
-  function initialize() {
+  public function initialize() {
     require_once '../civicrm.config.php';
     require_once 'CRM/Core/Config.php';
 
@@ -88,18 +94,19 @@ class CRM_UpdateMembershipReminderDate {
     //membership type has reminder day set.
 
     $query = '
-    UPDATE  civicrm_membership membership 
-INNER JOIN  civicrm_contact contact ON ( contact.id = membership.contact_id ) 
+    UPDATE  civicrm_membership membership
+INNER JOIN  civicrm_contact contact ON ( contact.id = membership.contact_id )
 INNER JOIN  civicrm_membership_type type ON ( type.id = membership.membership_type_id )
-       SET  membership.reminder_date = DATE_SUB( membership.end_date, INTERVAL type.renewal_reminder_day + 1 DAY ) 
-     WHERE  membership.reminder_date IS NULL 
+       SET  membership.reminder_date = DATE_SUB( membership.end_date, INTERVAL type.renewal_reminder_day + 1 DAY )
+     WHERE  membership.reminder_date IS NULL
        AND  contact.is_deleted = 0
        AND  ( contact.is_deceased IS NULL OR contact.is_deceased = 0 )
-       AND  type.renewal_reminder_day IS NOT NULL 
+       AND  type.renewal_reminder_day IS NOT NULL
        AND  membership.status_id IN ( ' . implode(' , ', $statusIds) . ' )';
 
     CRM_Core_DAO::executeQuery($query);
   }
+
 }
 
 $reminderDate = new CRM_UpdateMembershipReminderDate();
@@ -107,4 +114,3 @@ $reminderDate = new CRM_UpdateMembershipReminderDate();
 echo "\n Updating... ";
 $reminderDate->updateMembershipReminderDate();
 echo "\n\n Membership(s) reminder date updated. (Done) \n";
-

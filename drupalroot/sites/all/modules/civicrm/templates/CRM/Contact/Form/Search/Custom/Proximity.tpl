@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -27,15 +27,14 @@
    custom search .php file. If you want a different layout, clone and customize this file and point to new file using
    templateFile() function.*}
 <div class="crm-block crm-form-block crm-contact-custom-search-form-block">
-<div class="crm-accordion-wrapper crm-custom_search_form-accordion {if $rows}crm-accordion-closed{else}crm-accordion-open{/if}">
+<div class="crm-accordion-wrapper crm-custom_search_form-accordion {if $rows}collapsed{/if}">
     <div class="crm-accordion-header crm-master-accordion-header">
-      <div class="icon crm-accordion-pointer"></div>
       {ts}Edit Search Criteria{/ts}
     </div><!-- /.crm-accordion-header -->
     <div class="crm-accordion-body">
         <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="top"}</div>
         <table class="form-layout-compressed">
-           <tr><td class="label">{$form.distance.label}</td><td>{$form.distance.html|crmReplace:class:four} {$form.prox_distance_unit.html}</td></tr>
+           <tr><td class="label">{$form.distance.label}</td><td>{$form.distance.html|crmAddClass:four} {$form.prox_distance_unit.html}</td></tr>
            <tr><td class="label">FROM...</td><td></td></tr>
            <tr><td class="label">{$form.street_address.label}</td><td>{$form.street_address.html}</td></tr>
            <tr><td class="label">{$form.city.label}</td><td>{$form.city.html}</td></tr>
@@ -62,14 +61,14 @@
 {/if}
 
 {if $rows}
-	<div class="crm-results-block">
+  <div class="crm-results-block">
     {* Search request has returned 1 or more matching rows. Display results and collapse the search criteria fieldset. *}
         {* This section handles form elements for action task select and submit *}
-       <div class="crm-search-tasks">        
+       <div class="crm-search-tasks">
         {include file="CRM/Contact/Form/Search/ResultTasks.tpl"}
-		</div>
+    </div>
         {* This section displays the rows along and includes the paging controls *}
-	    <div class="crm-search-results">
+      <div class="crm-search-results">
 
         {include file="CRM/common/pager.tpl" location="top"}
 
@@ -77,9 +76,9 @@
         {if $atoZ}
             {include file="CRM/common/pagerAToZ.tpl"}
         {/if}
-        
+
         {strip}
-        <table class="selector" summary="{ts}Search results listings.{/ts}">
+        <table class="selector row-highlight" summary="{ts}Search results listings.{/ts}">
             <thead class="sticky">
                 <th scope="col" title="Select All Rows">{$form.toggleSelect.html}</th>
                 {foreach from=$columnHeaders item=header}
@@ -103,7 +102,7 @@
                     {foreach from=$columnHeaders item=header}
                         {assign var=fName value=$header.sort}
                         {if $fName eq 'sort_name'}
-                            <td><a href="{crmURL p='civicrm/contact/view' q="reset=1&cid=`$row.contact_id`"}">{$row.sort_name}</a></td>
+                            <td><a href="{crmURL p='civicrm/contact/view' q="reset=1&cid=`$row.contact_id`&key=`$qfKey`&context=custom"}">{$row.sort_name}</a></td>
                         {else}
                             <td>{$row.$fName}</td>
                         {/if}
@@ -114,11 +113,6 @@
         </table>
         {/strip}
 
-        <script type="text/javascript">
-        {* this function is called to change the color of selected row(s) *}
-        var fname = "{$form.formName}";	
-        on_load_init_checkboxes(fname);
-        </script>
 
         {include file="CRM/common/pager.tpl" location="bottom"}
 
@@ -132,10 +126,3 @@
 
 </div>
 {/if}
-{literal}
-<script type="text/javascript">
-cj(function() {
-   cj().crmaccordions(); 
-});
-</script>
-{/literal}

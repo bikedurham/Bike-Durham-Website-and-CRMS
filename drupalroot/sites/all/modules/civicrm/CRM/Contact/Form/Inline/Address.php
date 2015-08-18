@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,28 +23,23 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 
 /**
- * form helper class for address section 
+ * form helper class for address section
  */
-class CRM_Contact_Form_Inline_Address extends CRM_Core_Form {
+class CRM_Contact_Form_Inline_Address extends CRM_Contact_Form_Inline {
 
   /**
-   * contact id of the contact that is been viewed
-   */
-  public $_contactId;
-
-  /**
-   * location block no 
+   * Location block no
    */
   private $_locBlockNo;
 
@@ -54,52 +49,51 @@ class CRM_Contact_Form_Inline_Address extends CRM_Core_Form {
   public $_parseStreetAddress;
 
   /**
-   * store address values
+   * Store address values
    */
   public $_values;
 
   /**
-   * form action
+   * Form action
    */
   public $_action;
 
   /**
-   * address id
+   * Address id
    */
   public $_addressId;
 
   /**
-   * Since we are using same class / code to generate multiple instances 
-   * of address block, we need to generate unique form name for each, 
+   * Since we are using same class / code to generate multiple instances
+   * of address block, we need to generate unique form name for each,
    * hence calling parent contructor
    */
-  function __construct( ) {
+  public function __construct() {
     $locBlockNo = CRM_Utils_Request::retrieve('locno', 'Positive', CRM_Core_DAO::$_nullObject, TRUE, NULL, $_REQUEST);
     $name = "Address_{$locBlockNo}";
 
-    parent::__construct( null, CRM_Core_Action::NONE, 'post', $name ); 
+    parent::__construct(NULL, CRM_Core_Action::NONE, 'post', $name);
   }
 
   /**
-   * call preprocess
+   * Call preprocess.
    */
   public function preProcess() {
-    //get all the existing email addresses
-    $this->_contactId = CRM_Utils_Request::retrieve('cid', 'Positive', $this, TRUE, NULL, $_REQUEST);
-    $this->assign('contactId', $this->_contactId);
+    parent::preProcess();
+
     $this->_locBlockNo = CRM_Utils_Request::retrieve('locno', 'Positive', $this, TRUE, NULL, $_REQUEST);
     $this->assign('blockId', $this->_locBlockNo);
-   
+
     $addressSequence = CRM_Core_BAO_Address::addressSequence();
     $this->assign('addressSequence', $addressSequence);
 
-    $this->_values = array();    
+    $this->_values = array();
     $this->_addressId = CRM_Utils_Request::retrieve('aid', 'Positive', $this, FALSE, NULL, $_REQUEST);
-    
+
     $this->_action = CRM_Core_Action::ADD;
-    if ( $this->_addressId ) {
-      $params = array( 'id' => $this->_addressId );
-      $address = CRM_Core_BAO_Address::getValues( $params, FALSE, 'id' );
+    if ($this->_addressId) {
+      $params = array('id' => $this->_addressId);
+      $address = CRM_Core_BAO_Address::getValues($params, FALSE, 'id');
       $this->_values['address'][$this->_locBlockNo] = array_pop($address);
       $this->_action = CRM_Core_Action::UPDATE;
     }
@@ -109,7 +103,7 @@ class CRM_Contact_Form_Inline_Address extends CRM_Core_Form {
 
     $this->assign('action', $this->_action);
     $this->assign('addressId', $this->_addressId);
-    
+
     // parse street address, CRM-5450
     $this->_parseStreetAddress = $this->get('parseStreetAddress');
     if (!isset($this->_parseStreetAddress)) {
@@ -117,9 +111,7 @@ class CRM_Contact_Form_Inline_Address extends CRM_Core_Form {
         'address_options'
       );
       $this->_parseStreetAddress = FALSE;
-      if (CRM_Utils_Array::value('street_address', $addressOptions) &&
-        CRM_Utils_Array::value('street_address_parsing', $addressOptions)
-      ) {
+      if (!empty($addressOptions['street_address']) && !empty($addressOptions['street_address_parsing'])) {
         $this->_parseStreetAddress = TRUE;
       }
       $this->set('parseStreetAddress', $this->_parseStreetAddress);
@@ -128,90 +120,53 @@ class CRM_Contact_Form_Inline_Address extends CRM_Core_Form {
   }
 
   /**
-   * build the form elements for an email object
+   * Build the form object elements for an address object.
    *
    * @return void
-   * @access public
    */
   public function buildQuickForm() {
-    CRM_Contact_Form_Edit_Address::buildQuickForm( $this, $this->_locBlockNo, TRUE, TRUE );
-
-    $buttons = array(
-      array(
-        'type' => 'upload',
-        'name' => ts('Save'),
-        'isDefault' => TRUE,
-      ),
-      array(
-        'type' => 'cancel',
-        'name' => ts('Cancel'),
-      ),
-    );
-
-    $this->addButtons($buttons);
+    parent::buildQuickForm();
+    CRM_Contact_Form_Edit_Address::buildQuickForm($this, $this->_locBlockNo, TRUE, TRUE);
   }
 
   /**
-   * Override default cancel action
-   */
-  function cancelAction() {
-    $response = array('status' => 'cancel');
-    echo json_encode($response);
-    CRM_Utils_System::civiExit();
-  }
-
-  /**
-   * set defaults for the form
+   * Set defaults for the form.
    *
-   * @return void
-   * @access public
+   * @return array
    */
   public function setDefaultValues() {
     $defaults = $this->_values;
 
     $config = CRM_Core_Config::singleton();
     //set address block defaults
-    if ( CRM_Utils_Array::value( 'address', $defaults ) ) {
-      CRM_Contact_Form_Edit_Address::setDefaultValues( $defaults, $this );
-    } 
+    if (!empty($defaults['address'])) {
+      CRM_Contact_Form_Edit_Address::setDefaultValues($defaults, $this);
+    }
     else {
       // get the default location type
       $locationType = CRM_Core_BAO_LocationType::getDefault();
 
-      if ( $this->_locBlockNo == 1 ) {
+      if ($this->_locBlockNo == 1) {
         $address['is_primary'] = TRUE;
         $address['location_type_id'] = $locationType->id;
       }
-      
+
       $address['country_id'] = $config->defaultContactCountry;
       $defaults['address'][$this->_locBlockNo] = $address;
-    } 
-
-    $values = $defaults['address'][$this->_locBlockNo];
-    
-    CRM_Contact_Form_Edit_Address::fixStateSelect($this,
-      "address[$this->_locBlockNo][country_id]",
-      "address[$this->_locBlockNo][state_province_id]",
-      "address[$this->_locBlockNo][county_id]",
-      CRM_Utils_Array::value('country_id',
-        $values, $config->defaultContactCountry
-      ),
-      CRM_Utils_Array::value('state_province_id', $values)
-    );
+    }
 
     return $defaults;
   }
 
   /**
-   * process the form
+   * Process the form.
    *
    * @return void
-   * @access public
    */
   public function postProcess() {
     $params = $this->exportValues();
 
-    // need to process / save address 
+    // Process / save address
     $params['contact_id'] = $this->_contactId;
     $params['updateBlankLocInfo'] = TRUE;
 
@@ -222,25 +177,16 @@ class CRM_Contact_Form_Inline_Address extends CRM_Core_Form {
       CRM_Contact_Form_Contact::parseAddress($params);
     }
 
-    if ( $this->_addressId > 0 ) {
+    if ($this->_addressId > 0) {
       $params['address'][$this->_locBlockNo]['id'] = $this->_addressId;
     }
-    
+
     // save address changes
-    $address = CRM_Core_BAO_Address::create( $params, TRUE );
+    $address = CRM_Core_BAO_Address::create($params, TRUE);
 
-    // make entry in log table
-    CRM_Core_BAO_Log::register( $this->_contactId,
-      'civicrm_contact',
-      $this->_contactId
-    );
-   
-    $response = array(
-      'status'    => 'save',
-      'addressId' => $address[0]->id
-    );
-    echo json_encode($response);
-    CRM_Utils_System::civiExit();
+    $this->log();
+    $this->ajaxResponse['addressId'] = $address[0]->id;
+    $this->response();
   }
-}
 
+}

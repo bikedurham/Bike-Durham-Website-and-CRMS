@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -40,7 +40,9 @@ class CRM_Event_Page_ParticipantListing extends CRM_Core_Page {
 
   protected $_eventTitle;
 
-  protected $_pager; function preProcess() {
+  protected $_pager;
+
+  public function preProcess() {
     $this->_id = CRM_Utils_Request::retrieve('id', 'Integer', $this, TRUE);
 
     // ensure that there is a particpant type for this
@@ -63,7 +65,7 @@ class CRM_Event_Page_ParticipantListing extends CRM_Core_Page {
     $this->assign('displayRecent', FALSE);
   }
 
-  function run() {
+  public function run() {
     $this->preProcess();
 
     // get the class name from the participantListingID
@@ -76,23 +78,23 @@ class CRM_Event_Page_ParticipantListing extends CRM_Core_Page {
 
     if ($className == 'CRM_Event_Page_ParticipantListing') {
       CRM_Core_Error::fatal(ts("Participant listing code file cannot be '%1'",
-          array(1 => $className)
-        ));
+        array(1 => $className)
+      ));
     }
 
     $classFile = str_replace('_',
-      DIRECTORY_SEPARATOR,
-      $className
-    ) . '.php';
-    $error = include_once ($classFile);
+        DIRECTORY_SEPARATOR,
+        $className
+      ) . '.php';
+    $error = include_once $classFile;
     if ($error == FALSE) {
       CRM_Core_Error::fatal('Participant listing code file: ' . $classFile . ' does not exist. Please verify your custom particpant listing settings in CiviCRM administrative panel.');
     }
 
-    eval("\$participantListingClass = new $className( );");
+    $participantListingClass = new $className();
 
     $participantListingClass->preProcess();
     $participantListingClass->run();
   }
-}
 
+}

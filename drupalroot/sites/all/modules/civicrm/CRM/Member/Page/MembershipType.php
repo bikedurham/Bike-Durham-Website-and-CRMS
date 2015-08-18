@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -36,54 +36,45 @@
 /**
  * Page for displaying list of membership types
  */
-class CRM_Member_Page_MembershipType extends CRM_Core_Page_Basic {
+class CRM_Member_Page_MembershipType extends CRM_Core_Page {
 
   /**
-   * The action links that we need to display for the browse screen
+   * The action links that we need to display for the browse screen.
    *
    * @var array
-   * @static
    */
   static $_links = NULL;
 
-  /**
-   * Get BAO Name
-   *
-   * @return string Classname of BAO.
-   */
-  function getBAOName() {
-    return 'CRM_Member_BAO_MembershipType';
-  }
+  public $useLivePageJS = TRUE;
 
   /**
-   * Get action Links
+   * Get action Links.
    *
-   * @return array (reference) of action links
+   * @return array
+   *   (reference) of action links
    */
-  function &links() {
+  public function &links() {
     if (!(self::$_links)) {
       self::$_links = array(
         CRM_Core_Action::UPDATE => array(
           'name' => ts('Edit'),
-          'url' => 'civicrm/admin/member/membershipType',
+          'url' => 'civicrm/admin/member/membershipType/add',
           'qs' => 'action=update&id=%%id%%&reset=1',
           'title' => ts('Edit Membership Type'),
         ),
         CRM_Core_Action::DISABLE => array(
           'name' => ts('Disable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Member_BAO_MembershipType' . '\',\'' . 'enable-disable' . '\' );"',
-          'ref' => 'disable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Disable Membership Type'),
         ),
         CRM_Core_Action::ENABLE => array(
           'name' => ts('Enable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Member_BAO_MembershipType' . '\',\'' . 'disable-enable' . '\' );"',
-          'ref' => 'enable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Enable Membership Type'),
         ),
         CRM_Core_Action::DELETE => array(
           'name' => ts('Delete'),
-          'url' => 'civicrm/admin/member/membershipType',
+          'url' => 'civicrm/admin/member/membershipType/add',
           'qs' => 'action=delete&id=%%id%%',
           'title' => ts('Delete Membership Type'),
         ),
@@ -100,31 +91,9 @@ class CRM_Member_Page_MembershipType extends CRM_Core_Page_Basic {
    * Finally it calls the parent's run method.
    *
    * @return void
-   * @access public
-   *
    */
-  function run() {
-
-    // get the requested action
-    $action = CRM_Utils_Request::retrieve('action', 'String',
-      // default to 'browse'
-      $this, FALSE, 'browse'
-    );
-
-    // assign vars to templates
-    $this->assign('action', $action);
-    $id = CRM_Utils_Request::retrieve('id', 'Positive',
-      $this, FALSE, 0
-    );
-
-    // what action to take ?
-    if ($action & (CRM_Core_Action::UPDATE | CRM_Core_Action::ADD)) {
-      $this->edit($action, $id);
-    }
-    else {
-      // finally browse the custom groups
-      $this->browse();
-    }
+  public function run() {
+    $this->browse();
 
     // parent run
     return parent::run();
@@ -135,10 +104,8 @@ class CRM_Member_Page_MembershipType extends CRM_Core_Page_Basic {
    *
    *
    * @return void
-   * @access public
-   * @static
    */
-  function browse() {
+  public function browse() {
     // get all membership types sorted by weight
     $membershipType = array();
     $dao = new CRM_Member_DAO_MembershipType();
@@ -146,10 +113,12 @@ class CRM_Member_Page_MembershipType extends CRM_Core_Page_Basic {
     $dao->orderBy('weight');
     $dao->find();
 
-
     while ($dao->fetch()) {
       $membershipType[$dao->id] = array();
       CRM_Core_DAO::storeValues($dao, $membershipType[$dao->id]);
+
+      $membershipType[$dao->id]['period_type'] = CRM_Utils_Array::value($dao->period_type, CRM_Core_SelectValues::periodType(), '');
+      $membershipType[$dao->id]['visibility'] = CRM_Utils_Array::value($dao->visibility, CRM_Core_SelectValues::memberVisibility(), '');
 
       //adding column for relationship type label. CRM-4178.
       if ($dao->relationship_type_id) {
@@ -166,6 +135,7 @@ class CRM_Member_Page_MembershipType extends CRM_Core_Page_Basic {
             $value, $relationshipName
           );
         }
+        $membershipType[$dao->id]['maxRelated'] = CRM_Utils_Array::value('max_related', $membershipType[$dao->id]);
       }
       // form all action links
       $action = array_sum(array_keys($this->links()));
@@ -180,7 +150,12 @@ class CRM_Member_Page_MembershipType extends CRM_Core_Page_Basic {
         }
         $membershipType[$dao->id]['order'] = $membershipType[$dao->id]['weight'];
         $membershipType[$dao->id]['action'] = CRM_Core_Action::formLink(self::links(), $action,
-          array('id' => $dao->id)
+          array('id' => $dao->id),
+          ts('more'),
+          FALSE,
+          'membershipType.manage.action',
+          'MembershipType',
+          $dao->id
         );
       }
     }
@@ -194,31 +169,4 @@ class CRM_Member_Page_MembershipType extends CRM_Core_Page_Basic {
     $this->assign('rows', $membershipType);
   }
 
-  /**
-   * Get name of edit form
-   *
-   * @return string Classname of edit form.
-   */
-  function editForm() {
-    return 'CRM_Member_Form_MembershipType';
-  }
-
-  /**
-   * Get edit form name
-   *
-   * @return string name of this page.
-   */
-  function editName() {
-    return 'Membership Types';
-  }
-
-  /**
-   * Get user context.
-   *
-   * @return string user context.
-   */
-  function userContext($mode = NULL) {
-    return 'civicrm/admin/member/membershipType';
-  }
 }
-

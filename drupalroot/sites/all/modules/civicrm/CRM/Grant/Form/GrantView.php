@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -40,28 +40,33 @@
 class CRM_Grant_Form_GrantView extends CRM_Core_Form {
 
   /**
-   * Function to set variables up before form is built
+   * Set variables up before form is built.
    *
    * @return void
-   * @access public
    */
   public function preProcess() {
     $this->_contactID = CRM_Utils_Request::retrieve('cid', 'Positive', $this);
-    $this->_id        = CRM_Utils_Request::retrieve('id', 'Positive', $this);
-    $context          = CRM_Utils_Request::retrieve('context', 'String', $this);
+    $this->_id = CRM_Utils_Request::retrieve('id', 'Positive', $this);
+    $context = CRM_Utils_Request::retrieve('context', 'String', $this);
     $this->assign('context', $context);
 
     $values = array();
     $params['id'] = $this->_id;
     CRM_Grant_BAO_Grant::retrieve($params, $values);
-    $grantType = CRM_Grant_PseudoConstant::grantType();
-    $grantStatus = CRM_Grant_PseudoConstant::grantStatus();
+    $grantType = CRM_Core_PseudoConstant::get('CRM_Grant_DAO_Grant', 'grant_type_id');
+    $grantStatus = CRM_Core_PseudoConstant::get('CRM_Grant_DAO_Grant', 'status_id');
     $this->assign('grantType', $grantType[$values['grant_type_id']]);
     $this->assign('grantStatus', $grantStatus[$values['status_id']]);
     $grantTokens = array(
-      'amount_total', 'amount_requested', 'amount_granted',
-      'rationale', 'grant_report_received', 'application_received_date',
-      'decision_date', 'money_transfer_date', 'grant_due_date',
+      'amount_total',
+      'amount_requested',
+      'amount_granted',
+      'rationale',
+      'grant_report_received',
+      'application_received_date',
+      'decision_date',
+      'money_transfer_date',
+      'grant_due_date',
     );
 
     foreach ($grantTokens as $token) {
@@ -80,7 +85,6 @@ class CRM_Grant_Form_GrantView extends CRM_Core_Form {
     if (isset($this->_noteId)) {
       $this->assign('note', CRM_Core_DAO::getFieldValue('CRM_Core_DAO_Note', $this->_noteId, 'note'));
     }
-
 
     // add Grant to Recent Items
     $url = CRM_Utils_System::url('civicrm/contact/view/grant',
@@ -109,9 +113,7 @@ class CRM_Grant_Form_GrantView extends CRM_Core_Form {
       $recentOther
     );
 
-    $attachment = CRM_Core_BAO_File::attachmentInfo('civicrm_grant',
-      $this->_id
-    );
+    $attachment = CRM_Core_BAO_File::attachmentInfo('civicrm_grant', $this->_id);
     $this->assign('attachment', $attachment);
 
     $grantType = CRM_Core_DAO::getFieldValue("CRM_Grant_DAO_Grant", $this->_id, "grant_type_id");
@@ -119,13 +121,14 @@ class CRM_Grant_Form_GrantView extends CRM_Core_Form {
     CRM_Core_BAO_CustomGroup::buildCustomDataView($this, $groupTree);
 
     $this->assign('id', $this->_id);
+
+    $this->setPageTitle(ts('Grant'));
   }
 
   /**
-   * Function to build the form
+   * Build the form object.
    *
-   * @return None
-   * @access public
+   * @return void
    */
   public function buildQuickForm() {
     $this->addButtons(array(
@@ -138,5 +141,5 @@ class CRM_Grant_Form_GrantView extends CRM_Core_Form {
       )
     );
   }
-}
 
+}

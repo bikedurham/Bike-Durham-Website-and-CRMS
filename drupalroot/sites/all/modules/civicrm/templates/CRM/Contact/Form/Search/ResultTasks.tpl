@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,17 +25,11 @@
 *}
 {* Form elements for displaying and running action tasks on search results *}
 {capture assign=advSearchURL}
-{if $context EQ 'smog'}
-     {crmURL p='civicrm/group/search/advanced' q="gid=`$group.id`&reset=1&force=1"}
-{elseif $context EQ 'amtg'}
-     {crmURL p='civicrm/contact/search/advanced' q="context=amtg&amtgID=`$group.id`&reset=1&force=1"}
-{else}
-    {crmURL p='civicrm/contact/search/advanced' q="reset=1"}
-{/if}
-{/capture}
-{capture assign=searchBuilderURL}
-    {crmURL p='civicrm/contact/search/builder' q="reset=1"}
-{/capture}
+{if $context EQ 'smog'}{crmURL p='civicrm/group/search/advanced' q="gid=`$group.id`&reset=1&force=1"}
+{elseif $context EQ 'amtg'}{crmURL p='civicrm/contact/search/advanced' q="context=amtg&amtgID=`$group.id`&reset=1&force=1"}
+{else}{crmURL p='civicrm/contact/search/advanced' q="reset=1"}
+{/if}{/capture}
+{capture assign=searchBuilderURL}{crmURL p='civicrm/contact/search/builder' q="reset=1"}{/capture}
 
  <div id="search-status">
   <div class="float-right right">
@@ -45,9 +39,9 @@
             <a href="{$searchBuilderURL}">&raquo; {ts}Search Builder{/ts}</a><br />
         {/if}
         {if $context eq 'smog'}
-            {help id="id-smog-criteria"}
+            {help id="id-smog-criteria" group_id=$group.id group_title=$group.title ssID=$ssID ssMappingID=$ssMappingID permissionedForGroup=$permissionedForGroup}
         {elseif $context eq 'amtg'}
-            {help id="id-amtg-criteria"}
+            {help id="id-amtg-criteria" group_title=$group.title}
         {else}
             {help id="id-basic-criteria"}
         {/if}
@@ -64,7 +58,7 @@
         {if $savedSearch.name}{$savedSearch.name} ({ts}smart group{/ts}) - {/if}
         {ts count=$pager->_totalItems plural='%count Contacts'}%count Contact{/ts}
     </td>
-    
+
     {* Search criteria are passed to tpl in the $qill array *}
     <td class="nowrap">
     {if $qill}
@@ -75,25 +69,17 @@
   <tr>
     <td class="font-size11pt"> {ts}Select Records{/ts}:</td>
     <td class="nowrap">
-        {$form.radio_ts.ts_all.html} <label for="{$ts_all_id}">{ts count=$pager->_totalItems plural='All %count records'}The found record{/ts}</label> &nbsp; {if $pager->_totalItems > 1} {$form.radio_ts.ts_sel.html} <label for="{$ts_sel_id}">{ts}Selected records only{/ts}</label>{/if}
+      {assign var="checked" value=$selectedContactIds|@count}
+      {$form.radio_ts.ts_all.html} <label for="{$ts_all_id}">{ts count=$pager->_totalItems plural='All %count records'}The found record{/ts}</label>
+      {if $pager->_totalItems > 1}
+        &nbsp; {$form.radio_ts.ts_sel.html} <label for="{$ts_sel_id}">{ts 1="<span>$checked</span>"}%1 Selected records only{/ts}</label>
+      {/if}
     </td>
   </tr>
   <tr>
     <td colspan="2">
-     {* Hide export and print buttons in 'Add Members to Group' context. *}
+     {* Hide export button in 'Add Members to Group' context. *}
      {if $context NEQ 'amtg'}
-        {if $action eq 512}
-          <ul>   
-          {$form._qf_Advanced_next_print.html}&nbsp; &nbsp;
-        {elseif $action eq 8192}
-          {$form._qf_Builder_next_print.html}&nbsp; &nbsp;
-        {elseif $action eq 16384}
-          {* since this does not really work for a non standard search
-          {$form._qf_Custom_next_print.html}&nbsp; &nbsp;
-          *}
-        {else}
-            {$form._qf_Basic_next_print.html}&nbsp; &nbsp;
-        {/if}
         {$form.task.html}
      {/if}
      {if $action eq 512}
@@ -109,9 +95,3 @@
   </tr>
   </table>
  </div>
-
-{literal}
-<script type="text/javascript">
-toggleTaskAction( );
-</script>
-{/literal}

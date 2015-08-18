@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -39,20 +39,16 @@
 class CRM_Price_Form_Set extends CRM_Core_Form {
 
   /**
-   * the set id saved to the session for an update
+   * The set id saved to the session for an update.
    *
    * @var int
-   * @access protected
    */
   protected $_sid;
 
   /**
-   * Function to set variables up before form is built
-   *
-   * @param null
+   * Set variables up before form is built.
    *
    * @return void
-   * @access public
    */
   public function preProcess() {
     // current set id
@@ -61,7 +57,7 @@ class CRM_Price_Form_Set extends CRM_Core_Form {
     // setting title for html page
     $title = ts('New Price Set');
     if ($this->_sid) {
-      $title = CRM_Price_BAO_Set::getTitle($this->_sid);
+      $title = CRM_Price_BAO_PriceSet::getTitle($this->_sid);
     }
     if ($this->_action & CRM_Core_Action::UPDATE) {
       $title = ts('Edit %1', array(1 => $title));
@@ -72,35 +68,35 @@ class CRM_Price_Form_Set extends CRM_Core_Form {
     CRM_Utils_System::setTitle($title);
 
     $url = CRM_Utils_System::url('civicrm/admin/price', 'reset=1');
-    $breadCrumb = array(array('title' => ts('Price Sets'),
+    $breadCrumb = array(
+      array(
+        'title' => ts('Price Sets'),
         'url' => $url,
-      ));
+      ),
+    );
     CRM_Utils_System::appendBreadCrumb($breadCrumb);
   }
 
   /**
-   * global form rule
+   * Global form rule.
    *
-   * @param array $fields  the input form values
-   * @param array $files   the uploaded files if any
-   * @param array $options additional user data
+   * @param array $fields
+   *   The input form values.
+   * @param array $files
+   *   The uploaded files if any.
+   * @param array $options
+   *   Additional user data.
    *
-   * @return true if no errors, else array of errors
-   * @access public
-   * @static
+   * @return bool|array
+   *   true if no errors, else array of errors
    */
-  static
-  function formRule($fields, $files, $options) {
+  public static function formRule($fields, $files, $options) {
     $errors = array();
-    $count = count($fields['extends']);
+    $count = count(CRM_Utils_Array::value('extends', $fields));
     //price sets configured for membership
-    if (array_key_exists(CRM_Core_Component::getComponentID('CiviMember'), $fields['extends'])) {
+    if ($count && array_key_exists(CRM_Core_Component::getComponentID('CiviMember'), $fields['extends'])) {
       if ($count > 1) {
         $errors['extends'] = ts('If you plan on using this price set for membership signup and renewal, you can not also use it for Events or Contributions. However, a membership price set may include additional fields for non-membership options that require an additional fee (e.g. magazine subscription).');
-      }
-
-      if (CRM_Utils_System::isNull($fields['contribution_type_id'])) {
-        $errors['contribution_type_id'] = ts('Contribution Type (Membership Fees) is a required field.');
       }
     }
     //checks the given price set doesnot start with digit
@@ -108,18 +104,15 @@ class CRM_Price_Form_Set extends CRM_Core_Form {
     // gives the ascii value
     $asciiValue = ord($title{0});
     if ($asciiValue >= 48 && $asciiValue <= 57) {
-      $errors['title'] = ts("Set's Name should not start with digit");
+      $errors['title'] = ts("Name cannot not start with a digit");
     }
     return empty($errors) ? TRUE : $errors;
   }
 
   /**
-   * Function to actually build the form
-   *
-   * @param null
+   * Build the form object.
    *
    * @return void
-   * @access public
    */
   public function buildQuickForm() {
     $this->applyFilter('__ALL__', 'trim');
@@ -127,63 +120,62 @@ class CRM_Price_Form_Set extends CRM_Core_Form {
     $this->assign('sid', $this->_sid);
 
     // title
-    $this->add('text', 'title', ts('Set Name'), CRM_Core_DAO::getAttribute('CRM_Price_DAO_Set', 'title'), TRUE);
+    $this->add('text', 'title', ts('Set Name'), CRM_Core_DAO::getAttribute('CRM_Price_DAO_PriceSet', 'title'), TRUE);
     $this->addRule('title', ts('Name already exists in Database.'),
-      'objectExists', array('CRM_Price_DAO_Set', $this->_sid, 'title')
+      'objectExists', array('CRM_Price_DAO_PriceSet', $this->_sid, 'title')
     );
 
     $priceSetUsedTables = $extends = array();
     if ($this->_action == CRM_Core_Action::UPDATE && $this->_sid) {
-      $priceSetUsedTables = CRM_Price_BAO_Set::getUsedBy($this->_sid, TRUE);
+      $priceSetUsedTables = CRM_Price_BAO_PriceSet::getUsedBy($this->_sid, 'table');
     }
 
-    $config           = CRM_Core_Config::singleton();
+    $config = CRM_Core_Config::singleton();
     $showContribution = FALSE;
-    $components       = array('CiviEvent' => array('title' => ts('Event'),
-        'extend' => CRM_Core_Component::getComponentID('CiviEvent'),
-        'tables' => array(
-          'civicrm_event',
-          'civicrm_participant',
-        ),
-      ),
-      'CiviContribute' => array('title' => ts('Contribution'),
-        'extend' => CRM_Core_Component::getComponentID('CiviContribute'),
-        'tables' => array(
-          'civicrm_contribution',
-          'civicrm_contribution_page',
-        ),
-      ),
-      'CiviMember' => array('title' => ts('Membership'),
-        'extend' => CRM_Core_Component::getComponentID('CiviMember'),
-        'tables' => array(
-          'civicrm_membership',
-          'civicrm_contribution_page',
-        ),
-      ),
-    );
-    foreach ($components as $compName => $compValues) {
-      // take only enabled components.
-      if (!in_array($compName, $config->enableComponents)) {
-        continue;
-      }
-      $option = $this->createElement('checkbox', $compValues['extend'], NULL, $compValues['title']);
+    $enabledComponents = CRM_Core_Component::getEnabledComponents();
 
-      //if price set is used than freeze it.
-      if (!empty($priceSetUsedTables)) {
-        foreach ($compValues['tables'] as $table) {
-
-          if (in_array($table, $priceSetUsedTables)) {
-            $option->freeze();
-            if ($compValues['title'] == 'Membership') {
-              $showContribution = TRUE;
+    foreach ($enabledComponents as $name => $compObj) {
+      switch ($name) {
+        case 'CiviEvent':
+          $option = $this->createElement('checkbox', $compObj->componentID, NULL, ts('Event'));
+          if (!empty($priceSetUsedTables)) {
+            foreach (array('civicrm_event', 'civicrm_participant') as $table) {
+              if (in_array($table, $priceSetUsedTables)) {
+                $option->freeze();
+                break;
+              }
             }
-            break;
           }
-        }
+          $extends[] = $option;
+          break;
+
+        case 'CiviContribute':
+          $option = $this->createElement('checkbox', $compObj->componentID, NULL, ts('Contribution'));
+          if (!empty($priceSetUsedTables)) {
+            foreach (array('civicrm_contribution', 'civicrm_contribution_page') as $table) {
+              if (in_array($table, $priceSetUsedTables)) {
+                $option->freeze();
+                break;
+              }
+            }
+          }
+          $extends[] = $option;
+          break;
+
+        case 'CiviMember':
+          $option = $this->createElement('checkbox', $compObj->componentID, NULL, ts('Membership'));
+          if (!empty($priceSetUsedTables)) {
+            foreach (array('civicrm_membership', 'civicrm_contribution_page') as $table) {
+              if (in_array($table, $priceSetUsedTables)) {
+                $option->freeze();
+                break;
+              }
+            }
+          }
+          $extends[] = $option;
+          break;
       }
-      $extends[] = $option;
     }
-    $this->assign('showContribution', $showContribution);
 
     if (CRM_Utils_System::isNull($extends)) {
       $this->assign('extends', FALSE);
@@ -195,17 +187,21 @@ class CRM_Price_Form_Set extends CRM_Core_Form {
     $this->addGroup($extends, 'extends', ts('Used For'), '&nbsp;', TRUE);
 
     $this->addRule('extends', ts('%1 is a required field.', array(1 => ts('Used For'))), 'required');
-    $this->add('select', 'contribution_type_id',
-      ts('Contribution Type (Membership Fees)'),
-      array('' => ts('- select -')) + CRM_Contribute_PseudoConstant::contributionType()
+
+    // financial type
+    $financialType = CRM_Financial_BAO_FinancialType::getIncomeFinancialType();
+
+    $this->add('select', 'financial_type_id',
+      ts('Default Financial Type'),
+      array('' => ts('- select -')) + $financialType, 'required'
     );
 
     // help text
     $this->add('textarea', 'help_pre', ts('Pre-form Help'),
-      CRM_Core_DAO::getAttribute('CRM_Price_DAO_Set', 'help_pre')
+      CRM_Core_DAO::getAttribute('CRM_Price_DAO_PriceSet', 'help_pre')
     );
     $this->add('textarea', 'help_post', ts('Post-form Help'),
-      CRM_Core_DAO::getAttribute('CRM_Price_DAO_Set', 'help_post')
+      CRM_Core_DAO::getAttribute('CRM_Price_DAO_PriceSet', 'help_post')
     );
 
     // is this set active ?
@@ -235,66 +231,77 @@ class CRM_Price_Form_Set extends CRM_Core_Form {
   }
 
   /**
-   * This function sets the default values for the form. Note that in edit/view mode
+   * Set default values for the form. Note that in edit/view mode
    * the default values are retrieved from the database
    *
-   * @param null
-   *
-   * @return array   array of default values
-   * @access public
+   * @return array
+   *   array of default values
    */
-  function setDefaultValues() {
+  public function setDefaultValues() {
     $defaults = array('is_active' => TRUE);
     if ($this->_sid) {
       $params = array('id' => $this->_sid);
-      CRM_Price_BAO_Set::retrieve($params, $defaults);
+      CRM_Price_BAO_PriceSet::retrieve($params, $defaults);
       $extends = explode(CRM_Core_DAO::VALUE_SEPARATOR, $defaults['extends']);
       unset($defaults['extends']);
-      foreach ($extends as $compId) $defaults['extends'][$compId] = 1;
+      foreach ($extends as $compId) {
+        $defaults['extends'][$compId] = 1;
+      }
     }
 
     return $defaults;
   }
 
   /**
-   * Process the form
-   *
-   * @param null
+   * Process the form.
    *
    * @return void
-   * @access public
    */
   public function postProcess() {
     // get the submitted form values.
     $params = $this->controller->exportValues('Set');
-    $nameLength = CRM_Core_DAO::getAttribute('CRM_Price_DAO_Set', 'name');
-    $params['name'] = CRM_Utils_String::titleToVar($params['title'], CRM_Utils_Array::value('maxlength', $nameLength));
+    $nameLength = CRM_Core_DAO::getAttribute('CRM_Price_DAO_PriceSet', 'name');
     $params['is_active'] = CRM_Utils_Array::value('is_active', $params, FALSE);
-    $params['contribution_type_id'] = CRM_Utils_Array::value('contribution_type_id', $params, FALSE);
+    $params['financial_type_id'] = CRM_Utils_Array::value('financial_type_id', $params, FALSE);
 
     $compIds = array();
     $extends = CRM_Utils_Array::value('extends', $params);
     if (is_array($extends)) {
-      foreach ($extends as $compId => $selected) if ($selected) {   $compIds[] = $compId; }
+      foreach ($extends as $compId => $selected) {
+        if ($selected) {
+          $compIds[] = $compId;
+        }
+      }
     }
     $params['extends'] = implode(CRM_Core_DAO::VALUE_SEPARATOR, $compIds);
 
     if ($this->_action & CRM_Core_Action::UPDATE) {
       $params['id'] = $this->_sid;
     }
+    else {
+      $params['name'] = CRM_Utils_String::titleToVar($params['title'],
+        CRM_Utils_Array::value('maxlength', $nameLength));
+    }
 
-    $set = CRM_Price_BAO_Set::create($params);
+    $set = CRM_Price_BAO_PriceSet::create($params);
     if ($this->_action & CRM_Core_Action::UPDATE) {
-      CRM_Core_Session::setStatus(ts('The Set \'%1\' has been saved.', array(1 => $set->title)));
+      CRM_Core_Session::setStatus(ts('The Set \'%1\' has been saved.', array(1 => $set->title)), ts('Saved'), 'success');
     }
     else {
-      $url = CRM_Utils_System::url('civicrm/admin/price/field', 'reset=1&action=add&sid=' . $set->id);
-      CRM_Core_Session::setStatus(ts('Your Set \'%1\' has been added. You can add fields to this set now.',
-          array(1 => $set->title)
+      // Jump directly to adding a field if popups are disabled
+      $action = CRM_Core_Resources::singleton()->ajaxPopupsEnabled ? 'browse' : 'add';
+      $url = CRM_Utils_System::url('civicrm/admin/price/field', array(
+          'reset' => 1,
+          'action' => $action,
+          'sid' => $set->id,
+          'new' => 1,
         ));
+      CRM_Core_Session::setStatus(ts("Your Set '%1' has been added. You can add fields to this set now.",
+        array(1 => $set->title)
+      ), ts('Saved'), 'success');
       $session = CRM_Core_Session::singleton();
       $session->replaceUserContext($url);
     }
   }
-}
 
+}

@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,13 +28,13 @@
 <div class="crm-submit-buttons">
     {include file="CRM/common/formButtons.tpl" location="top"}
 </div>
-<div class="messages status">
+<div class="messages status no-popup">
    <div class="icon inform-icon"></div>
    <div>
        {if $isTemplate}
-         {ts}Warning: Deleting this event template will also delete associated Event Registration Page and Event Fee configurations.{/ts} {ts}This operation cannot be undone.{/ts} {ts}Do you want to continue?{/ts}
+         {ts}Warning: Deleting this event template will also delete associated Event Registration Page and Event Fee configurations.{/ts} {ts}This action cannot be undone.{/ts} {ts}Do you want to continue?{/ts}
        {else}
-            {ts}Warning: Deleting this event will also delete associated Event Registration Page and Event Fee configurations.{/ts} {ts}This operation cannot be undone.{/ts} {ts}Do you want to continue?{/ts}
+            {ts}Warning: Deleting this event will also delete associated Event Registration Page and Event Fee configurations.{/ts} {ts}This action cannot be undone.{/ts} {ts}Do you want to continue?{/ts}
        {/if}
    </div>
 </div>

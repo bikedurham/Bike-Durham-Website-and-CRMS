@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -37,42 +37,45 @@
  * WordPress specific stuff goes here
  */
 class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
-  function __construct() {
+  /**
+   */
+  public function __construct() {
+    /**
+     * deprecated property to check if this is a drupal install. The correct method is to have functions on the UF classes for all UF specific
+     * functions and leave the codebase oblivious to the type of CMS
+     * @deprecated
+     * @var bool
+     */
     $this->is_drupal = FALSE;
+    $this->is_wordpress = TRUE;
   }
 
   /**
-   * sets the title of the page
-   *
-   * @param string $title
-   * @paqram string $pageTitle
-   *
-   * @return void
-   * @access public
+   * @inheritDoc
    */
-  function setTitle($title, $pageTitle = NULL) {
+  public function setTitle($title, $pageTitle = NULL) {
     if (!$pageTitle) {
       $pageTitle = $title;
     }
-    if (civicrm_wp_in_civicrm()) {
-      global $civicrm_wp_title;
-      $civicrm_wp_title = $pageTitle;
-      $template = CRM_Core_Smarty::singleton();
-      $template->assign('pageTitle', $pageTitle);
+
+    // FIXME: Why is this global?
+    global $civicrm_wp_title;
+    $civicrm_wp_title = $title;
+
+    // yes, set page title, depending on context
+    $context = civi_wp()->civicrm_context_get();
+    switch ($context) {
+      case 'admin':
+      case 'shortcode':
+        $template = CRM_Core_Smarty::singleton();
+        $template->assign('pageTitle', $pageTitle);
     }
   }
 
   /**
-   * Append an additional breadcrumb tag to the existing breadcrumb
-   *
-   * @param string $title
-   * @param string $url
-   *
-   * @return void
-   * @access public
-   * @static
+   * @inheritDoc
    */
-  function appendBreadCrumb($breadCrumbs) {
+  public function appendBreadCrumb($breadCrumbs) {
     $breadCrumb = wp_get_breadcrumb();
 
     if (is_array($breadCrumbs)) {
@@ -98,27 +101,17 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
   }
 
   /**
-   * Reset an additional breadcrumb tag to the existing breadcrumb
-   *
-   * @return void
-   * @access public
-   * @static
+   * @inheritDoc
    */
-  function resetBreadCrumb() {
+  public function resetBreadCrumb() {
     $bc = array();
     wp_set_breadcrumb($bc);
   }
 
   /**
-   * Append a string to the head of the html file
-   *
-   * @param string $head the new string to be appended
-   *
-   * @return void
-   * @access public
-   * @static
+   * @inheritDoc
    */
-  function addHTMLHead($head) {
+  public function addHTMLHead($head) {
     static $registered = FALSE;
     if (!$registered) {
       // front-end view
@@ -131,7 +124,10 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
     ));
   }
 
-  static function _showHTMLHead() {
+  /**
+   * WP action callback.
+   */
+  public static function _showHTMLHead() {
     $region = CRM_Core_Region::instance('wp_head', FALSE);
     if ($region) {
       echo $region->render('');
@@ -139,91 +135,97 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
   }
 
   /**
-   * rewrite various system urls to https
-   *
-   * @param null
-   *
-   * @return void
-   * @access public
-   * @static
+   * @inheritDoc
    */
-  function mapConfigToSSL() {
+  public function mapConfigToSSL() {
     global $base_url;
     $base_url = str_replace('http://', 'https://', $base_url);
   }
 
   /**
-   * figure out the post url for the form
-   *
-   * @param mix $action the default action if one is pre-specified
-   *
-   * @return string the url to post the form
-   * @access public
-   * @static
+   * @inheritDoc
    */
-  function postURL($action) {
-    if (!empty($action)) {
-      return $action;
-    }
-
-    return $this->url($_GET['q'], NULL, TRUE, NULL, FALSE);
-  }
-
-  /**
-   * Generate an internal CiviCRM URL (copied from DRUPAL/includes/common.inc#url)
-   *
-   * @param $path     string   The path being linked to, such as "civicrm/add"
-   * @param $query    string   A query string to append to the link.
-   * @param $absolute boolean  Whether to force the output to be an absolute link (beginning with http:).
-   *                           Useful for links that will be displayed outside the site, such as in an
-   *                           RSS feed.
-   * @param $fragment string   A fragment identifier (named anchor) to append to the link.
-   * @param $htmlize  boolean  whether to convert to html eqivalant
-   * @param $frontend boolean  a gross joomla hack
-   *
-   * @return string            an HTML string containing a link to the given path.
-   * @access public
-   *
-   */
-  function url(
+  public function url(
     $path = NULL,
     $query = NULL,
     $absolute = FALSE,
     $fragment = NULL,
     $htmlize = TRUE,
-    $frontend = FALSE
+    $frontend = FALSE,
+    $forceBackend = FALSE
   ) {
-    $config    = CRM_Core_Config::singleton();
-    $script    = '';
+    $config = CRM_Core_Config::singleton();
+    $script = '';
     $separator = $htmlize ? '&amp;' : '&';
-    $pageID    = '';
+    $wpPageParam = '';
+    $fragment = isset($fragment) ? ('#' . $fragment) : '';
 
     $path = CRM_Utils_String::stripPathChars($path);
 
-    $permlinkStructure = get_option('permalink_structure');
+    //this means wp function we are trying to use is not available,
+    //so load bootStrap
+    if (!function_exists('get_option')) {
+      $this->loadBootStrap(); // FIXME: Why bootstrap in url()? Generally want to define 1-2 strategic places to put bootstrap
+    }
     if ($config->userFrameworkFrontend) {
-      if ($permlinkStructure != '') {
+      if (get_option('permalink_structure') != '') {
         global $post;
         $script = get_permalink($post->ID);
       }
 
-      // when shortcode is inlcuded in page
+      // when shortcode is included in page
       // also make sure we have valid query object
       global $wp_query;
-      if ( method_exists( $wp_query, 'get' ) ) {
+      if (method_exists($wp_query, 'get')) {
         if (get_query_var('page_id')) {
-          $pageID = "{$separator}page_id=" . get_query_var('page_id');
+          $wpPageParam = "page_id=" . get_query_var('page_id');
         }
         elseif (get_query_var('p')) {
           // when shortcode is inserted in post
-          $pageID = "{$separator}p=" . get_query_var('p');
+          $wpPageParam = "p=" . get_query_var('p');
         }
       }
     }
 
-    if (isset($fragment)) {
-      $fragment = '#' . $fragment;
+    $base = $this->getBaseUrl($absolute, $frontend, $forceBackend);
+
+    if (!isset($path) && !isset($query)) {
+      // FIXME: This short-circuited codepath is the same as the general one below, except
+      // in that it ignores "permlink_structure" /  $wpPageParam / $script . I don't know
+      // why it's different (and I can only find two obvious use-cases for this codepath,
+      // of which at least one looks gratuitous). A more ambitious person would simply remove
+      // this code.
+      return $base . $fragment;
     }
+
+    if (!$forceBackend && get_option('permalink_structure') != '' && ($wpPageParam || $script != '')) {
+      $base = $script;
+    }
+
+    $queryParts = array();
+    if (isset($path)) {
+      $queryParts[] = 'page=CiviCRM';
+      $queryParts[] = "q={$path}";
+    }
+    if ($wpPageParam) {
+      $queryParts[] = $wpPageParam;
+    }
+    if (isset($query)) {
+      $queryParts[] = $query;
+    }
+
+    return $base . '?' . implode($separator, $queryParts) . $fragment;
+  }
+
+  /**
+   * @param $absolute
+   * @param $frontend
+   * @param $forceBackend
+   *
+   * @return mixed|null|string
+   */
+  private function getBaseUrl($absolute, $frontend, $forceBackend) {
+    $config = CRM_Core_Config::singleton();
 
     if (!isset($config->useFrameworkRelativeBase)) {
       $base = parse_url($config->userFrameworkBaseURL);
@@ -232,63 +234,29 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
 
     $base = $absolute ? $config->userFrameworkBaseURL : $config->useFrameworkRelativeBase;
 
-    if (is_admin() && !$frontend) {
+    if ((is_admin() && !$frontend) || $forceBackend) {
       $base .= 'wp-admin/admin.php';
+      return $base;
     }
     elseif (defined('CIVICRM_UF_WP_BASEPAGE')) {
       $base .= CIVICRM_UF_WP_BASEPAGE;
+      return $base;
     }
-
-    if (isset($path)) {
-      if (isset($query)) {
-        if ($permlinkStructure != '' && ($pageID || $script != '')) {
-          return $script . '?page=CiviCRM&q=' . $path . $pageID . $separator . $query . $fragment;
-        }
-        else {
-          return $base . '?page=CiviCRM&q=' . $path . $pageID . $separator . $query . $fragment;
-        }
-      }
-      else {
-        if ($permlinkStructure != '' && ($pageID || $script != '')) {
-          return $script . '?page=CiviCRM&q=' . $path . $pageID . $fragment;
-        }
-        else {
-          return $base . '?page=CiviCRM&q=' . $path . $pageID . $fragment;
-        }
-      }
+    elseif (isset($config->wpBasePage)) {
+      $base .= $config->wpBasePage;
+      return $base;
     }
-    else {
-      if (isset($query)) {
-        if ($permlinkStructure != '' && ($pageID || $script != '')) {
-          return $script . '?' . $query . $pageID . $fragment;
-        }
-        else {
-          return $base . $script . '?' . $query . $pageID . $fragment;
-        }
-      }
-      else {
-        return $base . $fragment;
-      }
-    }
+    return $base;
   }
 
   /**
-   * Authenticate the user against the wordpress db
-   *
-   * @param string $name     the user name
-   * @param string $password the password for the above user name
-   *
-   * @return mixed false if no auth
-   *               array(
-      contactID, ufID, unique string ) if success
-   * @access public
-   * @static
+   * @inheritDoc
    */
-  function authenticate($name, $password, $loadCMSBootstrap = FALSE, $realPath = NULL) {
+  public function authenticate($name, $password, $loadCMSBootstrap = FALSE, $realPath = NULL) {
     $config = CRM_Core_Config::singleton();
 
     if ($loadCMSBootstrap) {
-      self::loadBootstrap($name, $password);
+      $config->userSystem->loadBootStrap($name, $password);
     }
 
     $user = wp_authenticate($name, $password);
@@ -296,7 +264,7 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
       return FALSE;
     }
 
-    // need to change this to make sure we matched only one row
+    // TODO: need to change this to make sure we matched only one row
 
     CRM_Core_BAO_UFMatch::synchronizeUFMatch($user->data, $user->data->ID, $user->data->user_email, 'WordPress');
     $contactID = CRM_Core_BAO_UFMatch::getContactId($user->data->ID);
@@ -307,25 +275,29 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
   }
 
   /**
-   * Set a message in the UF to display to a user
-   *
-   * @param string $message the message to set
-   *
-   * @access public
-   * @static
+   * FIXME: Do something
    */
-  function setMessage($message) {
+  public function setMessage($message) {
   }
 
-  function loadUser( $user ) {
-    return true;
+  /**
+   * FIXME: Do something
+   */
+  public function loadUser($user) {
+    return TRUE;
   }
 
-  function permissionDenied() {
-    CRM_Core_Error::fatal(ts('You do not have permission to access this page'));
+  /**
+   * FIXME: Use CMS-native approach
+   */
+  public function permissionDenied() {
+    CRM_Core_Error::fatal(ts('You do not have permission to access this page.'));
   }
 
-  function logout() {
+  /**
+   * @inheritDoc
+   */
+  public function logout() {
     // destroy session
     if (session_id()) {
       session_destroy();
@@ -334,62 +306,138 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
     wp_redirect(wp_login_url());
   }
 
-  function updateCategories() {}
-
   /**
-   * Get the locale set in the hosting CMS
-   *
-   * @return string  with the locale or null for none
+   * @inheritDoc
    */
-  function getUFLocale() {
-    return NULL;
+  public function getUFLocale() {
+    // WPML plugin
+    if (defined('ICL_LANGUAGE_CODE')) {
+      $language = ICL_LANGUAGE_CODE;
+    }
+
+    // TODO: set language variable for others WordPress plugin
+
+    if (isset($language)) {
+      return CRM_Core_I18n_PseudoConstant::longForShort(substr($language, 0, 2));
+    }
+    else {
+      return NULL;
+    }
   }
 
   /**
-   * load wordpress bootstrap
+   * Load wordpress bootstrap.
    *
-   * @param $name string  optional username for login
-   * @param $pass string  optional password for login
+   * @param string $name
+   *   optional username for login.
+   * @param string $pass
+   *   optional password for login.
+   *
+   * @return bool
    */
-  function loadBootStrap($name = NULL, $pass = NULL) {
+  public function loadBootStrap($name = NULL, $pass = NULL) {
     global $wp, $wp_rewrite, $wp_the_query, $wp_query, $wpdb;
 
     $cmsRootPath = $this->cmsRootPath();
     if (!$cmsRootPath) {
       CRM_Core_Error::fatal("Could not find the install directory for WordPress");
     }
-
-    require_once ($cmsRootPath . DIRECTORY_SEPARATOR . 'wp-load.php');
-    return true;
+    $path = CRM_Core_BAO_Setting::getItem('CiviCRM Preferences', 'wpLoadPhp');
+    if (!empty($path)) {
+      require_once $path;
+    }
+    elseif (file_exists($cmsRootPath . DIRECTORY_SEPARATOR . 'wp-load.php')) {
+      require_once $cmsRootPath . DIRECTORY_SEPARATOR . 'wp-load.php';
+    }
+    else {
+      CRM_Core_Error::fatal("Could not find the bootstrap file for WordPress");
+    }
+    $wpUserTimezone = get_option('timezone_string');
+    if ($wpUserTimezone) {
+      date_default_timezone_set($wpUserTimezone);
+      CRM_Core_Config::singleton()->userSystem->setMySQLTimeZone();
+    }
+    require_once $cmsRootPath . DIRECTORY_SEPARATOR . 'wp-includes/pluggable.php';
+    $uid = CRM_Utils_Array::value('uid', $name);
+    if (!$uid) {
+      $name = $name ? $name : trim(CRM_Utils_Array::value('name', $_REQUEST));
+      $pass = $pass ? $pass : trim(CRM_Utils_Array::value('pass', $_REQUEST));
+      if ($name) {
+        $uid = wp_authenticate($name, $pass);
+        if (!$uid) {
+          if ($throwError) {
+            echo '<br />Sorry, unrecognized username or password.';
+            exit();
+          }
+          return FALSE;
+        }
+      }
+    }
+    if ($uid) {
+      $account = wp_set_current_user($uid);
+      if ($account && $account->data->ID) {
+        global $user;
+        $user = $account;
+        return TRUE;
+      }
+    }
+    return TRUE;
   }
 
-  function cmsRootPath() {
-    $cmsRoot = $valid = NULL;
-    $pathVars = explode('/', str_replace('\\', '/', $_SERVER['SCRIPT_FILENAME']));
-
-    //might be windows installation.
-    $firstVar = array_shift($pathVars);
-    if ($firstVar) {
-      $cmsRoot = $firstVar;
+  /**
+   * @param $dir
+   *
+   * @return bool
+   */
+  public function validInstallDir($dir) {
+    $includePath = "$dir/wp-includes";
+    if (file_exists("$includePath/version.php")) {
+      return TRUE;
     }
+    return FALSE;
+  }
 
-    //start w/ csm dir search.
-    foreach ($pathVars as $var) {
-      $cmsRoot .= "/$var";
-      $cmsIncludePath = "$cmsRoot/wp-includes";
-      //stop as we found bootstrap.
-      if (@opendir($cmsIncludePath) &&
-        file_exists("$cmsIncludePath/version.php")
-      ) {
+  /**
+   * Determine the location of the CMS root.
+   *
+   * @return string|NULL
+   *   local file system path to CMS root, or NULL if it cannot be determined
+   */
+  public function cmsRootPath() {
+    $cmsRoot = $valid = NULL;
+    if (defined('CIVICRM_CMSDIR')) {
+      if ($this->validInstallDir(CIVICRM_CMSDIR)) {
+        $cmsRoot = CIVICRM_CMSDIR;
         $valid = TRUE;
-        break;
+      }
+    }
+    else {
+      $pathVars = explode('/', str_replace('\\', '/', $_SERVER['SCRIPT_FILENAME']));
+
+      //might be windows installation.
+      $firstVar = array_shift($pathVars);
+      if ($firstVar) {
+        $cmsRoot = $firstVar;
+      }
+
+      //start w/ csm dir search.
+      foreach ($pathVars as $var) {
+        $cmsRoot .= "/$var";
+        if ($this->validInstallDir($cmsRoot)) {
+          //stop as we found bootstrap.
+          $valid = TRUE;
+          break;
+        }
       }
     }
 
     return ($valid) ? $cmsRoot : NULL;
   }
 
-  function createUser(&$params, $mail) {
+  /**
+   * @inheritDoc
+   */
+  public function createUser(&$params, $mail) {
     $user_data = array(
       'ID' => '',
       'user_pass' => $params['cms_pass'],
@@ -422,33 +470,35 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
     return $uid;
   }
 
-  /*
-   * Change user name in host CMS
-   *
-   * @param integer $ufID User ID in CMS
-   * @param string $ufName User name
+  /**
+   * @inheritDoc
    */
-  function updateCMSName($ufID, $ufName) {
+  public function updateCMSName($ufID, $ufName) {
     // CRM-10620
     if (function_exists('wp_update_user')) {
-      $ufID   = CRM_Utils_Type::escape($ufID, 'Integer');
+      $ufID = CRM_Utils_Type::escape($ufID, 'Integer');
       $ufName = CRM_Utils_Type::escape($ufName, 'String');
 
-      $values = array ('ID' => $ufID, 'user_email' => $ufName);
-      if( $ufID ) {
-        wp_update_user( $values ) ;
+      $values = array('ID' => $ufID, 'user_email' => $ufName);
+      if ($ufID) {
+        wp_update_user($values);
       }
     }
   }
 
-  function checkUserNameEmailExists(&$params, &$errors, $emailName = 'email') {
+  /**
+   * @param array $params
+   * @param $errors
+   * @param string $emailName
+   */
+  public function checkUserNameEmailExists(&$params, &$errors, $emailName = 'email') {
     $config = CRM_Core_Config::singleton();
 
-    $dao   = new CRM_Core_DAO();
-    $name  = $dao->escape(CRM_Utils_Array::value('name', $params));
+    $dao = new CRM_Core_DAO();
+    $name = $dao->escape(CRM_Utils_Array::value('name', $params));
     $email = $dao->escape(CRM_Utils_Array::value('mail', $params));
 
-    if (CRM_Utils_Array::value('name', $params)) {
+    if (!empty($params['name'])) {
       if (!validate_username($params['name'])) {
         $errors['cms_name'] = ts("Your username contains invalid characters");
       }
@@ -457,22 +507,21 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
       }
     }
 
-    if (CRM_Utils_Array::value('mail', $params)) {
+    if (!empty($params['mail'])) {
       if (!is_email($params['mail'])) {
         $errors[$emailName] = "Your email is invaid";
       }
       elseif (email_exists($params['mail'])) {
-        $errors[$emailName] = ts('This email %1 is already registered. Please select another email.',
-          array(1 => $params['mail'])
+        $resetUrl = $config->userFrameworkBaseURL . 'wp-login.php?action=lostpassword';
+        $errors[$emailName] = ts('The email address %1 is already registered. <a href="%2">Have you forgotten your password?</a>',
+          array(1 => $params['mail'], 2 => $resetUrl)
         );
       }
     }
   }
 
   /**
-   * check is user logged in.
-   *
-   * @return boolean true/false.
+   * @inheritDoc
    */
   public function isUserLoggedIn() {
     $isloggedIn = FALSE;
@@ -484,19 +533,105 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
   }
 
   /**
-   * Get currently logged in user uf id.
-   *
-   * @return int $userID logged in user uf id.
+   * @return mixed
    */
-  public function getLoggedInUfID() {
-    $ufID = NULL;
+  public function getLoggedInUserObject() {
     if (function_exists('is_user_logged_in') &&
       is_user_logged_in()
     ) {
       global $current_user;
-      $ufID = $current_user->ID;
     }
-    return $ufID;
+    return $current_user;
   }
-}
 
+  /**
+   * @inheritDoc
+   */
+  public function getLoggedInUfID() {
+    $ufID = NULL;
+    $current_user = $this->getLoggedInUserObject();
+    return isset($current_user->ID) ? $current_user->ID : NULL;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getLoggedInUniqueIdentifier() {
+    $user = $this->getLoggedInUserObject();
+    return $this->getUniqueIdentifierFromUserObject($user);
+  }
+
+  /**
+   * Get User ID from UserFramework system (Joomla)
+   * @param object $user
+   *   Object as described by the CMS.
+   *
+   * @return int|null
+   */
+  public function getUserIDFromUserObject($user) {
+    return !empty($user->ID) ? $user->ID : NULL;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getUniqueIdentifierFromUserObject($user) {
+    return empty($user->user_email) ? NULL : $user->user_email;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getLoginURL($destination = '') {
+    $config = CRM_Core_Config::singleton();
+    $loginURL = $config->userFrameworkBaseURL;
+    $loginURL .= 'wp-login.php';
+    return $loginURL;
+  }
+
+  /**
+   * FIXME: Do something
+   */
+  public function getLoginDestination(&$form) {
+    return NULL;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getVersion() {
+    if (function_exists('get_bloginfo')) {
+      return get_bloginfo('version', 'display');
+    }
+    else {
+      return 'Unknown';
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getTimeZoneString() {
+    return get_option('timezone_string');
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getUserRecordUrl($contactID) {
+    $uid = CRM_Core_BAO_UFMatch::getUFId($contactID);
+    if (CRM_Core_Session::singleton()
+        ->get('userID') == $contactID || CRM_Core_Permission::checkAnyPerm(array('cms:administer users'))
+    ) {
+      return CRM_Core_Config::singleton()->userFrameworkBaseURL . "wp-admin/user-edit.php?user_id=" . $uid;
+    }
+  }
+
+  /**
+   * Append WP js to coreResourcesList.
+   */
+  public function appendCoreResources(&$list) {
+    $list[] = 'js/crm.wordpress.js';
+  }
+
+}

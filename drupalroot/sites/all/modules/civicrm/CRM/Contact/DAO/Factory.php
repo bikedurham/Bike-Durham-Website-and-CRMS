@@ -1,6 +1,8 @@
 <?php
-// $Id$
 
+/**
+ * Class CRM_Contact_DAO_Factory
+ */
 class CRM_Contact_DAO_Factory {
 
   static $_classes = array(
@@ -24,21 +26,12 @@ class CRM_Contact_DAO_Factory {
 
   static $_suffix = '.php';
 
-  static $_preCall = array(
-    'singleton' => '',
-    'business' => 'new',
-    'data' => 'new',
-  );
-
-  static $_extCall = array(
-    'singleton' => '::singleton',
-    'business' => '',
-    'data' => '',
-  );
-
-
-  static
-  function &create($className) {
+  /**
+   * @param string $className
+   *
+   * @return mixed
+   */
+  static function &create($className) {
     $type = CRM_Utils_Array::value($className, self::$_classes);
     if (!$type) {
       return CRM_Core_DAO_Factory::create($className);
@@ -47,15 +40,16 @@ class CRM_Contact_DAO_Factory {
     $file = self::$_prefix[$type] . $className;
     $class = str_replace('/', '_', $file);
 
-    require_once ($file . self::$_suffix);
+    require_once($file . self::$_suffix);
 
-    $newObj = eval(sprintf("return %s %s%s();",
-        self::$_preCall[$type],
-        $class,
-        self::$_extCall[$type]
-      ));
+    if ($type == 'singleton') {
+      $newObj = $class::singleton();
+    }
+    else {
+      // this is either 'business' or 'data'
+      $newObj = new $class;
+    }
 
     return $newObj;
   }
 }
-

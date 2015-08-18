@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,17 +23,8 @@
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
 *}
-{literal}
-<script type="text/javascript">
-    cj(function() {
-        cj().crmaccordions();
-    });
-</script>
-{/literal}
-
-<div class="crm-accordion-wrapper crm-accordion_title-accordion crm-accordion-closed">
+<div class="crm-accordion-wrapper collapsed">
  <div class="crm-accordion-header">
-    <div class="icon crm-accordion-pointer"></div>
     Advanced Settings
   </div><!-- /.crm-accordion-header -->
   <div class="crm-accordion-body">

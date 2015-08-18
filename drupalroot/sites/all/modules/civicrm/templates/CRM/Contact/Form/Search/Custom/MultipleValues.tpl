@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,9 +28,9 @@
 {assign var="hideBlock" value="'searchForm_show','searchForm_hide'"}
 
 <div class="crm-form-block crm-search-form-block">
-	<div id="searchForm">
-		{include file="CRM/Contact/Form/Search/Custom/MultipleValuesCriteria.tpl"}
-	</div>
+  <div id="searchForm">
+    {include file="CRM/Contact/Form/Search/Custom/MultipleValuesCriteria.tpl"}
+  </div>
 </div>
 
 {if $rowsEmpty}
@@ -45,9 +45,9 @@
     {* Search request has returned 1 or more matching rows. Display results and collapse the search criteria fieldset. *}
     {assign var="showBlock" value="'searchForm_show'"}
     {assign var="hideBlock" value="'searchForm'"}
-    
+
     <fieldset>
-    
+
         {* This section handles form elements for action task select and submit *}
         {include file="CRM/Contact/Form/Search/ResultTasks.tpl"}
 
@@ -55,11 +55,11 @@
         <p>
 
         {include file="CRM/common/pager.tpl" location="top"}
-        
+
         {include file="CRM/common/pagerAToZ.tpl"}
-        
+
         {strip}
-        <table class="selector" summary="{ts}Search results listings.{/ts}">
+        <table class="selector row-highlight" summary="{ts}Search results listings.{/ts}">
             <thead class="sticky">
                 <th scope="col" title="Select All Rows">{$form.toggleSelect.html}</th>
                 {foreach from=$columnHeaders item=header}
@@ -83,7 +83,7 @@
                     {foreach from=$columnHeaders item=header}
                         {assign var=fName value=$header.sort}
                         {if $fName eq 'sort_name'}
-                            <td><a href="{crmURL p='civicrm/contact/view' q="reset=1&cid=`$row.contact_id`"}">{$row.sort_name}</a></td>
+                            <td><a href="{crmURL p='civicrm/contact/view' q="reset=1&cid=`$row.contact_id`&key=`$qfKey`"}">{$row.sort_name}</a></td>
                         {else}
                             <td>{$row.$fName}</td>
                         {/if}
@@ -93,12 +93,6 @@
             {/foreach}
         </table>
         {/strip}
-
-        <script type="text/javascript">
-            {* this function is called to change the color of selected row(s) *}
-            var fname = "{$form.formName}";	
-            on_load_init_checkboxes(fname);
-        </script>
 
         {include file="CRM/common/pager.tpl" location="bottom"}
 

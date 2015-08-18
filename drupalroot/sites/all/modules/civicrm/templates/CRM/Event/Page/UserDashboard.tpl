@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -55,7 +55,7 @@
                        <td class="crm-participant-participant_status">{$row.participant_status}</td>
                        <td class="crm-participant-showConfirmUrl">
                             {if $row.showConfirmUrl}
-                                <a href="{crmURL p='civicrm/event/confirm' q="reset=1&participantId=`$row.participant_id`"}">{ts}Confirm Registration{/ts}</a>                            
+                                <a href="{crmURL p='civicrm/event/confirm' q="reset=1&participantId=`$row.participant_id`"}">{ts}Confirm Registration{/ts}</a>
                             {/if}
                         </td>
                     </tr>
@@ -63,10 +63,10 @@
             </table>
         {/strip}
     {else}
-        <div class="messages status">
+        <div class="messages status no-popup">
            <div class="icon inform-icon"></div>&nbsp;
                  {ts}You are not registered for any current or upcoming Events.{/ts}
-               
+
         </div>
     {/if}
 </div>

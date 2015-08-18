@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -37,7 +37,10 @@
  * Page for displaying list of site configuration tasks with links to each setting form
  */
 class CRM_Admin_Page_ConfigTaskList extends CRM_Core_Page {
-  function run() {
+  /**
+   * @return string
+   */
+  public function run() {
 
     CRM_Utils_System::setTitle(ts("Configuration Checklist"));
     $this->assign('recentlyViewed', FALSE);
@@ -50,13 +53,7 @@ class CRM_Admin_Page_ConfigTaskList extends CRM_Core_Page {
     $destination = urlencode($destination);
     $this->assign('destination', $destination);
 
-    CRM_Core_OptionValue::getValues(array('name' => 'from_email_address'), $optionValue);
-    if (!empty($optionValue)) {
-      list($id) = array_keys($optionValue);
-      $this->assign('fromEmailId', $id);
-    }
-
     return parent::run();
   }
-}
 
+}

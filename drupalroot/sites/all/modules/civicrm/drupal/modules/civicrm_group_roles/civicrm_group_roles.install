@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -40,6 +40,13 @@ function civicrm_group_roles_install() {
 }
 
 /**
+ * Implementation of hook_enable().
+ */
+function civicrm_group_roles_enable() {
+  db_query("UPDATE {system} SET weight = 110 WHERE name = 'civicrm_group_roles'");
+}
+
+/**
  * Implementation of hook_schema().
  */
 function civicrm_group_roles_schema() {
@@ -47,6 +54,7 @@ function civicrm_group_roles_schema() {
     'fields' => array(
       'id' => array(
         'type' => 'serial',
+        'not null' => TRUE,
       ),
       'role_id' => array(
         'type' => 'int',

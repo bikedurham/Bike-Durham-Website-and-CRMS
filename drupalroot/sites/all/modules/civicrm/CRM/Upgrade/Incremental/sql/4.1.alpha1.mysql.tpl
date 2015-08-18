@@ -18,7 +18,7 @@ ADD UNIQUE INDEX UI_name ( name );
 DELETE FROM civicrm_currency WHERE name = 'EEK';
 
 -- CRM-8769
-INSERT INTO civicrm_state_province
+INSERT IGNORE INTO civicrm_state_province
   (`name`, `abbreviation`, `country_id`)
 VALUES
   ('Metropolitan Manila' , 'MNL', '1170');
@@ -95,13 +95,13 @@ INSERT INTO `civicrm_dashboard`
 
 -- CRM-9059 Admin menu rebuild
 SELECT @domainID := min(id) FROM civicrm_domain;
-SELECT @adminlastID := id   FROM civicrm_navigation where name = 'Administer';
-SELECT @customizeOld := id  FROM civicrm_navigation where name = 'Customize';
-SELECT @configureOld := id  FROM civicrm_navigation where name = 'Configure';
-SELECT @globalOld := id     FROM civicrm_navigation where name = 'Global Settings';
-SELECT @manageOld := id     FROM civicrm_navigation where name = 'Manage';
-SELECT @optionsOld := id    FROM civicrm_navigation where name = 'Option Lists';
-SELECT @customizeOld := id  FROM civicrm_navigation where name = 'Customize';
+SELECT @adminlastID := id   FROM civicrm_navigation where name = 'Administer' AND domain_id = @domainID;
+SELECT @customizeOld := id  FROM civicrm_navigation where name = 'Customize' AND domain_id = @domainID;
+SELECT @configureOld := id  FROM civicrm_navigation where name = 'Configure' AND domain_id = @domainID;
+SELECT @globalOld := id     FROM civicrm_navigation where name = 'Global Settings' AND domain_id = @domainID;
+SELECT @manageOld := id     FROM civicrm_navigation where name = 'Manage' AND domain_id = @domainID;
+SELECT @optionsOld := id    FROM civicrm_navigation where name = 'Option Lists' AND domain_id = @domainID;
+SELECT @customizeOld := id  FROM civicrm_navigation where name = 'Customize' AND domain_id = @domainID;
 
 DELETE from civicrm_navigation WHERE parent_id = @globalOld;
 DELETE from civicrm_navigation WHERE parent_id IN (@customizeOld, @configureOld, @manageOld, @optionsOld);
@@ -197,7 +197,7 @@ SET @locallastID:=LAST_INSERT_ID();
 INSERT INTO civicrm_navigation
     ( domain_id, url, label, name, permission, permission_operator, parent_id, is_active, has_separator, weight )
 VALUES
-    ( @domainID, 'civicrm/admin/setting/localization&reset=1',          '{ts escape="sql" skip="true"}Languages, Currency, Location{/ts}', 'Languages, Currency, Locations',   'administer CiviCRM', '', @locallastID, '1', NULL, 1 ),
+    ( @domainID, 'civicrm/admin/setting/localization&reset=1',          '{ts escape="sql" skip="true"}Languages, Currency, Locations{/ts}', 'Languages, Currency, Locations',   'administer CiviCRM', '', @locallastID, '1', NULL, 1 ),
     ( @domainID, 'civicrm/admin/setting/preferences/address&reset=1',   '{ts escape="sql" skip="true"}Address Settings{/ts}',               'Address Settings',                 'administer CiviCRM', '', @locallastID, '1', NULL, 2 ),
     ( @domainID, 'civicrm/admin/setting/date&reset=1',                  '{ts escape="sql" skip="true"}Date Format{/ts}',                    'Date Formats',                     'administer CiviCRM', '', @locallastID, '1', NULL, 3 ),
     ( @domainID, 'civicrm/admin/options/languages&group=languages&reset=1', '{ts escape="sql" skip="true"}Preferred Language Options{/ts}', 'Preferred Language Options',       'administer CiviCRM', '', @locallastID, '1', NULL, 4 );
@@ -267,7 +267,7 @@ UPDATE civicrm_option_group SET `is_reserved` = 1;
 {/if}
 
 -- CRM-9112
- ALTER TABLE `civicrm_dedupe_rule_group` ADD `title` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL DEFAULT NULL COMMENT 'Label of the rule group';
+  ALTER TABLE `civicrm_dedupe_rule_group` ADD `title` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL DEFAULT NULL COMMENT 'Label of the rule group';
 
 ALTER TABLE `civicrm_dedupe_rule_group` ADD `is_reserved` TINYINT( 4 ) NULL DEFAULT NULL COMMENT 'Is this a reserved rule - a rule group that has been optimized and cannot be changed by the admin';
 
@@ -381,8 +381,8 @@ ALTER TABLE `civicrm_pcp` DROP COLUMN `referer`;
 
 UPDATE civicrm_navigation SET url = 'civicrm/admin/pcp?reset=1&page_type=contribute' WHERE url = 'civicrm/admin/pcp&reset=1';
 
-SELECT @lastEventId        := MAX(id) FROM civicrm_navigation where name = 'Events';
-SELECT @adminEventId       := MAX(id) FROM civicrm_navigation where name = 'CiviEvent';
+SELECT @lastEventId        := MAX(id) FROM civicrm_navigation where name = 'Events' AND domain_id = @domainID;
+SELECT @adminEventId       := MAX(id) FROM civicrm_navigation where name = 'CiviEvent' AND domain_id = @domainID;
 SELECT @lastEventIdWeight  := MAX(weight)+1 FROM civicrm_navigation where parent_id = @lastEventId;
 SELECT @adminEventIdWeight := MAX(weight)+1 FROM civicrm_navigation where parent_id = @adminEventId;
 

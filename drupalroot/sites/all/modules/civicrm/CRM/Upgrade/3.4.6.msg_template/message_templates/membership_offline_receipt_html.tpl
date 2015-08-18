@@ -26,7 +26,7 @@
     {elseif $formValues.receipt_text_renewal}
      <p>{$formValues.receipt_text_renewal|htmlize}</p>
     {else}
-     <p>{ts}Thanks for your support.{/ts}</p>
+     <p>{ts}Thank you for your support.{/ts}</p>
     {/if}
     {if ! $cancelled}
      <p>{ts}Please print this receipt for your records.{/ts}</p>
@@ -97,13 +97,13 @@
              <th>{ts}Qty{/ts}</th>
              <th>{ts}Each{/ts}</th>
              <th>{ts}Total{/ts}</th>
-	     <th>{ts}Membership Start Date{/ts}</th>
-	     <th>{ts}Membership End Date{/ts}</th>
+       <th>{ts}Membership Start Date{/ts}</th>
+       <th>{ts}Membership End Date{/ts}</th>
             </tr>
             {foreach from=$value item=line}
              <tr>
               <td>
-	      {if $line.html_type eq 'Text'}{$line.label}{else}{$line.field_title} - {$line.label}{/if} {if $line.description}<div>{$line.description|truncate:30:"..."}</div>{/if}	
+        {if $line.html_type eq 'Text'}{$line.label}{else}{$line.field_title} - {$line.label}{/if} {if $line.description}<div>{$line.description|truncate:30:"..."}</div>{/if}
               </td>
               <td>
                {$line.qty}
@@ -117,7 +117,7 @@
               <td>
                {$line.start_date}
               </td>
-	      <td>
+        <td>
                {$line.end_date}
               </td>
              </tr>

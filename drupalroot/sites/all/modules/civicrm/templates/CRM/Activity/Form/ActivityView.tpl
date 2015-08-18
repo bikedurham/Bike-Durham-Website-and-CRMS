@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,7 +23,6 @@
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
 *}
-<h3>{$activityTypeName}</h3>
 <div class="crm-block crm-content-block crm-activity-view-block">
       {if $activityTypeDescription}
         <div id="help">{$activityTypeDescription}</div>
@@ -62,6 +61,31 @@
         </tr>
         {if $values.mailingId}
             <tr>
+                <td class="label nowrap">
+                   # of opens
+
+                </td>
+                <td  class="view-value">{$openreport|@count}
+                {if $openreport|@count > 0 and $openreport|@count < 50}<br />Open times:
+                  {foreach from=$openreport item=opens}
+                    {$opens.date} <br />
+                  {/foreach}
+                {/if}
+             </tr>
+             <tr>
+               <td class="label">
+               # of click-throughs
+               </td>
+               <td class="view-value"> {$clickreport|@count}
+                {if $clickreport|@count > 0 and $clickreport|@count < 50}<br />Click times:
+                  {foreach from=$clickreport item=clicks}
+                    {$clicks.date}: <a href ='{$clicks.url}'>{$clicks.url|truncate:40:' .... ':true:true}</a> <br />
+                  {/foreach}
+                {/if}
+
+                </td>
+            </tr>
+            <tr>
                 <td class="label">{ts}Details{/ts}</td>
                 <td class="view-value report">
 
@@ -76,7 +100,7 @@
                                   {$mailingReport.mailing.body_text|mb_truncate:30|escape|nl2br}
                                   <br />
                                   {if $values.mailingId}
-                                    <strong><a href='{$textViewURL}'>&raquo; {ts}View complete message{/ts}</a></strong>
+                                    <strong><a class="crm-popup" href='{$textViewURL}'>&raquo; {ts}View complete message{/ts}</a></strong>
                                   {/if}
                               </td>
                           </tr>
@@ -89,7 +113,7 @@
                                   {$mailingReport.mailing.body_html|mb_truncate:30|escape|nl2br}
                                   <br/>
                                   {if $values.mailingId}
-                                    <strong><a href='{$htmlViewURL}'>&raquo; {ts}View complete message{/ts}</a></strong>
+                                    <strong><a class="crm-popup" href='{$htmlViewURL}'>&raquo; {ts}View complete message{/ts}</a></strong>
                                   {/if}
                               </td>
                           </tr>

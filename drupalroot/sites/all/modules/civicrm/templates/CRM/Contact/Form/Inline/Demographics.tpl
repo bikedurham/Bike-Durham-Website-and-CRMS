@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,30 +23,38 @@
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
 *}
-  <div class="crm-inline-edit-form crm-table2div-layout">
-    <div class="crm-inline-button">
-      {include file="CRM/common/formButtons.tpl"}
-    </div>
- 
-   <div class="crm-clear">  
-   <div class="crm-label">{$form.gender_id.label}</div>
-    <div class="crm-content">{$form.gender_id.html}
-      <span class="crm-clear-link">(<a href="#" title="unselect" onclick="unselectRadio('gender_id', '{$form.formName}'); return false;">{ts}Clear{/ts} {$form.gender_id.label|@strip_tags}</a>)</span>
-    </div>
-  
-    <div class="crm-label">{$form.birth_date.label}</div>
-    <div class="crm-content">{include file="CRM/common/jcalendar.tpl" elementName=birth_date}
-    </div>
-    <div class="crm-label">&nbsp;</div>
-    <div class="crm-content">{$form.is_deceased.html}
-    {$form.is_deceased.label}</div>
-    
-    <div class="crm-label crm-deceased-date">{$form.deceased_date.label}</div>
-    <div class="crm-content crm-deceased-date">{include file="CRM/common/jcalendar.tpl" elementName=deceased_date}</div>
-    </div>
-  </div> <!-- end of main -->
+{$form.oplock_ts.html}
+<div class="crm-inline-edit-form">
+  <div class="crm-inline-button">
+    {include file="CRM/common/formButtons.tpl"}
+  </div>
 
-{include file="CRM/Contact/Form/Inline/InlineCommon.tpl"}
+  <div class="crm-clear">
+    <div class="crm-summary-row">
+      <div class="crm-label">{$form.gender_id.label}</div>
+      <div class="crm-content">{$form.gender_id.html}</div>
+    </div>
+    <div class="crm-summary-row">
+      <div class="crm-label">{$form.birth_date.label}</div>
+      <div class="crm-content">
+        {include file="CRM/common/jcalendar.tpl" elementName=birth_date}
+      </div>
+    </div>
+    <div class="crm-summary-row">
+      <div class="crm-label">&nbsp;</div>
+      <div class="crm-content">
+        {$form.is_deceased.html}
+        {$form.is_deceased.label}
+      </div>
+    </div>
+    <div class="crm-summary-row">
+      <div class="crm-label crm-deceased-date">{$form.deceased_date.label}</div>
+      <div class="crm-content crm-deceased-date">
+        {include file="CRM/common/jcalendar.tpl" elementName=deceased_date}
+      </div>
+    </div>
+  </div>
+</div> <!-- end of main -->
 
 {literal}
 <script type="text/javascript">
@@ -59,10 +67,8 @@ function showDeceasedDate( ) {
   }
 }
 
-cj( function() {
-  showDeceasedDate( );    
-  // add ajax form submitting
-  inlineEditForm( 'Demographics', 'demographic-block', {/literal}{$contactId}{literal} ); 
+CRM.$(function($) {
+  showDeceasedDate( );
 });
 </script>
 {/literal}

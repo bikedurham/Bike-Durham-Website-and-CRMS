@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -43,28 +43,26 @@
 class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
 
   /**
-   * processing needed for buildForm and later
+   * Processing needed for buildForm and later.
    *
    * @return void
-   * @access public
    */
-  function preProcess() {
+  public function preProcess() {
     $this->set('searchFormName', 'Advanced');
 
     parent::preProcess();
-    $openedPanes = CRM_Contact_BAO_Query::openedSearchPanes();
+    $openedPanes = CRM_Contact_BAO_Query::$_openedPanes;
     $openedPanes = array_merge($openedPanes, $this->_openedPanes);
     $this->assign('openedPanes', $openedPanes);
   }
 
   /**
-   * Build the form
+   * Build the form object.
    *
-   * @access public
    *
    * @return void
    */
-  function buildQuickForm() {
+  public function buildQuickForm() {
     $this->set('context', 'advanced');
 
     $this->_searchPane = CRM_Utils_Array::value('searchPane', $_GET);
@@ -126,10 +124,13 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
       $paneNames[$pane['title']] = $pane['name'];
     }
 
-    $this->_paneTemplatePath = array();
+    $hookPanes = array();
+    CRM_Contact_BAO_Query_Hook::singleton()->registerAdvancedSearchPane($hookPanes);
+    $paneNames = array_merge($paneNames, $hookPanes);
 
+    $this->_paneTemplatePath = array();
     foreach ($paneNames as $name => $type) {
-      if (!$this->_searchOptions[$type]) {
+      if (!array_key_exists($type, $this->_searchOptions) && !in_array($type, $hookPanes)) {
         continue;
       }
 
@@ -142,21 +143,23 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
       );
 
       // see if we need to include this paneName in the current form
-      if ($this->_searchPane == $type ||
-        CRM_Utils_Array::value("hidden_{$type}", $_POST) ||
+      if ($this->_searchPane == $type || !empty($_POST["hidden_{$type}"]) ||
         CRM_Utils_Array::value("hidden_{$type}", $this->_formValues)
       ) {
         $allPanes[$name]['open'] = 'true';
 
-
-        if (CRM_Utils_Array::value($type, $components)) {
+        if (!empty($components[$type])) {
           $c = $components[$type];
           $this->add('hidden', "hidden_$type", 1);
           $c->buildAdvancedSearchPaneForm($this);
           $this->_paneTemplatePath[$type] = $c->getAdvancedSearchPaneTemplatePath();
         }
+        elseif (in_array($type, $hookPanes)) {
+          CRM_Contact_BAO_Query_Hook::singleton()->buildAdvancedSearchPaneForm($this, $type);
+          CRM_Contact_BAO_Query_Hook::singleton()->setAdvancedSearchPaneTemplatePath($this->_paneTemplatePath, $type);
+        }
         else {
-          eval('CRM_Contact_Form_Search_Criteria::' . $type . '( $this );');
+          CRM_Contact_Form_Search_Criteria::$type($this);
           $template = ucfirst($type);
           $this->_paneTemplatePath[$type] = "CRM/Contact/Form/Search/Criteria/{$template}.tpl";
         }
@@ -172,7 +175,15 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
     }
   }
 
-  function getTemplateFileName() {
+  /**
+   * Use the form name to create the tpl file name.
+   *
+   * @return string
+   */
+  /**
+   * @return string
+   */
+  public function getTemplateFileName() {
     if (!$this->_searchPane) {
       return parent::getTemplateFileName();
     }
@@ -188,24 +199,22 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
   }
 
   /**
-   * Set the default form values
+   * Set the default form values.
    *
-   * @access protected
    *
-   * @return array the default array reference
+   * @return array
+   *   the default array reference
    */
-  function &setDefaultValues() {
+  public function setDefaultValues() {
     $defaults = $this->_formValues;
     $this->normalizeDefaultValues($defaults);
 
     if ($this->_context === 'amtg') {
       $defaults['task'] = CRM_Contact_Task::GROUP_CONTACTS;
     }
-    else {
-      $defaults['task'] = CRM_Contact_Task::PRINT_CONTACTS;
-    }
 
     $defaults['privacy_toggle'] = 1;
+    $defaults['operator'] = 'AND';
 
     return $defaults;
   }
@@ -225,9 +234,8 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
    * @param
    *
    * @return void
-   * @access public
    */
-  function postProcess() {
+  public function postProcess() {
     $this->set('isAdvanced', '1');
 
     // get user submitted values
@@ -239,13 +247,15 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
       // FIXME: so leaving this as a dependency for now
       if (array_key_exists('contribution_amount_low', $this->_formValues)) {
         foreach (array(
-          'contribution_amount_low', 'contribution_amount_high') as $f) {
+                   'contribution_amount_low',
+                   'contribution_amount_high',
+                 ) as $f) {
           $this->_formValues[$f] = CRM_Utils_Rule::cleanMoney($this->_formValues[$f]);
         }
       }
 
       // set the group if group is submitted
-      if ($this->_formValues['uf_group_id']) {
+      if (!empty($this->_formValues['uf_group_id'])) {
         $this->set('id', $this->_formValues['uf_group_id']);
       }
       else {
@@ -258,10 +268,9 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
       $this->_formValues = CRM_Contact_BAO_SavedSearch::getFormValues($this->_ssID);
     }
 
-    if (isset($this->_groupID) && !CRM_Utils_Array::value('group', $this->_formValues)) {
+    if (isset($this->_groupID) && empty($this->_formValues['group'])) {
       $this->_formValues['group'] = array($this->_groupID => 1);
     }
-
 
     //search for civicase
     if (is_array($this->_formValues)) {
@@ -271,8 +280,12 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
         !$this->_force
       ) {
         foreach (array(
-          'case_type_id', 'case_status_id', 'case_deleted', 'case_tags') as $caseCriteria) {
-          if (CRM_Utils_Array::value($caseCriteria, $this->_formValues)) {
+                   'case_type_id',
+                   'case_status_id',
+                   'case_deleted',
+                   'case_tags',
+                 ) as $caseCriteria) {
+          if (!empty($this->_formValues[$caseCriteria])) {
             $allCases = TRUE;
             $this->_formValues['case_owner'] = 1;
             continue;
@@ -290,14 +303,15 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
           $this->_formValues['case_owner'] = 0;
         }
       }
+      if (array_key_exists('case_owner', $this->_formValues) && empty($this->_formValues['case_deleted'])) {
+        $this->_formValues['case_deleted'] = 0;
+      }
     }
 
     // we dont want to store the sortByCharacter in the formValue, it is more like
     // a filter on the result set
     // this filter is reset if we click on the search button
-    if ($this->_sortByCharacter !== NULL
-      && empty($_POST)
-    ) {
+    if ($this->_sortByCharacter !== NULL && empty($_POST)) {
       if (strtolower($this->_sortByCharacter) == 'all') {
         $this->_formValues['sortByCharacter'] = NULL;
       }
@@ -305,8 +319,11 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
         $this->_formValues['sortByCharacter'] = $this->_sortByCharacter;
       }
     }
+    else {
+      $this->_sortByCharacter = NULL;
+    }
 
-    CRM_Core_BAO_CustomValue::fixFieldValueOfTypeMemo($this->_formValues);
+    CRM_Core_BAO_CustomValue::fixCustomFieldValue($this->_formValues);
 
     $this->_params = CRM_Contact_BAO_Query::convertFormValues($this->_formValues);
     $this->_returnProperties = &$this->returnProperties();
@@ -314,14 +331,13 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
   }
 
   /**
-   * normalize the form values to make it look similar to the advanced form values
+   * Normalize the form values to make it look similar to the advanced form values
    * this prevents a ton of work downstream and allows us to use the same code for
    * multiple purposes (queries, save/edit etc)
    *
    * @return void
-   * @access private
    */
-  function normalizeFormValues() {
+  public function normalizeFormValues() {
     $contactType = CRM_Utils_Array::value('contact_type', $this->_formValues);
 
     if ($contactType && is_array($contactType)) {
@@ -332,13 +348,11 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
     }
 
     $config = CRM_Core_Config::singleton();
-    if (!$config->groupTree) {
-      $group = CRM_Utils_Array::value('group', $this->_formValues);
-      if ($group && is_array($group)) {
-        unset($this->_formValues['group']);
-        foreach ($group as $key => $value) {
-          $this->_formValues['group'][$value] = 1;
-        }
+    $group = CRM_Utils_Array::value('group', $this->_formValues);
+    if ($group && is_array($group)) {
+      unset($this->_formValues['group']);
+      foreach ($group as $key => $value) {
+        $this->_formValues['group'][$value] = 1;
       }
     }
 
@@ -347,6 +361,36 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
       unset($this->_formValues['contact_tags']);
       foreach ($tag as $key => $value) {
         $this->_formValues['contact_tags'][$value] = 1;
+      }
+    }
+
+    $specialParams = array(
+      'financial_type_id',
+      'contribution_soft_credit_type_id',
+      'contribution_status',
+      'contribution_status_id',
+      'contribution_source',
+      'membership_type_id',
+      'membership_status_id',
+      'participant_status_id',
+      'contribution_trxn_id',
+      'activity_type_id',
+      'status_id',
+      'activity_subject',
+    );
+    foreach ($specialParams as $element) {
+      $value = CRM_Utils_Array::value($element, $this->_formValues);
+      if ($value) {
+        if (is_array($value)) {
+          if ($element == 'status_id') {
+            unset($this->_formValues[$element]);
+            $element = 'activity_' . $element;
+          }
+          $this->_formValues[$element] = array('IN' => $value);
+        }
+        else {
+          $this->_formValues[$element] = array('LIKE' => "%$value%");
+        }
       }
     }
 
@@ -365,32 +409,39 @@ class CRM_Contact_Form_Search_Advanced extends CRM_Contact_Form_Search {
         }
       }
     }
-
-    return;
   }
 
   /**
-   * normalize default values for multiselect plugins
+   * Normalize default values for multiselect plugins.
    *
-   * @return void
-   * @access private
+   * @param array $defaults
+   * @return array
    */
-  function normalizeDefaultValues(&$defaults) {
+  public function normalizeDefaultValues(&$defaults) {
     if (!is_array($defaults)) {
       $defaults = array();
     }
 
     if ($this->_ssID && empty($_POST)) {
-      $fields = array('contact_type', 'group', 'contact_tags');
+      $specialFields = array('contact_type', 'group', 'contact_tags');
 
-      foreach ($fields as $field) {
-        $fieldValues = CRM_Utils_Array::value($field, $defaults);
-        if ($fieldValues && is_array($fieldValues)) {
-          $defaults[$field] = array_keys($fieldValues);
+      foreach ($defaults as $element => $value) {
+        if (!empty($value) && is_array($value)) {
+          if (in_array($element, $specialFields)) {
+            $defaults[$element] = array_keys($value);
+          }
+          // As per the OK (Operator as Key) value format, value array may contain key
+          // as an operator so to ensure the default is always set actual value
+          elseif (in_array(key($value), CRM_Core_DAO::acceptedSQLOperators(), TRUE)) {
+            $defaults[$element] = CRM_Utils_Array::value(key($value), $value);
+            if (is_string($defaults[$element])) {
+              $defaults[$element] = str_replace("%", '', $defaults[$element]);
+            }
+          }
         }
       }
     }
     return $defaults;
   }
-}
 
+}

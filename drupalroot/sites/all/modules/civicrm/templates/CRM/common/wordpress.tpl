@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -27,32 +27,9 @@
 {include file="CRM/common/debug.tpl"}
 {/if}
 
-<div id="crm-container" lang="{$config->lcMessages|truncate:2:"":true}" xml:lang="{$config->lcMessages|truncate:2:"":true}">
+<div id="crm-container" class="crm-container{if $urlIsPublic} crm-public{/if}" lang="{$config->lcMessages|truncate:2:"":true}" xml:lang="{$config->lcMessages|truncate:2:"":true}">
 
-{* we should uncomment below code only when we are experimenting with new css for specific pages and comment css inclusion in civicrm.module*}
-{*if $config->customCSSURL}
-    <link rel="stylesheet" href="{$config->customCSSURL}" type="text/css" />
-{else}
-    {assign var="revamp" value=0}
-    {foreach from=$config->revampPages item=page}
-        {if $page eq $tplFile}
-            {assign var="revamp" value=1}
-        {/if}
-    {/foreach}
-    
-    {if $revamp eq 0}
-        <link rel="stylesheet" href="{$config->resourceBase}css/civicrm.css" type="text/css" />
-    {else}
-        <link rel="stylesheet" href="{$config->resourceBase}css/civicrm-new.css" type="text/css" />
-    {/if}
-    <link rel="stylesheet" href="{$config->resourceBase}css/extras.css" type="text/css" />
-{/if*}
-
-
-{include file="CRM/common/action.tpl"}
-{if $buildNavigation }
-    {include file="CRM/common/Navigation.tpl" }
-{/if}
+{crmNavigationMenu is_default=1}
 
 {if $breadcrumb}
     <div class="breadcrumb">
@@ -71,23 +48,23 @@
 {if isset($browserPrint) and $browserPrint}
 {* Javascript window.print link. Used for public pages where we can't do printer-friendly view. *}
 <div id="printer-friendly">
-<a href="javascript:window.print()" title="{ts}Print this page.{/ts}">
-	<div class="ui-icon ui-icon-print"></div>
+<a href="#" onclick="window.print(); return false;" title="{ts}Print this page.{/ts}">
+  <div class="ui-icon ui-icon-print"></div>
 </a>
 </div>
 {else}
 {* Printer friendly link/icon. *}
 <div id="printer-friendly">
-<a href="{$printerFriendly}" title="{ts}Printer-friendly view of this page.{/ts}">
-	<div class="ui-icon ui-icon-print"></div>
+<a href="{$printerFriendly}" target='_blank' title="{ts}Printer-friendly view of this page.{/ts}">
+  <div class="ui-icon ui-icon-print"></div>
 </a>
 </div>
 {/if}
 
 {if $pageTitle}
-	<div class="crm-title">
-		<h1 class="title">{if $isDeleted}<del>{/if}{$pageTitle}{if $isDeleted}</del>{/if}</h1>
-	</div>    
+  <div class="crm-title">
+    <h1 class="title">{if $isDeleted}<del>{/if}{$pageTitle}{if $isDeleted}</del>{/if}</h1>
+  </div>
 {/if}
 
 {crmRegion name='page-header'}
@@ -100,41 +77,26 @@
     {include file="CRM/common/localNav.tpl"}
 {/if}
 
-{include file="CRM/common/status.tpl"}
-
-
-{crmRegion name='page-body'}
-<!-- .tpl file invoked: {$tplFile}. Call via form.tpl if we have a form in the page. -->
-{if isset($isForm) and $isForm}
-    {include file="CRM/Form/$formTpl.tpl"}
-{else}
-    {include file=$tplFile}
-{/if}
-{/crmRegion}
+<div id="crm-main-content-wrapper">
+  {include file="CRM/common/status.tpl"}
+  {crmRegion name='page-body'}
+    <!-- .tpl file invoked: {$tplFile}. Call via form.tpl if we have a form in the page. -->
+    {if isset($isForm) and $isForm and isset($formTpl)}
+      {include file="CRM/Form/$formTpl.tpl"}
+    {else}
+      {include file=$tplFile}
+    {/if}
+  {/crmRegion}
+</div>
 
 
 {crmRegion name='page-footer'}
-{if ! $urlIsPublic}
-{include file="CRM/common/footer.tpl"}
+{if $urlIsPublic}
+  {include file="CRM/common/publicFooter.tpl"}
+{else}
+  {include file="CRM/common/footer.tpl"}
 {/if}
 {/crmRegion}
 
-{literal}
-<script type="text/javascript">
-cj(function() {
-   cj().crmtooltip(); 
-});
-
-cj(document).ready(function() {
-  advmultiselectResize();
-});
-
-cj(window).resize(function() {
-  advmultiselectResize();
-});
-</script>
-{/literal}
-{* We need to set jquery $ object back to $*}
-<script type="text/javascript">jQuery.noConflict(true);</script>
 </div> {* end crm-container div *}
 

@@ -1,16 +1,15 @@
 <?php
-
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
  | CiviCRM is free software; you can copy, modify, and distribute it  |
  | under the terms of the GNU Affero General Public License           |
- | Version 3, 19 November 2007.                                       |
+ | Version 3, 19 November 2007 and the CiviCRM Licensing Exception.   |
  |                                                                    |
  | CiviCRM is distributed in the hope that it will be useful, but     |
  | WITHOUT ANY WARRANTY; without even the implied warranty of         |
@@ -18,28 +17,64 @@
  | See the GNU Affero General Public License for more details.        |
  |                                                                    |
  | You should have received a copy of the GNU Affero General Public   |
- | License along with this program; if not, contact CiviCRM LLC       |
+ | License and the CiviCRM Licensing Exception along                  |
+ | with this program; if not, contact CiviCRM LLC                     |
  | at info[AT]civicrm[DOT]org. If you have questions about the        |
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Upgrade_Incremental_php_ThreeFour {
-  function verifyPreDBstate(&$errors) {
+  /**
+   * @param $errors
+   *
+   * @return bool
+   */
+  public function verifyPreDBstate(&$errors) {
     return TRUE;
   }
 
-  function upgrade_3_4_alpha3($rev) {
+  /**
+   * @param $rev
+   */
+  public function upgrade_3_4_alpha3($rev) {
     // CRM-7681, update report instance criteria.
-    $modifiedReportIds = array('contact/summary', 'contact/detail', 'event/participantListing', 'member/summary', 'pledge/summary', 'pledge/pbnp', 'member/detail', 'member/lapse', 'grant/detail', 'contribute/bookkeeping', 'contribute/lybunt', 'contribute/summary', 'contribute/repeat', 'contribute/detail', 'contribute/organizationSummary', 'contribute/sybunt', 'contribute/householdSummary', 'contact/relationship', 'contact/currentEmployer', 'case/demographics', 'walklist', 'case/detail', 'contact/log', 'activitySummary', 'case/timespent', 'case/summary');
+    $modifiedReportIds = array(
+      'contact/summary',
+      'contact/detail',
+      'event/participantListing',
+      'member/summary',
+      'pledge/summary',
+      'pledge/pbnp',
+      'member/detail',
+      'member/lapse',
+      'grant/detail',
+      'contribute/bookkeeping',
+      'contribute/lybunt',
+      'contribute/summary',
+      'contribute/repeat',
+      'contribute/detail',
+      'contribute/organizationSummary',
+      'contribute/sybunt',
+      'contribute/householdSummary',
+      'contact/relationship',
+      'contact/currentEmployer',
+      'case/demographics',
+      'walklist',
+      'case/detail',
+      'contact/log',
+      'activitySummary',
+      'case/timespent',
+      'case/summary',
+    );
 
     $instances = CRM_Core_DAO::executeQuery("SELECT id, form_values, report_id FROM civicrm_report_instance WHERE report_id IN ('" . implode("','", $modifiedReportIds) . "')");
 
@@ -47,7 +82,7 @@ class CRM_Upgrade_Incremental_php_ThreeFour {
       $formValues = unserialize($instances->form_values);
 
       // replace display_name fields by sort_name
-      if (CRM_Utils_Array::value('fields', $formValues) && isset($formValues['fields']['display_name'])) {
+      if (!empty($formValues['fields']) && isset($formValues['fields']['display_name'])) {
         $formValues['fields']['sort_name'] = $formValues['fields']['display_name'];
         unset($formValues['fields']['display_name']);
       }
@@ -84,8 +119,8 @@ class CRM_Upgrade_Incremental_php_ThreeFour {
       }
 
       // save updated instance criteria
-      $dao              = new CRM_Report_DAO_Instance();
-      $dao->id          = $instances->id;
+      $dao = new CRM_Report_DAO_ReportInstance();
+      $dao->id = $instances->id;
       $dao->form_values = serialize($formValues);
       $dao->save();
       $dao->free();
@@ -100,16 +135,22 @@ class CRM_Upgrade_Incremental_php_ThreeFour {
     $upgrade->processSQL($rev);
   }
 
-  function upgrade_3_4_beta2($rev) {
+  /**
+   * @param $rev
+   */
+  public function upgrade_3_4_beta2($rev) {
     $addPetitionOptionGroup = !(boolean) CRM_Core_DAO::getFieldValue('CRM_Core_DAO_OptionGroup', 'msg_tpl_workflow_petition', 'id', 'name');
     $upgrade = new CRM_Upgrade_Form();
     $upgrade->assign('addPetitionOptionGroup', $addPetitionOptionGroup);
     $upgrade->processSQL($rev);
   }
 
-  function upgrade_3_4_beta3($rev) {
+  /**
+   * @param $rev
+   */
+  public function upgrade_3_4_beta3($rev) {
     // do the regular upgrade
-    $upgrade = new CRM_Upgrade_Form;
+    $upgrade = new CRM_Upgrade_Form();
     $upgrade->processSQL($rev);
 
     if ($upgrade->multilingual) {
@@ -121,7 +162,7 @@ class CRM_Upgrade_Incremental_php_ThreeFour {
       $config = CRM_Core_Config::singleton();
       $tables = array('civicrm_address', 'civicrm_contact', 'civicrm_mailing', 'civicrm_mailing_component');
       $triggers = array(array('when' => 'before', 'event' => 'update'), array('when' => 'before', 'event' => 'insert'));
-      
+
       // FIXME: Doing require_once is a must here because a call like CRM_Core_I18n_SchemaStructure_3_4_beta2 makes
       // class loader look for file like - CRM/Core/I18n/SchemaStructure/3/4/beta2.php which is not what we want to be loaded
       require_once "CRM/Core/I18n/SchemaStructure_3_4_beta2.php";
@@ -131,11 +172,22 @@ class CRM_Upgrade_Incremental_php_ThreeFour {
     }
   }
 
-  function upgrade_3_4_3($rev) {
+  /**
+   * @param $rev
+   */
+  public function upgrade_3_4_3($rev) {
     // CRM-8147, update group_type for uf groups, check and add component field types
     $ufGroups = new CRM_Core_DAO_UFGroup();
     $ufGroups->find();
-    $skipGroupTypes = array('Individual,Contact', 'Organization,Contact', 'Household,Contact', 'Contact', 'Individual', 'Organization', 'Household');
+    $skipGroupTypes = array(
+      'Individual,Contact',
+      'Organization,Contact',
+      'Household,Contact',
+      'Contact',
+      'Individual',
+      'Organization',
+      'Household',
+    );
     while ($ufGroups->fetch()) {
       if (!in_array($ufGroups->group_type, $skipGroupTypes)) {
         $groupTypes = CRM_Core_BAO_UFGroup::calculateGroupType($ufGroups->id, TRUE);
@@ -168,11 +220,14 @@ INSERT INTO civicrm_location_type ( name, description, is_reserved, is_active )
       CRM_Core_DAO::executeQuery($query);
     }
 
-    $upgrade = new CRM_Upgrade_Form;
+    $upgrade = new CRM_Upgrade_Form();
     $upgrade->processSQL($rev);
   }
 
-  function upgrade_3_4_4($rev) {
+  /**
+   * @param $rev
+   */
+  public function upgrade_3_4_4($rev) {
     // CRM-8315, update report instance criteria.
     $modifiedReportIds = array('member/summary', 'member/detail');
 
@@ -194,8 +249,8 @@ INSERT INTO civicrm_location_type ( name, description, is_reserved, is_active )
       }
 
       // save updated instance criteria
-      $dao              = new CRM_Report_DAO_Instance();
-      $dao->id          = $instances->id;
+      $dao = new CRM_Report_DAO_ReportInstance();
+      $dao->id = $instances->id;
       $dao->form_values = serialize($formValues);
       $dao->save();
       $dao->free();
@@ -205,7 +260,10 @@ INSERT INTO civicrm_location_type ( name, description, is_reserved, is_active )
     $upgrade->processSQL($rev);
   }
 
-  function upgrade_3_4_5($rev) {
+  /**
+   * @param $rev
+   */
+  public function upgrade_3_4_5($rev) {
     // handle db changes done for CRM-8218
     $alterContactDashboard = FALSE;
     $dao = new CRM_Contact_DAO_DashboardContact();
@@ -226,7 +284,10 @@ INSERT INTO civicrm_location_type ( name, description, is_reserved, is_active )
     $upgrade->processSQL($rev);
   }
 
-  function upgrade_3_4_6($rev) {
+  /**
+   * @param $rev
+   */
+  public function upgrade_3_4_6($rev) {
     $modifiedReportIds = array('event/summary', 'activity', 'Mailing/bounce', 'Mailing/clicks', 'Mailing/opened');
 
     $instances = CRM_Core_DAO::executeQuery("SELECT id, form_values, report_id FROM civicrm_report_instance WHERE report_id IN ('" . implode("','", $modifiedReportIds) . "')");
@@ -235,7 +296,12 @@ INSERT INTO civicrm_location_type ( name, description, is_reserved, is_active )
 
       switch ($instances->report_id) {
         case 'event/summary':
-          $eventDates = array('event_start_date_from', 'event_start_date_to', 'event_end_date_from', 'event_end_date_to');
+          $eventDates = array(
+            'event_start_date_from',
+            'event_start_date_to',
+            'event_end_date_from',
+            'event_end_date_to',
+          );
           foreach ($eventDates as $date) {
             if (isset($formValues[$date]) && $formValues[$date] == ' ') {
               $formValues[$date] = '';
@@ -274,8 +340,8 @@ INSERT INTO civicrm_location_type ( name, description, is_reserved, is_active )
       }
 
       // save updated instance criteria
-      $dao              = new CRM_Report_DAO_Instance();
-      $dao->id          = $instances->id;
+      $dao = new CRM_Report_DAO_ReportInstance();
+      $dao->id = $instances->id;
       $dao->form_values = serialize($formValues);
       $dao->save();
       $dao->free();
@@ -283,14 +349,16 @@ INSERT INTO civicrm_location_type ( name, description, is_reserved, is_active )
 
     $bulkEmailActivityType = CRM_Core_DAO::singleValueQuery("
 SELECT v.id
-FROM   civicrm_option_value v, 
-       civicrm_option_group g 
-WHERE  v.option_group_id = g.id 
-  AND  g.name      = %1 
-  AND  g.is_active = 1  
-  AND  v.name      = %2", array(1 => array('activity_type', 'String'),
-        2 => array('Bulk Email', 'String'),
-      ));
+FROM   civicrm_option_value v,
+       civicrm_option_group g
+WHERE  v.option_group_id = g.id
+  AND  g.name      = %1
+  AND  g.is_active = 1
+  AND  v.name      = %2",
+    array(
+      1 => array('activity_type', 'String'),
+      2 => array('Bulk Email', 'String'),
+    ));
 
     // CRM-8852, reset contact field cache
     CRM_Core_BAO_Cache::deleteGroup('contact fields');
@@ -301,17 +369,22 @@ WHERE  v.option_group_id = g.id
     $upgrade->processSQL($rev);
   }
 
-  function upgrade_3_4_7($rev) {
+  /**
+   * @param $rev
+   *
+   * @throws Exception
+   */
+  public function upgrade_3_4_7($rev) {
     $onBehalfProfileId = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_UFGroup', 'on_behalf_organization', 'id', 'name');
     if (!$onBehalfProfileId) {
       CRM_Core_Error::fatal();
     }
 
     $pages = CRM_Core_DAO::executeQuery("
-SELECT    civicrm_contribution_page.id 
+SELECT    civicrm_contribution_page.id
 FROM      civicrm_contribution_page
-LEFT JOIN civicrm_uf_join ON entity_table = 'civicrm_contribution_page' AND entity_id = civicrm_contribution_page.id AND module = 'OnBehalf' 
-WHERE     is_for_organization = 1 
+LEFT JOIN civicrm_uf_join ON entity_table = 'civicrm_contribution_page' AND entity_id = civicrm_contribution_page.id AND module = 'OnBehalf'
+WHERE     is_for_organization = 1
 AND       civicrm_uf_join.id IS NULL
 ");
 
@@ -322,7 +395,8 @@ INSERT INTO civicrm_uf_join
 VALUES
     (1, 'OnBehalf', 'civicrm_contribution_page', %1, 1, %2)";
 
-      $params = array(1 => array($pages->id, 'Integer'),
+      $params = array(
+        1 => array($pages->id, 'Integer'),
         2 => array($onBehalfProfileId, 'Integer'),
       );
       CRM_Core_DAO::executeQuery($query, $params);
@@ -338,5 +412,5 @@ VALUES
     $upgrade = new CRM_Upgrade_Form();
     $upgrade->processSQL($rev);
   }
-}
 
+}

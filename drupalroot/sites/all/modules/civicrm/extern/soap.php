@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,10 +23,10 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 
-// patch for CRM-3154
+// Patch for CRM-3154
 if (phpversion() == "5.2.2" &&
   !isset($GLOBALS['HTTP_RAW_POST_DATA'])
 ) {
@@ -58,4 +58,3 @@ $server->setClass('CRM_Utils_SoapServer', $config->userFrameworkClass);
 $server->setPersistence(SOAP_PERSISTENCE_SESSION);
 
 $server->handle();
-

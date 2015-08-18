@@ -1,10 +1,9 @@
 <?php
-
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,17 +23,19 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Mailing_Form_Subscribe extends CRM_Core_Form {
-  protected $_groupID = NULL; function preProcess() {
+  protected $_groupID = NULL;
+
+  public function preProcess() {
     parent::preProcess();
     $this->_groupID = CRM_Utils_Request::retrieve('gid', 'Integer', $this,
       FALSE, NULL, 'REQUEST'
@@ -46,7 +47,6 @@ class CRM_Mailing_Form_Subscribe extends CRM_Core_Form {
       $this->controller->setDestination(NULL, TRUE);
     }
 
-
     if ($this->_groupID) {
       $groupTypeCondition = CRM_Contact_BAO_Group::groupTypeCondition('Mailing');
 
@@ -54,7 +54,7 @@ class CRM_Mailing_Form_Subscribe extends CRM_Core_Form {
       $query = "
 SELECT   title, description
   FROM   civicrm_group
- WHERE   id={$this->_groupID}  
+ WHERE   id={$this->_groupID}
    AND   visibility != 'User and User Admin Only'
    AND   $groupTypeCondition";
 
@@ -76,12 +76,10 @@ SELECT   title, description
   }
 
   /**
-   * Function to actually build the form
+   * Build the form object.
    *
-   * @return None
-   * @access public
+   * @return void
    */
-
   public function buildQuickForm() {
     // add the email address
     $this->add('text',
@@ -92,7 +90,7 @@ SELECT   title, description
       ),
       TRUE
     );
-    $this->addRule('email', ts("Please enter a valid email address (e.g. 'yourname@example.com')."), 'email');
+    $this->addRule('email', ts("Please enter a valid email address."), 'email');
 
     if (!$this->_groupID) {
       // create a selector box of all public groups
@@ -109,11 +107,11 @@ ORDER BY title";
       $dao = CRM_Core_DAO::executeQuery($query, CRM_Core_DAO::$_nullArray);
       $rows = array();
       while ($dao->fetch()) {
-        $row                = array();
-        $row['id']          = $dao->id;
-        $row['title']       = $dao->title;
+        $row = array();
+        $row['id'] = $dao->id;
+        $row['title'] = $dao->title;
         $row['description'] = $dao->description;
-        $row['checkbox']    = CRM_Core_Form::CB_PREFIX . $row['id'];
+        $row['checkbox'] = CRM_Core_Form::CB_PREFIX . $row['id'];
         $this->addElement('checkbox',
           $row['checkbox'],
           NULL, NULL
@@ -129,10 +127,15 @@ ORDER BY title";
 
     $addCaptcha = TRUE;
 
-    // if recaptcha is not set, then dont add it
+    // if recaptcha is not configured, then dont add it
+    // CRM-11316 Only enable ReCAPTCHA for anonymous visitors
     $config = CRM_Core_Config::singleton();
+    $session = CRM_Core_Session::singleton();
+    $contactID = $session->get('userID');
+
     if (empty($config->recaptchaPublicKey) ||
-      empty($config->recaptchaPrivateKey)
+      empty($config->recaptchaPrivateKey) ||
+      $contactID
     ) {
       $addCaptcha = FALSE;
     }
@@ -151,6 +154,7 @@ ORDER BY title";
       // add captcha
       $captcha = CRM_Utils_ReCAPTCHA::singleton();
       $captcha->add($this);
+      $this->assign('isCaptcha', TRUE);
     }
 
     $this->addButtons(array(
@@ -167,8 +171,12 @@ ORDER BY title";
     );
   }
 
-  static
-  function formRule($fields) {
+  /**
+   * @param $fields
+   *
+   * @return array|bool
+   */
+  public static function formRule($fields) {
     foreach ($fields as $name => $dontCare) {
       if (substr($name, 0, CRM_Core_Form::CB_PREFIX_LEN) == CRM_Core_Form::CB_PREFIX) {
         return TRUE;
@@ -179,9 +187,7 @@ ORDER BY title";
 
   /**
    *
-   * @access public
-   *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     $params = $this->controller->exportValues($this->_name);
@@ -200,5 +206,5 @@ ORDER BY title";
 
     CRM_Mailing_Event_BAO_Subscribe::commonSubscribe($groups, $params);
   }
-}
 
+}

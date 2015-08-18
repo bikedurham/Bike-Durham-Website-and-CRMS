@@ -1,11 +1,9 @@
 <?php
-// $Id$
-
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,28 +23,24 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * APIv3 functions for registering/processing mailing group events.
  *
  * @package CiviCRM_APIv3
- * @subpackage API_MailerGroup
- * @copyright CiviCRM LLC (c) 2004-2012
- * $Id$
- *
  */
 
 /**
- * Handle a confirm event
+ * Handle a confirm event.
  *
- * @param array $params  Associative array of property
- *                       name/value pairs to insert in new 'survey'
+ * @param array $params
+ *   name/value pairs to insert in new 'survey'
  *
- * @return array api result array
- * {@getfields mailing_event_confirm_create}
- * @access public
+ * @throws Exception
+ * @return array
+ *   api result array
  */
 function civicrm_api3_mailing_event_confirm_create($params) {
 
@@ -61,15 +55,29 @@ function civicrm_api3_mailing_event_confirm_create($params) {
   }
   return civicrm_api3_create_success($params);
 }
-/*
- * Adjust Metadata for Create action
- * 
- * The metadata is used for setting defaults, documentation & validation
- * @param array $params array or parameters determined by getfields
+
+/**
+ * Adjust Metadata for Create action.
+ *
+ * The metadata is used for setting defaults, documentation & validation.
+ *
+ * @param array $params
+ *   Array of parameters determined by getfields.
  */
 function _civicrm_api3_mailing_event_confirm_create_spec(&$params) {
-  $params['contact_id']['api.required'] = 1;
-  $params['subscribe_id']['api.required'] = 1;
-  $params['hash']['api.required'] = 1;
+  $params['contact_id'] = array(
+    'api.required' => 1,
+    'title' => 'Contact ID',
+    'type' => CRM_Utils_Type::T_INT,
+  );
+  $params['subscribe_id'] = array(
+    'api.required' => 1,
+    'title' => 'Subscribe Event ID',
+    'type' => CRM_Utils_Type::T_INT,
+  );
+  $params['hash'] = array(
+    'api.required' => 1,
+    'title' => 'Hash',
+    'type' => CRM_Utils_Type::T_STRING,
+  );
 }
-

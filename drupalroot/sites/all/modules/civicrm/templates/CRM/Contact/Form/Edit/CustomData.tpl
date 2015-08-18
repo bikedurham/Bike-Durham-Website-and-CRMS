@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,36 +24,43 @@
  +--------------------------------------------------------------------+
 *}
 
-<script type="text/javascript">var showTab = Array( );</script>
+{foreach from=$groupTree item=cd_edit key=group_id}
+  {if $cd_edit.is_multiple eq 1}
+    {assign var=tableID value=$cd_edit.table_id}
+    {assign var=divName value=$group_id|cat:"_$tableID"}
+    <div></div>
+    <div
+     class="crm-accordion-wrapper crm-custom-accordion {if $cd_edit.collapse_display and !$skipTitle}collapsed{/if}">
+  {else}
+    <div id="{$cd_edit.name}"
+       class="crm-accordion-wrapper crm-custom-accordion {if $cd_edit.collapse_display}collapsed{/if}">
+  {/if}
+    <div class="crm-accordion-header">
+      {$cd_edit.title}
+    </div>
 
-{foreach from=$groupTree item=cd_edit key=group_id}    
-	<div class="crm-accordion-wrapper crm-address-accordion {if $cd_edit.collapse_display}crm-accordion-closed{else}crm-accordion-open{/if}">
-		<div class="crm-accordion-header">
-			<div id="custom{$group_id}" class="icon crm-accordion-pointer"></div>
-
-        <a href="#" class="whiteanchor">{$cd_edit.title}</a>
-			</div><!-- /.crm-accordion-header -->
-			
-			<div id="customData{$group_id}" class="crm-accordion-body">
-				{include file="CRM/Custom/Form/CustomData.tpl" formEdit=true}
-			</div>
-      <script type="text/javascript">
-        {if $cd_edit.collapse_display eq 0 }
-          var eleSpan          = "span#custom{$group_id}";
-          var eleDiv           = "div#customData{$group_id}";
-          showTab[{$group_id}] = {literal}{"spanShow":eleSpan,"divShow":eleDiv}{/literal};
-        {else}
-          showTab[{$group_id}] = {literal}{"spanShow":""}{/literal};
+    <div id="customData{$group_id}" class="crm-accordion-body">
+      {if $cd_edit.is_multiple eq 1}
+        {if $cd_edit.table_id}
+          <table class="no-border">
+            <tr>
+              <a href="#" class="crm-hover-button crm-custom-value-del" title="{ts 1=$cd_edit.title}Delete %1{/ts}"
+               data-post='{ldelim}"valueID": "{$tableID}", "groupID": "{$group_id}", "contactId": "{$contactId}", "key": "{crmKey name='civicrm/ajax/customvalue'}"{rdelim}'>
+                <span class="icon delete-icon"></span> {ts}Delete{/ts}
+              </a>
+              <!-- crm-submit-buttons -->
+            </tr>
+          </table>
         {/if}
-      </script>
-	</div>
-{/foreach}
+      {/if}
+      {include file="CRM/Custom/Form/CustomData.tpl" formEdit=true}
+    </div>
+    <!-- crm-accordion-body-->
+  </div>
+  <!-- crm-accordion-wrapper -->
+  <div id="custom_group_{$group_id}_{$cgCount}"></div>
+  {/foreach}
 
-{include file="CRM/common/customData.tpl"}
- <script type="text/javascript">
-  {literal}
-       cj(function() {
-           cj().crmaccordions(); 
-        });        
-  {/literal}
- </script>
+  {include file="CRM/common/customData.tpl"}
+
+  {include file="CRM/Form/attachmentjs.tpl"}

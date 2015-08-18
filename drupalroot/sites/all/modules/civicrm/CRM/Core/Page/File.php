@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,22 +23,22 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Core_Page_File extends CRM_Core_Page {
-  function run() {
 
-    $eid    = CRM_Utils_Request::retrieve('eid', 'Positive', $this, TRUE);
-    $fid    = CRM_Utils_Request::retrieve('fid', 'Positive', $this, FALSE);
-    $id     = CRM_Utils_Request::retrieve('id', 'Positive', $this, TRUE);
-    $quest  = CRM_Utils_Request::retrieve('quest', 'String', $this);
+  public function run() {
+    $eid = CRM_Utils_Request::retrieve('eid', 'Positive', $this, TRUE);
+    $fid = CRM_Utils_Request::retrieve('fid', 'Positive', $this, FALSE);
+    $id = CRM_Utils_Request::retrieve('id', 'Positive', $this, TRUE);
+    $quest = CRM_Utils_Request::retrieve('quest', 'String', $this);
     $action = CRM_Utils_Request::retrieve('action', 'String', $this);
 
     list($path, $mimeType) = CRM_Core_BAO_File::path($id, $eid, NULL, $quest);
@@ -53,24 +53,21 @@ class CRM_Core_Page_File extends CRM_Core_Page {
 
     if ($action & CRM_Core_Action::DELETE) {
       if (CRM_Utils_Request::retrieve('confirmed', 'Boolean', CRM_Core_DAO::$_nullObject)) {
-        CRM_Core_BAO_File::delete($id, $eid, $fid);
-        CRM_Core_Session::setStatus(ts('The attached file has been deleted.'));
+        CRM_Core_BAO_File::deleteFileReferences($id, $eid, $fid);
+        CRM_Core_Session::setStatus(ts('The attached file has been deleted.'), ts('Complete'), 'success');
 
         $session = CRM_Core_Session::singleton();
         $toUrl = $session->popUserContext();
         CRM_Utils_System::redirect($toUrl);
       }
-      else {
-        $wrapper = new CRM_Utils_Wrapper();
-        return $wrapper->run('CRM_Custom_Form_DeleteFile', ts('Domain Information Page'), NULL);
-      }
     }
     else {
-      CRM_Utils_System::download(CRM_Utils_File::cleanFileName(basename($path)),
+      CRM_Utils_System::download(
+        CRM_Utils_File::cleanFileName(basename($path)),
         $mimeType,
         $buffer
       );
     }
   }
-}
 
+}

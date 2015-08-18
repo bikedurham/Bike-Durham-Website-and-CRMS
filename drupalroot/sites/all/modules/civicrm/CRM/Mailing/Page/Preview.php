@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -39,11 +39,11 @@
 class CRM_Mailing_Page_Preview extends CRM_Core_Page {
 
   /**
-   * run this page (figure out the action needed and perform it).
+   * Run this page (figure out the action needed and perform it).
    *
    * @return void
    */
-  function run() {
+  public function run() {
 
     $session = CRM_Core_Session::singleton();
 
@@ -72,7 +72,7 @@ class CRM_Mailing_Page_Preview extends CRM_Core_Page {
     CRM_Mailing_BAO_Mailing::tokenReplace($mailing);
 
     // get and format attachments
-    $attachments = &CRM_Core_BAO_File::getEntityFile('civicrm_mailing',
+    $attachments = CRM_Core_BAO_File::getEntityFile('civicrm_mailing',
       $mailing->id
     );
 
@@ -101,5 +101,5 @@ class CRM_Mailing_Page_Preview extends CRM_Core_Page {
     }
     CRM_Utils_System::civiExit();
   }
-}
 
+}

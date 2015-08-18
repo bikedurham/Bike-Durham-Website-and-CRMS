@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,41 +23,46 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Contact_Page_View_UserDashBoard_GroupContact extends CRM_Contact_Page_View_UserDashBoard {
 
   /**
-   * This function is called when action is browse
+   * called when action is browse.
    *
-   * return null
-   * @access public
+   * @return void
    */
-  function browse() {
-    $count = CRM_Contact_BAO_GroupContact::getContactGroup($this->_contactId,
+  public function browse() {
+    $count = CRM_Contact_BAO_GroupContact::getContactGroup(
+      $this->_contactId,
       NULL,
       NULL, TRUE, TRUE,
       $this->_onlyPublicGroups
     );
 
-    $in = &CRM_Contact_BAO_GroupContact::getContactGroup($this->_contactId,
+    $in =& CRM_Contact_BAO_GroupContact::getContactGroup(
+      $this->_contactId,
       'Added',
       NULL, FALSE, TRUE,
       $this->_onlyPublicGroups
     );
-    $pending = &CRM_Contact_BAO_GroupContact::getContactGroup($this->_contactId,
+
+    $pending =& CRM_Contact_BAO_GroupContact::getContactGroup(
+      $this->_contactId,
       'Pending',
       NULL, FALSE, TRUE,
       $this->_onlyPublicGroups
     );
-    $out = &CRM_Contact_BAO_GroupContact::getContactGroup($this->_contactId,
+
+    $out =& CRM_Contact_BAO_GroupContact::getContactGroup(
+      $this->_contactId,
       'Removed',
       NULL, FALSE, TRUE,
       $this->_onlyPublicGroups
@@ -70,17 +75,16 @@ class CRM_Contact_Page_View_UserDashBoard_GroupContact extends CRM_Contact_Page_
   }
 
   /**
-   * This function is called when action is update
+   * called when action is update.
    *
-   * @param int    $groupID group id
+   * @param int $groupId
    *
-   * return null
-   * @access public
+   * @return null
    */
-  function edit($groupId = NULL) {
+  public function edit($groupId = NULL) {
     $this->assign('edit', $this->_edit);
     if (!$this->_edit) {
-      return;
+      return NULL;
     }
 
     $action = CRM_Utils_Request::retrieve('action', 'String',
@@ -89,32 +93,27 @@ class CRM_Contact_Page_View_UserDashBoard_GroupContact extends CRM_Contact_Page_
     );
 
     if ($action == CRM_Core_Action::DELETE) {
-      $groupContactId = CRM_Utils_Request::retrieve('gcid', 'Positive',
-        CRM_Core_DAO::$_nullObject, TRUE
-      );
-      $status = CRM_Utils_Request::retrieve('st', 'String',
-        CRM_Core_DAO::$_nullObject, TRUE
-      );
+      $groupContactId = CRM_Utils_Request::retrieve('gcid', 'Positive', CRM_Core_DAO::$_nullObject, TRUE);
+      $status = CRM_Utils_Request::retrieve('st', 'String', CRM_Core_DAO::$_nullObject, TRUE);
       if (is_numeric($groupContactId) && $status) {
         CRM_Contact_Page_View_GroupContact::del($groupContactId, $status, $this->_contactId);
       }
 
-      $url = CRM_Utils_System::url('civicrm/user',
-        "reset=1&id={$this->_contactId}"
-      );
+      $url = CRM_Utils_System::url('civicrm/user', "reset=1&id={$this->_contactId}");
       CRM_Utils_System::redirect($url);
     }
 
-    $controller = new CRM_Core_Controller_Simple('CRM_Contact_Form_GroupContact',
+    $controller = new CRM_Core_Controller_Simple(
+      'CRM_Contact_Form_GroupContact',
       ts("Contact's Groups"),
-      CRM_Core_Action::ADD
+      CRM_Core_Action::ADD,
+      FALSE, FALSE, TRUE, FALSE
     );
     $controller->setEmbedded(TRUE);
 
     $session = CRM_Core_Session::singleton();
-    $session->pushUserContext(CRM_Utils_System::url('civicrm/user',
-        "reset=1&id={$this->_contactId}"
-      ),
+    $session->pushUserContext(
+      CRM_Utils_System::url('civicrm/user', "reset=1&id={$this->_contactId}"),
       FALSE
     );
 
@@ -128,15 +127,14 @@ class CRM_Contact_Page_View_UserDashBoard_GroupContact extends CRM_Contact_Page_
   }
 
   /**
-   * This function is the main function that is called when the page loads,
+   * the main function that is called when the page loads,
    * it decides the which action has to be taken for the page.
    *
-   * return null
-   * @access public
+   * @return void
    */
-  function run() {
+  public function run() {
     $this->edit();
     $this->browse();
   }
-}
 
+}

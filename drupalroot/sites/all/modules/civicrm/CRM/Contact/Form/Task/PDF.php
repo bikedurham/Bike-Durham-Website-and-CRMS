@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -40,7 +40,7 @@
 class CRM_Contact_Form_Task_PDF extends CRM_Contact_Form_Task {
 
   /**
-   * all the existing templates in the system
+   * All the existing templates in the system.
    *
    * @var array
    */
@@ -50,12 +50,14 @@ class CRM_Contact_Form_Task_PDF extends CRM_Contact_Form_Task {
 
   public $_cid = NULL;
 
+  public $_activityId = NULL;
+
   /**
-   * build all the data structures needed to build the form
+   * Build all the data structures needed to build the form.
    *
    * @return void
-   * @access public
-   */ function preProcess() {
+   */
+  public function preProcess() {
 
     $this->skipOnHold = $this->skipDeceased = FALSE;
     CRM_Contact_Form_Task_PDFLetterCommon::preProcess($this);
@@ -66,7 +68,12 @@ class CRM_Contact_Form_Task_PDF extends CRM_Contact_Form_Task {
     // retrieve contact ID if this is 'single' mode
     $cid = CRM_Utils_Request::retrieve('cid', 'Positive', $this, FALSE);
 
-    $this->_activityId = CRM_Utils_Request::retrieve('id', 'Positive', $this, FALSE);
+    if ($cid) {
+      // this is true in non-search context / single mode
+      // in search context 'id' is the default profile id for search display
+      // CRM-11227
+      $this->_activityId = CRM_Utils_Request::retrieve('id', 'Positive', $this, FALSE);
+    }
 
     if ($cid) {
       CRM_Contact_Form_Task_PDFLetterCommon::preProcessSingle($this, $cid);
@@ -79,21 +86,29 @@ class CRM_Contact_Form_Task_PDF extends CRM_Contact_Form_Task {
     $this->assign('single', $this->_single);
   }
 
-  function setDefaultValues() {
+  /**
+   * Set default values for the form. Relationship that in edit/view action
+   * the default values are retrieved from the database
+   *
+   *
+   * @return void
+   */
+  /**
+   */
+  public function setDefaultValues() {
     $defaults = array();
     if (isset($this->_activityId)) {
       $params = array('id' => $this->_activityId);
       CRM_Activity_BAO_Activity::retrieve($params, $defaults);
-      $defaults['html_message'] = $defaults['details'];
+      $defaults['html_message'] = CRM_Utils_Array::value('details', $defaults);
     }
     $defaults = $defaults + CRM_Contact_Form_Task_PDFLetterCommon::setDefaultValues();
     return $defaults;
   }
 
   /**
-   * Build the form
+   * Build the form object.
    *
-   * @access public
    *
    * @return void
    */
@@ -104,14 +119,13 @@ class CRM_Contact_Form_Task_PDF extends CRM_Contact_Form_Task {
   }
 
   /**
-   * process the form after the input has been submitted and validated
+   * Process the form after the input has been submitted and validated.
    *
-   * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     CRM_Contact_Form_Task_PDFLetterCommon::postProcess($this);
   }
-}
 
+}

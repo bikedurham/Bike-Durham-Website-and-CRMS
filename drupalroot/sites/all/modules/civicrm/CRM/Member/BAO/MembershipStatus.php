@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,44 +23,40 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Member_BAO_MembershipStatus extends CRM_Member_DAO_MembershipStatus {
 
   /**
-   * static holder for the default LT
+   * Static holder for the default LT.
    */
   static $_defaultMembershipStatus = NULL;
 
   /**
-   * class constructor
+   * Class constructor.
    */
-  function __construct() {
+  public function __construct() {
     parent::__construct();
   }
 
   /**
-   * Takes a bunch of params that are needed to match certain criteria and
-   * retrieves the relevant objects. Typically the valid params are only
-   * contact_id. We'll tweak this function to be more full featured over a period
-   * of time. This is the inverse function of create. It also stores all the retrieved
-   * values in the default array
+   * Fetch object based on array of properties.
    *
-   * @param array $params   (reference ) an assoc array of name/value pairs
-   * @param array $defaults (reference ) an assoc array to hold the flattened values
+   * @param array $params
+   *   (reference ) an assoc array of name/value pairs.
+   * @param array $defaults
+   *   (reference ) an assoc array to hold the flattened values.
    *
-   * @return object CRM_Member_BAO_MembershipStatus object
-   * @access public
-   * @static
+   * @return CRM_Member_BAO_MembershipStatus
    */
-  static function retrieve(&$params, &$defaults) {
+  public static function retrieve(&$params, &$defaults) {
     $membershipStatus = new CRM_Member_DAO_MembershipStatus();
     $membershipStatus->copyValues($params);
     if ($membershipStatus->find(TRUE)) {
@@ -71,76 +67,111 @@ class CRM_Member_BAO_MembershipStatus extends CRM_Member_DAO_MembershipStatus {
   }
 
   /**
-   * update the is_active flag in the db
+   * Update the is_active flag in the db.
    *
-   * @param int      $id        id of the database record
-   * @param boolean  $is_active value we want to set the is_active field
+   * @param int $id
+   *   Id of the database record.
+   * @param bool $is_active
+   *   Value we want to set the is_active field.
    *
-   * @return Object             DAO object on sucess, null otherwise
-   * @static
+   * @return Object
+   *   DAO object on sucess, null otherwise
    */
-  static function setIsActive($id, $is_active) {
+  public static function setIsActive($id, $is_active) {
     return CRM_Core_DAO::setFieldValue('CRM_Member_DAO_MembershipStatus', $id, 'is_active', $is_active);
   }
 
   /**
-   * function to add the membership types
+   * Takes an associative array and creates a membership Status object.
+   * See http://wiki.civicrm.org/confluence/display/CRM/Database+layer
    *
-   * @param array $params reference array contains the values submitted by the form
-   * @param array $ids    reference array contains the id
+   * @param array $params
+   *   (reference ) an assoc array of name/value pairs.
    *
-   * @access public
-   * @static
+   * @throws Exception
+   * @return CRM_Member_BAO_MembershipStatus
+   */
+  public static function create($params) {
+    $ids = array();
+    if (!empty($params['id'])) {
+      $ids['membershipStatus'] = $params['id'];
+    }
+    else {
+      //don't allow duplicate names - if id not set
+      $status = new CRM_Member_DAO_MembershipStatus();
+      $status->name = $params['name'];
+      if ($status->find(TRUE)) {
+        throw new Exception('A membership status with this name already exists.');
+      }
+    }
+    $membershipStatusBAO = CRM_Member_BAO_MembershipStatus::add($params, $ids);
+    return $membershipStatusBAO;
+  }
+
+  /**
+   * Add the membership types.
+   *
+   * @param array $params
+   *   Reference array contains the values submitted by the form.
+   * @param array $ids
+   *   Array contains the id - this param is deprecated.
+   *
    *
    * @return object
    */
-  static function add(&$params, &$ids) {
-    $params['is_active'] = CRM_Utils_Array::value('is_active', $params, FALSE);
-    $params['is_current_member'] = CRM_Utils_Array::value('is_current_member', $params, FALSE);
-    $params['is_admin'] = CRM_Utils_Array::value('is_admin', $params, FALSE);
-    $params['is_default'] = CRM_Utils_Array::value('is_default', $params, FALSE);
+  public static function add(&$params, $ids = array()) {
+    $id = CRM_Utils_Array::value('id', $params, CRM_Utils_Array::value('membershipStatus', $ids));
+    if (!$id) {
+      CRM_Core_DAO::setCreateDefaults($params, self::getDefaults());
+      //copy name to label when not passed.
+      if (empty($params['label']) && !empty($params['name'])) {
+        $params['label'] = $params['name'];
+      }
+
+      if (empty($params['name']) && !empty($params['label'])) {
+        $params['name'] = $params['label'];
+      }
+    }
 
     // set all other defaults to false.
-    if ($params['is_default']) {
+    if (!empty($params['is_default'])) {
       $query = "UPDATE civicrm_membership_status SET is_default = 0";
       CRM_Core_DAO::executeQuery($query,
         CRM_Core_DAO::$_nullArray
       );
     }
 
-    //copy name to label when not passed.
-    if (!CRM_Utils_Array::value('label', $params) &&
-      CRM_Utils_Array::value('name', $params)
-    ) {
-      $params['label'] = $params['name'];
-    }
-
-    //for add mode, copy label to name.
-    $statusId = CRM_Utils_Array::value('membershipStatus', $ids);
-    if (!$statusId &&
-      CRM_Utils_Array::value('label', $params) &&
-      !CRM_Utils_Array::value('name', $params)
-    ) {
-      $params['name'] = $params['label'];
-    }
-
     // action is taken depending upon the mode
     $membershipStatus = new CRM_Member_DAO_MembershipStatus();
     $membershipStatus->copyValues($params);
 
-    $membershipStatus->id = $statusId;
+    $membershipStatus->id = $id;
 
     $membershipStatus->save();
     return $membershipStatus;
   }
 
   /**
-   * Function to get  membership status
+   * Get defaults for new entity.
+   * @return array
+   */
+  public static function getDefaults() {
+    return array(
+      'is_active' => FALSE,
+      'is_current_member' => FALSE,
+      'is_admin' => FALSE,
+      'is_default' => FALSE,
+    );
+  }
+
+  /**
+   * Get  membership status.
    *
    * @param int $membershipStatusId
-   * @static
+   *
+   * @return array
    */
-  function getMembershipStatus($membershipStatusId) {
+  public static function getMembershipStatus($membershipStatusId) {
     $statusDetails = array();
     $membershipStatus = new CRM_Member_DAO_MembershipStatus();
     $membershipStatus->id = $membershipStatusId;
@@ -151,42 +182,27 @@ class CRM_Member_BAO_MembershipStatus extends CRM_Member_DAO_MembershipStatus {
   }
 
   /**
-   * Function to delete membership Types
+   * Delete membership Types.
    *
    * @param int $membershipStatusId
-   * @param
-   * @static
+   *
+   * @throws CRM_Core_Exception
    */
-  static function del($membershipStatusId, $skipRedirect = FALSE) {
+  public static function del($membershipStatusId) {
     //check dependencies
     //checking if membership status is present in some other table
     $check = FALSE;
 
     $dependancy = array('Membership', 'MembershipLog');
     foreach ($dependancy as $name) {
-      require_once (str_replace('_', DIRECTORY_SEPARATOR, "CRM_Member_BAO_" . $name) . ".php");
-      eval('$dao = new CRM_Member_BAO_' . $name . '();');
+      $baoString = 'CRM_Member_BAO_' . $name;
+      $dao = new $baoString();
       $dao->status_id = $membershipStatusId;
       if ($dao->find(TRUE)) {
-        $check = TRUE;
+        throw new CRM_Core_Exception(ts('This membership status cannot be deleted as memberships exist with this status'));
       }
     }
-
-    if ($check) {
-      if (!$skipRedirect) {
-        $session = CRM_Core_Session::singleton();
-        CRM_Core_Session::setStatus(ts('This membership status cannot be deleted'));
-        return CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/admin/member/membershipStatus', "reset=1"));
-      }
-
-      // Return the error message to the api
-      $error = array();
-      $error['is_error'] = 1;
-      //don't translate as api error message are not translated
-      $error['error_message'] = 'The membership status cannot be deleted as memberships of this status exist';
-      return $error;
-    }
-
+    CRM_Utils_Weight::delWeight('CRM_Member_DAO_MembershipStatus', $membershipStatusId);
     //delete from membership Type table
     $membershipStatus = new CRM_Member_DAO_MembershipStatus();
     $membershipStatus->id = $membershipStatusId;
@@ -195,23 +211,31 @@ class CRM_Member_BAO_MembershipStatus extends CRM_Member_DAO_MembershipStatus {
   }
 
   /**
-   * Function to find the membership status based on start date, end date, join date & status date.
+   * Find the membership status based on start date, end date, join date & status date.
    *
-   * @param  date    $startDate      start date of the member whose membership status is to be calculated.
-   * @param  date    $endDate        end date of the member whose membership status is to be calculated.
-   * @param  date    $joinDate       join date of the member whose membership status is to be calculated.
-   * @param  date    $statusDate     status date of the member whose membership status is to be calculated.
-   * @param  boolean $excludeIsAdmin exclude the statuses those having is_admin = 1
+   * @param string $startDate
+   *   Start date of the member whose membership status is to be calculated.
+   * @param string $endDate
+   *   End date of the member whose membership status is to be calculated.
+   * @param string $joinDate
+   *   Join date of the member whose membership status is to be calculated.
+   * @param \date|string $statusDate status date of the member whose membership status is to be calculated.
+   * @param bool $excludeIsAdmin the statuses those having is_admin = 1.
+   *   Exclude the statuses those having is_admin = 1.
+   * @param int $membershipTypeID
+   * @param array $membership
+   *   Membership params as available to calling function - passed to the hook.
    *
-   * @return
-   * @static
+   * @return array
    */
-  static function getMembershipStatusByDate($startDate, $endDate, $joinDate,
-    $statusDate = 'today', $excludeIsAdmin = FALSE
+  public static function getMembershipStatusByDate(
+    $startDate, $endDate, $joinDate,
+    $statusDate = 'today', $excludeIsAdmin = FALSE, $membershipTypeID, $membership = array()
   ) {
     $membershipDetails = array();
+
     if (!$statusDate || $statusDate == 'today') {
-      $statusDate = getDate();
+      $statusDate = getdate();
       $statusDate = date('Ymd',
         mktime($statusDate['hours'],
           $statusDate['minutes'],
@@ -226,20 +250,21 @@ class CRM_Member_BAO_MembershipStatus extends CRM_Member_DAO_MembershipStatus {
       $statusDate = CRM_Utils_Date::customFormat($statusDate, '%Y%m%d');
     }
 
-    $startDate = CRM_Utils_Date::customFormat($startDate, '%Y%m%d');
-    $endDate   = CRM_Utils_Date::customFormat($endDate, '%Y%m%d');
-    $joinDate  = CRM_Utils_Date::customFormat($joinDate, '%Y%m%d');
-
     $dates = array('start', 'end', 'join');
     $events = array('start', 'end');
 
     foreach ($dates as $dat) {
-      if (${$dat . 'Date'}) {
+      if (${$dat . 'Date'} && ${$dat . 'Date'} != "null") {
+        ${$dat . 'Date'} = CRM_Utils_Date::customFormat(${$dat . 'Date'}, '%Y%m%d');
+
         ${$dat . 'Year'} = substr(${$dat . 'Date'}, 0, 4);
 
         ${$dat . 'Month'} = substr(${$dat . 'Date'}, 4, 2);
 
         ${$dat . 'Day'} = substr(${$dat . 'Date'}, 6, 2);
+      }
+      else {
+        ${$dat . 'Date'} = '';
       }
     }
 
@@ -251,9 +276,9 @@ class CRM_Member_BAO_MembershipStatus extends CRM_Member_DAO_MembershipStatus {
     }
 
     $query = "
- SELECT   * 
- FROM     civicrm_membership_status 
- WHERE    {$where} 
+ SELECT   *
+ FROM     civicrm_membership_status
+ WHERE    {$where}
  ORDER BY weight ASC";
 
     $membershipStatus = CRM_Core_DAO::executeQuery($query, CRM_Core_DAO::$_nullArray);
@@ -274,26 +299,26 @@ class CRM_Member_BAO_MembershipStatus extends CRM_Member_DAO_MembershipStatus {
               // add in months
               if ($membershipStatus->{$eve . '_event_adjust_unit'} == 'month') {
                 ${$eve . 'Event'} = date('Ymd', mktime($hour, $minute, $second,
-                    ${$dat . 'Month'} + $membershipStatus->{$eve . '_event_adjust_interval'},
-                    ${$dat . 'Day'},
-                    ${$dat . 'Year'}
-                  ));
+                  ${$dat . 'Month'} + $membershipStatus->{$eve . '_event_adjust_interval'},
+                  ${$dat . 'Day'},
+                  ${$dat . 'Year'}
+                ));
               }
               // add in days
               if ($membershipStatus->{$eve . '_event_adjust_unit'} == 'day') {
                 ${$eve . 'Event'} = date('Ymd', mktime($hour, $minute, $second,
-                    ${$dat . 'Month'},
-                    ${$dat . 'Day'} + $membershipStatus->{$eve . '_event_adjust_interval'},
-                    ${$dat . 'Year'}
-                  ));
+                  ${$dat . 'Month'},
+                  ${$dat . 'Day'} + $membershipStatus->{$eve . '_event_adjust_interval'},
+                  ${$dat . 'Year'}
+                ));
               }
               // add in years
               if ($membershipStatus->{$eve . '_event_adjust_unit'} == 'year') {
                 ${$eve . 'Event'} = date('Ymd', mktime($hour, $minute, $second,
-                    ${$dat . 'Month'},
-                    ${$dat . 'Day'},
-                    ${$dat . 'Year'} + $membershipStatus->{$eve . '_event_adjust_interval'}
-                  ));
+                  ${$dat . 'Month'},
+                  ${$dat . 'Day'},
+                  ${$dat . 'Year'} + $membershipStatus->{$eve . '_event_adjust_interval'}
+                ));
               }
               // if no interval and unit, present
             }
@@ -326,23 +351,35 @@ class CRM_Member_BAO_MembershipStatus extends CRM_Member_DAO_MembershipStatus {
 
       // returns FIRST status record for which status_date is in range.
       if ($membershipDetails) {
-        $membershipStatus->free();
-        return $membershipDetails;
+        break;
       }
     }
     //end fetch
 
     $membershipStatus->free();
+
+    //we bundle the arguments into an array as we can't pass 8 variables to the hook otherwise
+    // the membership array might contain the pre-altered settings so we don't want to merge this
+    $arguments = array(
+      'start_date' => $startDate,
+      'end_date' => $endDate,
+      'join_date' => $joinDate,
+      'status_date' => $statusDate,
+      'exclude_is_admin' => $endDate,
+      'membership_type_id' => $membershipTypeID,
+      'start_event' => $startEvent,
+      'end_event' => $endEvent,
+    );
+    CRM_Utils_Hook::alterCalculatedMembershipStatus($membershipDetails, $arguments, $membership);
     return $membershipDetails;
   }
 
   /**
-   * Function that return the status ids whose is_current_member is set
+   * Function that return the status ids whose is_current_member is set.
    *
-   * @return
-   * @static
+   * @return array
    */
-  function getMembershipStatusCurrent() {
+  public static function getMembershipStatusCurrent() {
     $statusIds = array();
     $membershipStatus = new CRM_Member_DAO_MembershipStatus();
     $membershipStatus->is_current_member = 1;
@@ -355,5 +392,5 @@ class CRM_Member_BAO_MembershipStatus extends CRM_Member_DAO_MembershipStatus {
     $membershipStatus->free();
     return $statusIds;
   }
-}
 
+}

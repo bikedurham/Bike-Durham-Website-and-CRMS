@@ -1,9 +1,9 @@
 <?php
 /*
   +--------------------------------------------------------------------+
-  | CiviCRM version 4.2                                                |
+  | CiviCRM version 4.6                                                |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2012                                |
+  | Copyright CiviCRM LLC (c) 2004-2015                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -39,14 +39,14 @@
 class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
 
   /**
-   * Function to set variables up before form is built
+   * Set variables up before form is built.
    *
    * @return void
-   * @access public
    */
   public function preProcess() {
     if (CRM_Mailing_Info::workflowEnabled() &&
-      !CRM_Core_Permission::check('schedule mailings')
+      !CRM_Core_Permission::check('schedule mailings') &&
+      !CRM_Core_Permission::check('access CiviMail')
     ) {
       $url = CRM_Utils_System::url('civicrm/mailing/browse/unscheduled', 'reset=1&scheduled=false');
       CRM_Utils_System::redirect($url);
@@ -54,12 +54,11 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
 
     //when user come from search context.
     $ssID = $this->get('ssID');
-    $this->assign('ssid',$ssID);
+    $this->assign('ssid', $ssID);
     $this->_searchBasedMailing = CRM_Contact_Form_Search::isSearchContext($this->get('context'));
-    if(CRM_Contact_Form_Search::isSearchContext($this->get('context')) && !$ssID){
+    if (CRM_Contact_Form_Search::isSearchContext($this->get('context')) && !$ssID) {
       $params = array();
-      $value = CRM_Core_BAO_PrevNextCache::buildSelectedContactPager($this,$params);
-      $result = CRM_Core_BAO_PrevNextCache::getSelectedContacts($value['offset'],$value['rowCount1']);
+      $result = CRM_Core_BAO_PrevNextCache::getSelectedContacts();
       $this->assign("value", $result);
     }
     $this->_mailingID = $this->get('mailing_id');
@@ -69,14 +68,14 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
       $this->_scheduleFormOnly = TRUE;
     }
   }
+
   /**
-   * This function sets the default values for the form.
+   * Set default values for the form.
    *
-   * @access public
    *
-   * @return None
+   * @return void
    */
-  function setDefaultValues() {
+  public function setDefaultValues() {
     $defaults = array();
     if ($this->_scheduleFormOnly) {
       $count = CRM_Mailing_BAO_Recipients::mailingSize($this->_mailingID);
@@ -84,18 +83,17 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
     else {
       $count = $this->get('count');
     }
-     $this->assign('count', $count);
+    $this->assign('count', $count);
     $defaults['now'] = 1;
     return $defaults;
   }
 
   /**
-   * Build the form for the last step of the mailing wizard
+   * Build the form object for the last step of the mailing wizard.
    *
    * @param
    *
    * @return void
-   * @access public
    */
   public function buildQuickform() {
     $this->addDateTime('start_date', ts('Schedule Mailing'), FALSE, array('formatType' => 'mailing'));
@@ -106,12 +104,13 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
 
     if ($this->_scheduleFormOnly) {
       $title = ts('Schedule Mailing') . ' - ' . CRM_Core_DAO::getFieldValue('CRM_Mailing_DAO_Mailing',
-        $this->_mailingID,
-        'name'
-      );
+          $this->_mailingID,
+          'name'
+        );
       CRM_Utils_System::setTitle($title);
       $buttons = array(
-        array('type' => 'next',
+        array(
+          'type' => 'next',
           'name' => ts('Submit Mailing'),
           'spacing' => '&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;',
           'isDefault' => TRUE,
@@ -127,8 +126,9 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
       //search base mailing, we should handle it when we fix CRM-3876
       if ($this->_searchBasedMailing) {
         $buttons = array(
-          array('type' => 'back',
-            'name' => ts('<< Previous'),
+          array(
+            'type' => 'back',
+            'name' => ts('Previous'),
           ),
           array(
             'type' => 'next',
@@ -140,8 +140,9 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
       }
       else {
         $buttons = array(
-          array('type' => 'back',
-            'name' => ts('<< Previous'),
+          array(
+            'type' => 'back',
+            'name' => ts('Previous'),
           ),
           array(
             'type' => 'next',
@@ -163,17 +164,21 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
       $this->_scheduleFormOnly
     ) {
       // add the preview elements
-      $preview            = array();
-      $preview['type']    = CRM_Core_DAO::getFieldValue('CRM_Mailing_DAO_Mailing', $this->_mailingID, 'body_html') ? 'html' : 'text';
+      $preview = array();
+      $preview['type'] = CRM_Core_DAO::getFieldValue('CRM_Mailing_DAO_Mailing', $this->_mailingID, 'body_html') ? 'html' : 'text';
       $preview['subject'] = CRM_Core_DAO::getFieldValue('CRM_Mailing_DAO_Mailing',
         $this->_mailingID,
         'subject'
       );
-      $preview['viewURL'] = CRM_Utils_System::url('civicrm/mailing/view', "reset=1&id={$this->_mailingID}");
 
-      $preview['attachment'] = CRM_Core_BAO_File::attachmentInfo('civicrm_mailing',
-        $this->_mailingID
-      );
+      $mailingKey = $this->_mailingID;
+      if ($hash = CRM_Mailing_BAO_Mailing::getMailingHash($mailingKey)) {
+        $mailingKey = $hash;
+      }
+
+      $preview['viewURL'] = CRM_Utils_System::url('civicrm/mailing/view', "reset=1&id={$mailingKey}");
+
+      $preview['attachment'] = CRM_Core_BAO_File::attachmentInfo('civicrm_mailing', $this->_mailingID);
 
       $this->assign_by_ref('preview', $preview);
     }
@@ -186,11 +191,15 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
    * Warning: if you make changes here, be sure to also make them in
    * Retry.php
    *
-   * @param array $params     The form values
+   * @param array $params
+   *   The form values.
    *
-   * @return boolean          True if either we deliver immediately, or the
+   * @param $files
+   * @param $self
+   *
+   * @return bool
+   *   True if either we deliver immediately, or the
    *                          date is properly set.
-   * @static
    */
   public static function formRule($params, $files, $self) {
     if (!empty($params['_qf_Schedule_submit'])) {
@@ -212,8 +221,8 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
         }
 
         $draftURL = CRM_Utils_System::url('civicrm/mailing/browse/unscheduled', 'scheduled=false&reset=1');
-        $status = ts("Your mailing has been saved. You can continue later by clicking the 'Continue' action to resume working on it.<br /> From <a href='%1'>Draft and Unscheduled Mailings</a>.", array(1 => $draftURL));
-        CRM_Core_Session::setStatus($status);
+        $status = ts("Your mailing has been saved. You can continue later by clicking the 'Continue' action to resume working on it.<br />From <a href='%1'>Draft and Unscheduled Mailings</a>.", array(1 => $draftURL));
+        CRM_Core_Session::setStatus($status, ts('Mailing Saved'), 'success');
 
         //replace user context to search.
         $context = $self->get('context');
@@ -222,29 +231,29 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
         }
 
         $urlParams = "force=1&reset=1&ssID={$ssID}&context={$context}";
-        $qfKey = CRM_Utils_Request::retrieve('qfKey', 'String', $this);
+        $qfKey = CRM_Utils_Request::retrieve('qfKey', 'String', $self);
         if (CRM_Utils_Rule::qfKey($qfKey)) {
           $urlParams .= "&qfKey=$qfKey";
         }
         $url = CRM_Utils_System::url('civicrm/contact/' . $fragment, "force=1&reset=1&ssID={$ssID}");
-        CRM_Utils_System::redirect($url);
       }
       else {
-        CRM_Core_Session::setStatus(ts("Your mailing has been saved. Click the 'Continue' action to resume working on it."));
+        $status = ts("Click the 'Continue' action to resume working on it.");
         $url = CRM_Utils_System::url('civicrm/mailing/browse/unscheduled', 'scheduled=false&reset=1');
-        CRM_Utils_System::redirect($url);
       }
+      CRM_Core_Session::setStatus($status, ts('Mailing Saved'), 'success');
+      CRM_Utils_System::redirect($url);
     }
-    if (isset($params['now']) || CRM_Utils_Array::value('_qf_Schedule_back', $params) == '<< Previous') {
+    if (isset($params['now']) || CRM_Utils_Array::value('_qf_Schedule_back', $params) == ts('Previous')) {
       return TRUE;
     }
 
     if (CRM_Utils_Date::format(CRM_Utils_Date::processDate($params['start_date'],
-          $params['start_date_time']
-        )) < CRM_Utils_Date::format(date('YmdHi00'))) {
+        $params['start_date_time']
+      )) < CRM_Utils_Date::format(date('YmdHi00'))
+    ) {
       return array(
-        'start_date' =>
-        ts('Start date cannot be earlier than the current time.'),
+        'start_date' => ts('Start date cannot be earlier than the current time.'),
       );
     }
     return TRUE;
@@ -256,7 +265,6 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
    * @param
    *
    * @return void
-   * @access public
    */
   public function postProcess() {
     $params = array();
@@ -267,67 +275,47 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
       CRM_Core_Error::fatal(ts('Could not find a mailing id'));
     }
 
-    foreach (array(
-      'now', 'start_date', 'start_date_time') as $parameter) {
-      $params[$parameter] = $this->controller->exportValue($this->_name,
-        $parameter
-      );
+    foreach (array('now', 'start_date', 'start_date_time') as $parameter) {
+      $params[$parameter] = $this->controller->exportValue($this->_name, $parameter);
     }
 
-    $mailing = new CRM_Mailing_BAO_Mailing();
-    $mailing->id = $ids['mailing_id'];
-    if ($mailing->find(TRUE)) {
-      $job             = new CRM_Mailing_BAO_Job();
-      $job->mailing_id = $mailing->id;
-      $job->is_test    = 0;
-      if ($job->find(TRUE)) {
-        CRM_Core_Error::fatal(ts('A job for this mailing already exists'));
-      }
-
-      if (empty($mailing->is_template)) {
-        $job->status = 'Scheduled';
-        if ($params['now']) {
-          $job->scheduled_date = date('YmdHis');
-        }
-        else {
-          $job->scheduled_date = CRM_Utils_Date::processDate($params['start_date'] . ' ' . $params['start_date_time']);
-        }
-        $job->save();
-      }
-
-      // set approval details if workflow is not enabled
-      if (!CRM_Mailing_Info::workflowEnabled()) {
-        $session = CRM_Core_Session::singleton();
-        $mailing->approver_id = $session->get('userID');
-        $mailing->approval_date = date('YmdHis');
-        $mailing->approval_status_id = 1;
-      }
-      else {
-        // reset them in case this mailing was rejected
-        $mailing->approver_id = 'null';
-        $mailing->approval_date = 'null';
-        $mailing->approval_status_id = 'null';
-      }
-
-      if ($mailing->approval_date) {
-        $mailing->approval_date = CRM_Utils_Date::isoToMysql($mailing->approval_date);
-      }
-
-      // also set the scheduled_id
-      $session = CRM_Core_Session::singleton();
-      $mailing->scheduled_id = $session->get('userID');
-      $mailing->scheduled_date = date('YmdHis');
-      $mailing->created_date = CRM_Utils_Date::isoToMysql($mailing->created_date);
-      $mailing->save();
+    // Previously, we checked if $mailing->is_template, and did *not*
+    // schedule if it was set. Discussed with Lobo, removed that check
+    // as it appeared to prevent mails being scheduled if they were
+    // saved as a template, and this wasn't the documented behaviour.
+    // $saveTemplate = $this->controller->exportValue('saveTemplate');
+    if ($params['now']) {
+      $params['scheduled_date'] = date('YmdHis');
     }
+    else {
+      $params['scheduled_date'] = CRM_Utils_Date::processDate($params['start_date'] . ' ' . $params['start_date_time']);
+    }
+
+    $session = CRM_Core_Session::singleton();
+
+    // set the scheduled_id
+    $params['scheduled_id'] = $session->get('userID');
+
+    // set approval details if workflow is not enabled
+    if (!CRM_Mailing_Info::workflowEnabled()) {
+      $params['approver_id'] = $session->get('userID');
+      $params['approval_date'] = date('YmdHis');
+      $params['approval_status_id'] = 1;
+    }
+    else {
+      // reset them in case this mailing was rejected
+      $params['approver_id'] = 'null';
+      $params['approval_date'] = 'null';
+      $params['approval_status_id'] = 'null';
+    }
+
+    /* Build the mailing object */
+    CRM_Mailing_BAO_Mailing::create($params, $ids);
 
     //when user perform mailing from search context
     //redirect it to search result CRM-3711.
     $ssID = $this->get('ssID');
-    if ($ssID &&
-      $this->_searchBasedMailing &&
-      !CRM_Mailing_Info::workflowEnabled()
-    ) {
+    if ($ssID && $this->_searchBasedMailing && !CRM_Mailing_Info::workflowEnabled()) {
       if ($this->_action == CRM_Core_Action::BASIC) {
         $fragment = 'search';
       }
@@ -356,19 +344,18 @@ class CRM_Mailing_Form_Schedule extends CRM_Core_Form {
 
     $session = CRM_Core_Session::singleton();
     $session->pushUserContext(CRM_Utils_System::url('civicrm/mailing/browse/scheduled',
-        'reset=1&scheduled=true'
-      ));
+      'reset=1&scheduled=true'
+    ));
   }
 
   /**
-   * Display Name of the form
+   * Display Name of the form.
    *
-   * @access public
    *
    * @return string
    */
   public function getTitle() {
     return ts('Schedule or Send');
   }
-}
 
+}

@@ -1,11 +1,9 @@
 <?php
-// $Id$
-
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,20 +23,22 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Report_Form_Contribute_LoggingDetail extends CRM_Logging_ReportDetail {
-  function __construct() {
-    $logging        = new CRM_Logging_Schema;
+  /**
+   */
+  public function __construct() {
+    $logging = new CRM_Logging_Schema();
     $this->tables[] = 'civicrm_contribution';
-    $this->tables   = array_merge($this->tables, array_keys($logging->customDataLogTables()));
+    $this->tables = array_merge($this->tables, array_keys($logging->customDataLogTables()));
 
     $this->detail = 'logging/contribute/detail';
     $this->summary = 'logging/contribute/summary';
@@ -46,21 +46,11 @@ class CRM_Report_Form_Contribute_LoggingDetail extends CRM_Logging_ReportDetail 
     parent::__construct();
   }
 
-  function buildQuickForm() {
+  public function buildQuickForm() {
     parent::buildQuickForm();
 
     // link back to summary report
     $this->assign('backURL', CRM_Report_Utils_Report::getNextUrl('logging/contribute/summary', 'reset=1', FALSE, TRUE));
   }
 
-  protected function whoWhomWhenSql() {
-    return "
-            SELECT who.id who_id, who.display_name who_name, whom.id whom_id, whom.display_name whom_name
-            FROM `{$this->db}`.log_civicrm_contribution l
-            LEFT JOIN civicrm_contact who ON (l.log_user_id = who.id)
-            LEFT JOIN civicrm_contact whom ON (l.contact_id = whom.id)
-            WHERE log_action = 'Update' AND log_conn_id = %1 AND log_date = %2 ORDER BY log_date DESC LIMIT 1
-        ";
-  }
 }
-

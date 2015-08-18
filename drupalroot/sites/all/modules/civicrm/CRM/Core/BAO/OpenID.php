@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -39,48 +39,48 @@
 class CRM_Core_BAO_OpenID extends CRM_Core_DAO_OpenID {
 
   /**
-   * takes an associative array and adds OpenID
+   * Takes an associative array and adds OpenID.
    *
-   * @param array  $params         (reference ) an assoc array of name/value pairs
+   * @param array $params
+   *   (reference ) an assoc array of name/value pairs.
    *
-   * @return object       CRM_Core_BAO_OpenID object on success, null otherwise
-   * @access public
-   * @static
+   * @return object
+   *   CRM_Core_BAO_OpenID object on success, null otherwise
    */
-  static
-  function add(&$params) {
+  public static function add(&$params) {
+    $hook = empty($params['id']) ? 'create' : 'edit';
+    CRM_Utils_Hook::pre($hook, 'OpenID', CRM_Utils_Array::value('id', $params), $params);
+
     $openId = new CRM_Core_DAO_OpenID();
     $openId->copyValues($params);
+    $openId->save();
 
-    return $openId->save();
+    CRM_Utils_Hook::post($hook, 'OpenID', $openId->id, $openId);
+    return $openId;
   }
 
   /**
    * Given the list of params in the params array, fetch the object
    * and store the values in the values array
    *
-   * @param array $entityBlock   input parameters to find object
+   * @param array $entityBlock
+   *   Input parameters to find object.
    *
    * @return mixed
-   * @access public
-   * @static
    */
-  static
-  function &getValues($entityBlock) {
+  public static function &getValues($entityBlock) {
     return CRM_Core_BAO_Block::getValues('openid', $entityBlock);
   }
 
   /**
-   * Returns whether or not this OpenID is allowed to login
+   * Returns whether or not this OpenID is allowed to login.
    *
-   * @param  string  $identity_url the OpenID to check
+   * @param string $identity_url
+   *   The OpenID to check.
    *
-   * @return boolean
-   * @access public
-   * @static
+   * @return bool
    */
-  static
-  function isAllowedToLogin($identity_url) {
+  public static function isAllowedToLogin($identity_url) {
     $openId = new CRM_Core_DAO_OpenID();
     $openId->openid = $identity_url;
     if ($openId->find(TRUE)) {
@@ -92,21 +92,22 @@ class CRM_Core_BAO_OpenID extends CRM_Core_DAO_OpenID {
   /**
    * Get all the openids for a specified contact_id, with the primary openid being first
    *
-   * @param int $id the contact id
+   * @param int $id
+   *   The contact id.
    *
-   * @return array  the array of openid's
-   * @access public
-   * @static
+   * @param bool $updateBlankLocInfo
+   *
+   * @return array
+   *   the array of openid's
    */
-  static
-  function allOpenIDs($id, $updateBlankLocInfo = FALSE) {
+  public static function allOpenIDs($id, $updateBlankLocInfo = FALSE) {
     if (!$id) {
       return NULL;
     }
 
     $query = "
-SELECT civicrm_openid.openid, civicrm_location_type.name as locationType, civicrm_openid.is_primary as is_primary, 
-civicrm_openid.allowed_to_login as allowed_to_login, civicrm_openid.id as openid_id, 
+SELECT civicrm_openid.openid, civicrm_location_type.name as locationType, civicrm_openid.is_primary as is_primary,
+civicrm_openid.allowed_to_login as allowed_to_login, civicrm_openid.id as openid_id,
 civicrm_openid.location_type_id as locationTypeId
 FROM      civicrm_contact
 LEFT JOIN civicrm_openid ON ( civicrm_openid.contact_id = civicrm_contact.id )
@@ -118,8 +119,8 @@ ORDER BY
     $params = array(1 => array($id, 'Integer'));
 
     $openids = $values = array();
-    $dao     = CRM_Core_DAO::executeQuery($query, $params);
-    $count   = 1;
+    $dao = CRM_Core_DAO::executeQuery($query, $params);
+    $count = 1;
     while ($dao->fetch()) {
       $values = array(
         'locationType' => $dao->locationType,
@@ -139,5 +140,12 @@ ORDER BY
     }
     return $openids;
   }
-}
 
+  /**
+   * Call common delete function.
+   */
+  public static function del($id) {
+    return CRM_Contact_BAO_Contact::deleteObjectWithPrimary('OpenID', $id);
+  }
+
+}

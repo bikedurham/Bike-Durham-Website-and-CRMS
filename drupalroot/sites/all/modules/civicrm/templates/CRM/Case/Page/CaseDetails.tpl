@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,7 +25,7 @@
 *}
 {strip}
 {if $rows}
-  <table class="nestedActivitySelector">
+  <table class="nestedActivitySelector" data-params='{$data_params}'>
     <tr class="columnheader">
       <th>{ts}Date{/ts}</th>
       <th>{ts}Subject{/ts}</th>
@@ -38,7 +38,7 @@
 
     {counter start=0 skip=1 print=false}
     {foreach from=$rows item=row}
-    <tr class="{$row.class}">
+    <tr class="crm-entity {$row.class}" data-entity="activity" data-id="{$row.id}">
       <td class="crm-case-display_date">{$row.display_date}</td>
       <td class="crm-case-subject">{$row.subject}</td>
       <td class="crm-case-type">{$row.type}</td>
@@ -56,4 +56,3 @@
 {/strip}
 
 {include file="CRM/Case/Form/ActivityToCase.tpl"}
-{include file="CRM/Case/Form/ActivityChangeStatus.tpl"}

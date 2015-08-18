@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -26,31 +26,22 @@
  */
 
 /**
- *
- * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
- * $Id$
- *
- */
-
-/**
- * This class generates form components for batch entry
- *
+ * This class generates form components for batch entry.
  */
 class CRM_Batch_Form_Batch extends CRM_Admin_Form {
 
+  /**
+   * PreProcess function.
+   */
   public function preProcess() {
     parent::preProcess();
-    // set the usercontext
+    // Set the user context.
     $session = CRM_Core_Session::singleton();
     $session->replaceUserContext(CRM_Utils_System::url('civicrm/batch', "reset=1"));
   }
 
   /**
-   * Function to build the form
-   *
-   * @return None
-   * @access public
+   * Build the form object.
    */
   public function buildQuickForm() {
     parent::buildQuickForm();
@@ -60,55 +51,46 @@ class CRM_Batch_Form_Batch extends CRM_Admin_Form {
     }
 
     $this->applyFilter('__ALL__', 'trim');
-    $attributes = CRM_Core_DAO::getAttribute('CRM_Core_DAO_Batch');
+    $attributes = CRM_Core_DAO::getAttribute('CRM_Batch_DAO_Batch');
     $this->add('text', 'title', ts('Batch Name'), $attributes['name'], TRUE);
 
-    $type = $this->add('select', 'type_id', ts('Type'), CRM_Core_PseudoConstant::getBatchType());
+    $batchTypes = CRM_Batch_BAO_Batch::buildOptions('type_id');
+
+    $type = $this->add('select', 'type_id', ts('Type'), $batchTypes);
 
     if ($this->_action & CRM_Core_Action::UPDATE) {
       $type->freeze();
     }
 
     $this->add('textarea', 'description', ts('Description'), $attributes['description']);
-    $this->add('text', 'item_count', ts('Number of items'), $attributes['item_count'], TRUE);
+    $this->add('text', 'item_count', ts('Number of Items'), $attributes['item_count'], TRUE);
     $this->add('text', 'total', ts('Total Amount'), $attributes['total'], TRUE);
-    $this->add('select', 'status_id', ts('Status'), CRM_Core_PseudoConstant::getBatchStatus());
   }
 
   /**
-   * This function sets the default values for the form.
-   *
-   * @access public
-   *
-   * @return None
+   * Set default values for the form.
    */
-  function setDefaultValues() {
+  public function setDefaultValues() {
     $defaults = array();
 
     if ($this->_action & CRM_Core_Action::ADD) {
-      // set batch name default
-      $defaults['title'] = CRM_Core_BAO_Batch::generateBatchName();
+      // Set batch name default.
+      $defaults['title'] = CRM_Batch_BAO_Batch::generateBatchName();
     }
     else {
       $defaults = $this->_values;
     }
-
-
     return $defaults;
   }
 
   /**
-   * Function to process the form
-   *
-   * @access public
-   *
-   * @return None
+   * Process the form submission.
    */
   public function postProcess() {
     $params = $this->controller->exportValues($this->_name);
     if ($this->_action & CRM_Core_Action::DELETE) {
-      CRM_Core_Session::setStatus("Batch has been deleted successfully.");
-      CRM_Core_BAO_Batch::deleteBatch($this->_id);
+      CRM_Core_Session::setStatus("", ts("Batch Deleted"), "success");
+      CRM_Batch_BAO_Batch::deleteBatch($this->_id);
       return;
     }
 
@@ -118,20 +100,21 @@ class CRM_Batch_Form_Batch extends CRM_Admin_Form {
     else {
       $session = CRM_Core_Session::singleton();
       $params['created_id'] = $session->get('userID');
-      $params['created_date'] = CRM_Utils_Date::processDate(date("Y-m-d his"));
+      $params['created_date'] = CRM_Utils_Date::processDate(date("Y-m-d"), date("H:i:s"));
     }
 
-    $batch = CRM_Core_BAO_Batch::create($params);
+    // always create with data entry status
+    $params['status_id'] = CRM_Core_OptionGroup::getValue('batch_status', 'Data Entry', 'name');
+    $batch = CRM_Batch_BAO_Batch::create($params);
 
     // redirect to batch entry page.
     $session = CRM_Core_Session::singleton();
-    if ( $this->_action & CRM_Core_Action::ADD ) {
+    if ($this->_action & CRM_Core_Action::ADD) {
       $session->replaceUserContext(CRM_Utils_System::url('civicrm/batch/entry', "id={$batch->id}&reset=1&action=add"));
     }
     else {
       $session->replaceUserContext(CRM_Utils_System::url('civicrm/batch/entry', "id={$batch->id}&reset=1"));
     }
   }
-  //end of function
-}
 
+}

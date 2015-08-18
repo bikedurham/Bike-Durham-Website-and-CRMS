@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -39,12 +39,12 @@
 class CRM_Mailing_Page_AJAX {
 
   /**
-   * Function to fetch the template text/html messages
+   * Fetch the template text/html messages
    */
-  function template() {
+  public static function template() {
     $templateId = CRM_Utils_Type::escape($_POST['tid'], 'Integer');
 
-    $messageTemplate = new CRM_Core_DAO_MessageTemplates();
+    $messageTemplate = new CRM_Core_DAO_MessageTemplate();
     $messageTemplate->id = $templateId;
     $messageTemplate->selectAdd();
     $messageTemplate->selectAdd('msg_text, msg_html, msg_subject, pdf_format_id');
@@ -56,8 +56,57 @@ class CRM_Mailing_Page_AJAX {
       'pdf_format_id' => $messageTemplate->pdf_format_id,
     );
 
-    echo json_encode($messages);
+    CRM_Utils_JSON::output($messages);
+  }
+
+  /**
+   * Retrieve contact mailings.
+   */
+  public static function getContactMailings() {
+    $contactID = CRM_Utils_Type::escape($_GET['contact_id'], 'Integer');
+
+    $sortMapper = array(
+      0 => 'subject',
+      1 => 'creator_name',
+      2 => '',
+      3 => 'start_date',
+      4 => '',
+      5 => 'links',
+    );
+
+    $sEcho = CRM_Utils_Type::escape($_REQUEST['sEcho'], 'Integer');
+    $offset = isset($_REQUEST['iDisplayStart']) ? CRM_Utils_Type::escape($_REQUEST['iDisplayStart'], 'Integer') : 0;
+    $rowCount = isset($_REQUEST['iDisplayLength']) ? CRM_Utils_Type::escape($_REQUEST['iDisplayLength'], 'Integer') : 25;
+    $sort = isset($_REQUEST['iSortCol_0']) ? CRM_Utils_Array::value(CRM_Utils_Type::escape($_REQUEST['iSortCol_0'], 'Integer'), $sortMapper) : NULL;
+    $sortOrder = isset($_REQUEST['sSortDir_0']) ? CRM_Utils_Type::escape($_REQUEST['sSortDir_0'], 'String') : 'asc';
+
+    $params = $_POST;
+    if ($sort && $sortOrder) {
+      $params['sortBy'] = $sort . ' ' . $sortOrder;
+    }
+
+    $params['page'] = ($offset / $rowCount) + 1;
+    $params['rp'] = $rowCount;
+
+    $params['contact_id'] = $contactID;
+    $params['context'] = $context;
+
+    // get the contact mailings
+    $mailings = CRM_Mailing_BAO_Mailing::getContactMailingSelector($params);
+
+    $iFilteredTotal = $iTotal = $params['total'];
+    $selectorElements = array(
+      'subject',
+      'mailing_creator',
+      'recipients',
+      'start_date',
+      'openstats',
+      'links',
+    );
+
+    header('Content-Type: application/json');
+    echo CRM_Utils_JSON::encodeDataTableSelector($mailings, $sEcho, $iTotal, $iFilteredTotal, $selectorElements);
     CRM_Utils_System::civiExit();
   }
-}
 
+}

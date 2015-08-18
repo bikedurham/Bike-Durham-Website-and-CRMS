@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -40,36 +40,25 @@
 class CRM_Utils_Request {
 
   /**
-   * We only need one instance of this object. So we use the singleton
-   * pattern and cache the instance in this variable
+   * Retrieve a value from the request (GET/POST/REQUEST)
    *
-   * @var object
-   * @access private
-   * @static
+   * @param string $name
+   *   Name of the variable to be retrieved.
+   * @param string $type
+   *   Type of the variable (see CRM_Utils_Type for details).
+   * @param object $store
+   *   Session scope where variable is stored.
+   * @param bool $abort
+   *   TRUE, if the variable is required.
+   * @param mixed $default
+   *   Default value of the variable if not present.
+   * @param string $method
+   *   Where to look for the variable - 'GET', 'POST' or 'REQUEST'.
+   *
+   * @return mixed
+   *   The value of the variable
    */
-  static private $_singleton = NULL;
-
-  /**
-   * class constructor
-   */ 
-  function __construct() {}
-
-  /**
-   * get the variable information from the request (GET/POST/SESSION
-   *
-   * @param $name    name of the variable to be retrieved
-   * @param $type    type of the variable (see CRM_Utils_Type for details)
-   * @param $store   session scope where variable is stored
-   * @param $abort   is this variable required
-   * @param $default default value of the variable if not present
-   * @param $method  where should we look for the variable
-   *
-   * @return string  the value of the variable
-   * @access public
-   * @static
-   *
-   */
-  static function retrieve($name, $type, &$store = NULL, $abort = FALSE, $default = NULL, $method = 'GET') {
+  public static function retrieve($name, $type, &$store = NULL, $abort = FALSE, $default = NULL, $method = 'REQUEST') {
 
     // hack to detect stuff not yet converted to new style
     if (!is_string($type)) {
@@ -121,5 +110,27 @@ class CRM_Utils_Request {
 
     return $value;
   }
-}
 
+  /**
+   * This is a replacement for $_REQUEST which includes $_GET/$_POST
+   * but excludes $_COOKIE / $_ENV / $_SERVER.
+   *
+   * @return array
+   */
+  public static function exportValues() {
+    // For more discussion of default $_REQUEST handling, see:
+    // http://www.php.net/manual/en/reserved.variables.request.php
+    // http://www.php.net/manual/en/ini.core.php#ini.request-order
+    // http://www.php.net/manual/en/ini.core.php#ini.variables-order
+
+    $result = array();
+    if ($_GET) {
+      $result = array_merge($result, $_GET);
+    }
+    if ($_POST) {
+      $result = array_merge($result, $_POST);
+    }
+    return $result;
+  }
+
+}

@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -26,14 +26,16 @@
 
 <div id="case_dashboard_dashlet" class="form-item">
 
-{capture assign=newCaseURL}{crmURL p="civicrm/contact/view/case" q="action=add&context=standalone&reset=1"}{/capture}
+{capture assign=newCaseURL}{crmURL p="civicrm/case/add" q="action=add&context=standalone&reset=1"}{/capture}
 
 <div class="float-right">
   <table class="form-layout-compressed">
-   {if $newClient}	
+   {if $newClient}
     <tr>
       <td>
-        <a href="{$newCaseURL}" class="button"><span>&raquo; {ts}New Case{/ts}</span></a>
+        <a href="{$newCaseURL}" class="button">
+          <span><div class="icon ui-icon-circle-plus"></div> {ts}New Case{/ts}</span>
+        </a>
       </td>
     </tr>
    {/if}
@@ -43,7 +45,7 @@
         <a href="{crmURL p="civicrm/case" q="reset=1&all=1"}"><span>&raquo; {ts}Show ALL Cases with Upcoming Activities{/ts}</span></a>
       </td>
     </tr>
-   {else}	
+   {else}
     <tr>
       <td class="right">
         <a href="{crmURL p="civicrm/case" q="reset=1&all=0"}"><span>&raquo; {ts}Show My Cases with Upcoming Activities{/ts}</span></a>
@@ -58,7 +60,7 @@
   </table>
 </div>
 
-<h3>{ts}Summary of Case Involvement{/ts}</h3>
+<h3>{ts}Summary of Involvement{/ts}</h3>
 
 <table class="report">
   <tr class="columnheader">

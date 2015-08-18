@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,20 +25,20 @@
 *}
 {literal}
 <script type="text/javascript" >
-cj( function( ) {
+CRM.$(function($) {
     {/literal}
     {if $generateAjaxRequest}
         {foreach from=$ajaxRequestBlocks key="blockName" item="instances"}
             {foreach from=$instances key="instance" item="active"}
                 buildAdditionalBlocks( '{$blockName}', '{$className}' );
-            {/foreach}  	
+            {/foreach}
         {/foreach}
     {/if}
 
     {if $loadShowHideAddressFields}
         {foreach from=$showHideAddressFields key="blockId" item="fieldName"}
            processAddressFields( '{$fieldName}', '{$blockId}', 0 );
-        {/foreach}  
+        {/foreach}
     {/if}
     {literal}
 });
@@ -63,7 +63,7 @@ function buildAdditionalBlocks( blockName, className ) {
     }
 
     {/literal}
-    {if $qfKey}    
+    {if $qfKey}
         dataUrl += "&qfKey={$qfKey}";
     {/if}
     {literal}
@@ -75,14 +75,12 @@ function buildAdditionalBlocks( blockName, className ) {
     var fname = '#' + blockName + '_Block_'+ previousInstance;
 
     cj('#addMore' + blockName + previousInstance ).hide( );
-    cj.ajax({ 
-        url     : dataUrl,   
+    cj.ajax({
+        url     : dataUrl,
         async   : false,
         success : function(html){
             cj(fname).after(html);
-            if ((typeof(Drupal) != 'undefined') && Drupal.attachBehaviors) {
-            	Drupal.attachBehaviors(cj('#' + blockName + '_Block_'+ currentInstance)[0]);
-          	}
+            cj(fname).nextAll().trigger('crmLoad');
         }
     });
 
@@ -101,29 +99,29 @@ function singleSelect( object ) {
     var execBlock  = '#' + element['0'] + '-' + block + '-html Input[id*="' + element['2'] + '"]';
 
     //element to check for checkbox
-    var elementChecked =  cj( '#' + object ).attr('checked');
+    var elementChecked =  cj( '#' + object ).prop('checked');
     if ( elementChecked ) {
         cj( execBlock ).each( function() {
             if ( cj(this).attr('id') != object ) {
-                cj(this).attr( 'checked', false );
+                cj(this).prop('checked', false );
             }
         });
     } else {
-        cj( '#' + object ).attr( 'checked', false );
+        cj( '#' + object ).prop('checked', false );
     }
 
-	//check if non of elements is set Primary / Allowed to Login.
-	if( cj.inArray( element['2'].slice('2'), [ 'Primary', 'Login' ] ) != -1 ) {
-		primary = false;
-		cj( execBlock ).each( function( ) { 
-			if ( cj(this).attr( 'checked' ) ) {
-				primary = true;				
-			}
-		});
-		if( ! primary ) {
-			cj('#' + object).attr( 'checked', true );
-		}
-	}
+  //check if non of elements is set Primary / Allowed to Login.
+  if( cj.inArray( element['2'].slice('2'), [ 'Primary', 'Login' ] ) != -1 ) {
+    primary = false;
+    cj( execBlock ).each( function( ) {
+      if ( cj(this).prop('checked' ) ) {
+        primary = true;
+      }
+    });
+    if( ! primary ) {
+      cj('#' + object).prop('checked', true );
+    }
+  }
 }
 
 function removeBlock( blockName, blockId ) {
@@ -132,25 +130,25 @@ function removeBlock( blockName, blockId ) {
       return clearFirstBlock(blockName , blockId);
     }
 
-    if ( cj( "#"+ blockName + "_" + blockId + "_IsPrimary").attr('checked') ) {
-       	var primaryBlockId = 1;
+    if ( cj( "#"+ blockName + "_" + blockId + "_IsPrimary").prop('checked') ) {
+         var primaryBlockId = 1;
         // consider next block as a primary,
-        // when user delete first block 
+        // when user delete first block
         if ( blockId >= 1 ) {
            var blockIds = getAddressBlock('next');
            for ( var i = 0; i <= blockIds.length; i++) {
                var curBlockId = blockIds[i];
-	           if ( curBlockId != blockId ) {
-	               primaryBlockId = curBlockId;
-	               break;
-	           }
-            }  
-        } 
-    
+             if ( curBlockId != blockId ) {
+                 primaryBlockId = curBlockId;
+                 break;
+             }
+            }
+        }
+
         // finally sets the primary address
-        cj( '#'+ blockName + '_' + primaryBlockId + '_IsPrimary').attr('checked', true);
+        cj( '#'+ blockName + '_' + primaryBlockId + '_IsPrimary').prop('checked', true);
     }
-    
+
     //remove the spacer for address block only.
     if ( blockName == 'Address' && cj( "#"+ blockName + "_Block_" + blockId ).prev().attr('class') == 'spacer' ){
         cj( "#"+ blockName + "_Block_" + blockId ).prev().remove();
@@ -165,20 +163,21 @@ function removeBlock( blockName, blockId ) {
         var lastBlockId = lastAddressBlock.split( '_' );
         if ( lastBlockId[2] ) {
             cj( '#addMoreAddress' + lastBlockId[2] ).show();
-        } 
+        }
     }
 }
 
 function clearFirstBlock( blockName , blockId ) {
     var element =  blockName + '_Block_' + blockId;
     cj("#" + element +" input, " + "#" + element + " select").each(function () {
-        cj(this).val(''); 
+        cj(this).val('');
     });
-    cj("#addressBlockId").removeClass('crm-accordion-open').addClass('crm-accordion-closed');
+    cj("#addressBlockId:not(.collapsed)").crmAccordionToggle();
+    cj("#addressBlockId .active").removeClass('active');
 }
 
 function getAddressBlock( position ) {
-   var addressBlockIds = new Array();
+   var addressBlockIds = [];
    var i = 0;
    switch ( position ) {
         case 'last':
@@ -187,7 +186,7 @@ function getAddressBlock( position ) {
               break;
         case 'next':
               cj("#addressBlockId > div").children().each( function() {
-                  if ( cj(this).attr('id') ) {    
+                  if ( cj(this).attr('id') ) {
                      var blockInfo = cj(this).attr('id').split( '_', 3);
                      addressBlockIds[i] = blockInfo['2'];
                      i++;

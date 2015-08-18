@@ -1,11 +1,9 @@
 <?php
-// $Id$
-
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,20 +23,22 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
 class CRM_Report_Form_Contact_LoggingDetail extends CRM_Logging_ReportDetail {
-  function __construct() {
-    $logging        = new CRM_Logging_Schema;
+  /**
+   */
+  public function __construct() {
+    $logging = new CRM_Logging_Schema();
     $this->tables[] = 'civicrm_contact';
-    $this->tables   = array_merge($this->tables, array_keys($logging->customDataLogTables()));
+    $this->tables = array_merge($this->tables, array_keys($logging->customDataLogTables()));
     $this->tables[] = 'civicrm_email';
     $this->tables[] = 'civicrm_phone';
     $this->tables[] = 'civicrm_im';
@@ -47,6 +47,11 @@ class CRM_Report_Form_Contact_LoggingDetail extends CRM_Logging_ReportDetail {
     $this->tables[] = 'civicrm_address';
     $this->tables[] = 'civicrm_note';
     $this->tables[] = 'civicrm_relationship';
+    $this->tables[] = 'civicrm_activity';
+    $this->tables[] = 'civicrm_case';
+
+    // allow tables to be extended by report hook query objects
+    CRM_Report_BAO_Hook::singleton()->alterLogTables($this, $this->tables);
 
     $this->detail = 'logging/contact/detail';
     $this->summary = 'logging/contact/summary';
@@ -54,7 +59,10 @@ class CRM_Report_Form_Contact_LoggingDetail extends CRM_Logging_ReportDetail {
     parent::__construct();
   }
 
-  function buildQuickForm() {
+  public function buildQuickForm() {
+    $layout = CRM_Utils_Request::retrieve('layout', 'String', $this);
+    $this->assign('layout', $layout);
+
     parent::buildQuickForm();
 
     if ($this->cid) {
@@ -68,14 +76,4 @@ class CRM_Report_Form_Contact_LoggingDetail extends CRM_Logging_ReportDetail {
     }
   }
 
-  protected function whoWhomWhenSql() {
-    return "
-            SELECT who.id who_id, who.display_name who_name, whom.id whom_id, whom.display_name whom_name, l.is_deleted
-            FROM `{$this->db}`.log_civicrm_contact l
-            JOIN civicrm_contact who ON (l.log_user_id = who.id)
-            JOIN civicrm_contact whom ON (l.id = whom.id)
-            WHERE log_action = 'Update' AND log_conn_id = %1 AND log_date = %2 ORDER BY log_date DESC LIMIT 1
-        ";
-  }
 }
-

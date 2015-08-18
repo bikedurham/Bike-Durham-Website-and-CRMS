@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.2                                                |
+ | CiviCRM version 4.6                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2012                                |
+ | Copyright CiviCRM LLC (c) 2004-2015                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2012
+ * @copyright CiviCRM LLC (c) 2004-2015
  * $Id$
  *
  */
@@ -40,14 +40,13 @@
 class CRM_Admin_Form_LocationType extends CRM_Admin_Form {
 
   /**
-   * Function to build the form
+   * Build the form object.
    *
-   * @return None
-   * @access public
+   * @return void
    */
   public function buildQuickForm() {
-
     parent::buildQuickForm();
+    $this->setPageTitle(ts('Location Type'));
 
     if ($this->_action & CRM_Core_Action::DELETE) {
       return;
@@ -70,7 +69,7 @@ class CRM_Admin_Form_LocationType extends CRM_Admin_Form {
       'variable'
     );
 
-    $this->add('text', 'display_name', ts('Display Name'), CRM_Core_DAO::getAttribute('CRM_Core_DAO_LocationType', 'display_name'));
+    $this->add('text', 'display_name', ts('Display Name'), CRM_Core_DAO::getAttribute('CRM_Core_DAO_LocationType', 'display_name'), TRUE);
     $this->add('text', 'vcard_name', ts('vCard Name'), CRM_Core_DAO::getAttribute('CRM_Core_DAO_LocationType', 'vcard_name'));
 
     $this->add('text', 'description', ts('Description'), CRM_Core_DAO::getAttribute('CRM_Core_DAO_LocationType', 'description'));
@@ -83,18 +82,17 @@ class CRM_Admin_Form_LocationType extends CRM_Admin_Form {
   }
 
   /**
-   * Function to process the form
+   * Process the form submission.
    *
-   * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     CRM_Utils_System::flushCache('CRM_Core_DAO_LocationType');
 
     if ($this->_action & CRM_Core_Action::DELETE) {
       CRM_Core_BAO_LocationType::del($this->_id);
-      CRM_Core_Session::setStatus(ts('Selected Location type has been deleted.'));
+      CRM_Core_Session::setStatus(ts('Selected Location type has been deleted.'), ts('Record Deleted'), 'success');
       return;
     }
 
@@ -123,10 +121,9 @@ class CRM_Admin_Form_LocationType extends CRM_Admin_Form {
 
     $locationType->save();
 
-    CRM_Core_Session::setStatus(ts('The location type \'%1\' has been saved.',
-        array(1 => $locationType->name)
-      ));
+    CRM_Core_Session::setStatus(ts("The location type '%1' has been saved.",
+      array(1 => $locationType->name)
+    ), ts('Saved'), 'success');
   }
-  //end of function
-}
 
+}
