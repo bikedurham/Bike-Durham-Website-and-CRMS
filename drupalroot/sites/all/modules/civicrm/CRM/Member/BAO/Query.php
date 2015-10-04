@@ -29,8 +29,6 @@
  *
  * @package CRM
  * @copyright CiviCRM LLC (c) 2004-2015
- * $Id$
- *
  */
 class CRM_Member_BAO_Query {
 
@@ -46,8 +44,6 @@ class CRM_Member_BAO_Query {
    * If membership are involved, add the specific membership fields
    *
    * @param $query
-   *
-   * @return void
    */
   public static function select(&$query) {
     // if membership mode add membership id
@@ -201,6 +197,13 @@ class CRM_Member_BAO_Query {
         $query->_tables['civicrm_membership'] = $query->_whereTables['civicrm_membership'] = 1;
         return;
 
+      // CRM-17011 These 2 variants appear in some smart groups saved at some time prior to 4.6.6.
+      case 'member_status_id':
+      case 'member_membership_type_id':
+        if (is_array($value)) {
+          $op = 'IN';
+          $value = array_keys($value);
+        }
       case 'membership_status':
       case 'membership_status_id':
       case 'membership_type':
@@ -216,7 +219,7 @@ class CRM_Member_BAO_Query {
         }
         else {
           $name = 'membership_type_id';
-          $qillName = 'Memebership Type(s)';
+          $qillName = 'Membership Type(s)';
         }
         $query->_where[$grouping][] = CRM_Contact_BAO_Query::buildClause("civicrm_membership.$name",
           $op,
@@ -391,12 +394,12 @@ class CRM_Member_BAO_Query {
    */
   public static function buildSearchForm(&$form) {
     $membershipStatus = CRM_Member_PseudoConstant::membershipStatus();
-    $form->add('select', 'membership_status_id', ts('Memebership Status(s)'), $membershipStatus, FALSE,
+    $form->add('select', 'membership_status_id', ts('Membership Status(s)'), $membershipStatus, FALSE,
       array('id' => 'membership_status_id', 'multiple' => 'multiple', 'class' => 'crm-select2')
     );
 
     $form->addSelect('membership_type_id',
-      array('entity' => 'membership', 'multiple' => 'multiple', 'label' => ts('Memebership Type(s)'), 'option_url' => NULL, 'placeholder' => ts('- any -'))
+      array('entity' => 'membership', 'multiple' => 'multiple', 'label' => ts('Membership Type(s)'), 'option_url' => NULL, 'placeholder' => ts('- any -'))
     );
 
     $form->addElement('text', 'member_source', ts('Source'));

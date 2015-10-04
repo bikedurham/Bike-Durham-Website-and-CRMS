@@ -189,6 +189,10 @@ class CRM_Contact_BAO_Relationship extends CRM_Contact_DAO_Relationship {
           continue;
         }
 
+        //CRM-16978:check duplicate relationship as per case id.
+        if ($caseId = CRM_Utils_Array::value('case_id', $params)) {
+          $contactFields['case_id'] = $caseId;
+        }
         if (
         self::checkDuplicateRelationship(
           $contactFields,
@@ -1291,6 +1295,7 @@ LEFT JOIN  civicrm_country ON (civicrm_address.country_id = civicrm_country.id)
               $mask -= CRM_Core_Action::ENABLE;
               $mask -= CRM_Core_Action::DISABLE;
             }
+            $mask = $mask & $permissionMask;
           }
 
           // Give access to manage case link by copying to MAX_ACTION index temporarily, depending on case permission of user.
@@ -1973,19 +1978,13 @@ AND cc.sort_name LIKE '%$name%'";
     $contactRelationships = array();
     $params['total'] = 0;
     if (!empty($relationships)) {
-      // get the total relationships
-      if ($params['context'] != 'user') {
-        $params['total'] = count($relationships);
-      }
-      else {
-        // FIX ME: we cannot directly determine total permissioned relationship, hence re-fire query
-        $permissionedRelationships = CRM_Contact_BAO_Relationship::getRelationship($params['contact_id'],
-          $relationshipStatus,
-          0, 0, 0,
-          NULL, NULL, TRUE
-        );
-        $params['total'] = count($permissionedRelationships);
-      }
+      // FIXME: we cannot directly determine total permissioned relationship, hence re-fire query
+      $params['total'] = $permissionedRelationships = CRM_Contact_BAO_Relationship::getRelationship($params['contact_id'],
+        $relationshipStatus,
+        0, 1, 0,
+        NULL, NULL,
+        $permissionedContacts
+      );
 
       // format params
       foreach ($relationships as $relationshipId => $values) {
