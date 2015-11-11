@@ -31,7 +31,7 @@ function webform_phone_webform_component_info() {
       // If this component can be used as a conditional SOURCE. All components
       // may always be displayed conditionally, regardless of this setting.
       // Defaults to TRUE.
-      'conditional'   => FALSE,
+      'conditional'   => TRUE,
       // If this component allows other components to be grouped within it
       // (like a fieldset or tabs). Defaults to FALSE.
       'group'         => FALSE,

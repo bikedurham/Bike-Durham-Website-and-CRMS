@@ -198,6 +198,9 @@ function _webform_render_phone($component, $value = NULL, $filter = TRUE) {
     '#weight'           => $component['weight'],
     '#translatable'     => array( 'title', 'description' ),
   );
+  if ($component['required']) {
+    $form_item['#attributes']['required'] = 'required';
+  }
   if (isset( $value )) {
     $form_item['#default_value'] = $value[0];
   }
