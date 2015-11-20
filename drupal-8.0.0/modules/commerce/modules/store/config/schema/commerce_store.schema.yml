@@ -1,0 +1,25 @@
+# Schema for the configuration files of store types.
+
+commerce_store.commerce_store_type.*:
+  type: config_entity
+  label: 'Store type config'
+  mapping:
+    id:
+      type: string
+      label: 'Type'
+    label:
+      type: label
+      label: 'Label'
+    uuid:
+      type: string
+    description:
+      type: text
+      label: 'Description'
+
+commerce_store.settings:
+  type: config_object
+  label: 'Commerce Store settings'
+  mapping:
+    default_store:
+      type: string
+      label: 'Default store UUID'

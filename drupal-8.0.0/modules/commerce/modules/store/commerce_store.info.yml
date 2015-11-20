@@ -1,0 +1,21 @@
+name: Commerce Store
+type: module
+description: 'Defines the Store entity and associated features.'
+package: Commerce
+# core: 8.x
+dependencies:
+  - address
+  - commerce
+  - commerce_price
+  - entity_reference
+  - options
+config_devel:
+  - commerce_store.commerce_store_type.default
+  - commerce_store.settings
+  - views.view.commerce_stores
+
+# Information added by Drupal.org packaging script on 2015-11-18
+version: '8.x-2.x-dev'
+core: '8.x'
+project: 'commerce'
+datestamp: 1447866245

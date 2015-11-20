@@ -1,0 +1,133 @@
+<?php
+
+/**
+ * @file
+ * Implements the shopping cart system and add to cart features.
+ */
+
+use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
+use Drupal\Core\Entity\Entity\EntityViewMode;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_rebuild().
+ *
+ * Ensures the presence of a cart view mode for each purchasable entity type.
+ */
+function commerce_cart_rebuild() {
+  $entityTypes = \Drupal::service('entity_type.manager')->getDefinitions();
+  $entityTypes = array_filter($entityTypes, function ($entityType) {
+    return $entityType->isSubclassOf('\Drupal\commerce\PurchasableEntityInterface');
+  });
+
+  foreach ($entityTypes as $entityType) {
+    if (!EntityViewMode::load($entityType->id() . '.cart')) {
+      EntityViewMode::create([
+        'id' => $entityType->id() . '.cart',
+        'targetEntityType' => $entityType->id(),
+        'label' => 'Cart',
+        'status' => TRUE,
+        'enabled' => TRUE,
+      ])->save();
+    }
+
+    $bundles = array_keys(\Drupal::service('entity_type.bundle.info')->getBundleInfo($entityType->id()));
+    foreach ($bundles as $bundle) {
+      $displayId = $entityType->id() . '.' . $bundle . '.cart';
+      if (!EntityViewDisplay::load($displayId)) {
+        EntityViewDisplay::create([
+          'id' => $displayId,
+          'targetEntityType' => $entityType->id(),
+          'bundle' => $bundle,
+          'mode' => 'cart',
+          'status' => TRUE,
+        ])->save();
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function commerce_cart_entity_base_field_info(EntityTypeInterface $entity_type) {
+  if ($entity_type->id() === 'commerce_order') {
+    $fields['cart'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Cart'))
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'settings' => [
+          'display_label' => TRUE,
+        ],
+        'weight' => 20,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDefaultValue(FALSE);
+
+    return $fields;
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ *
+ * Removes deleted carts from the anonymous user's session.
+ */
+function commerce_cart_commerce_order_delete(OrderInterface $order) {
+  if (!empty($order->cart)) {
+    \Drupal::service('commerce_cart.cart_session')->deleteCartId($order->id());
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for 'commerce_order_type_form'.
+ */
+function commerce_cart_form_commerce_order_type_form_alter(array &$form, FormStateInterface $form_state) {
+  $orderType = $form_state->getFormObject()->getEntity();
+  $refreshMode = $orderType->getThirdPartySetting('commerce_cart', 'refresh_mode', 'owner_only');
+  $refreshFrequency = $orderType->getThirdPartySetting('commerce_cart', 'refresh_frequency', 30);
+
+  $form['commerce_cart'] = [
+    '#type' => 'details',
+    '#title' => t('Shopping cart settings'),
+    '#weight' => 5,
+    '#open' => TRUE,
+    '#collapsible' => TRUE,
+  ];
+  $form['commerce_cart']['help'] = [
+    '#markup' => '<p> ' . t('These settings let you control how shopping carts are refreshed, the process during which line item prices are recalculated.') . '</p>',
+  ];
+  $form['commerce_cart']['refresh_mode'] = [
+    '#type' => 'radios',
+    '#title' => t('Shopping cart refresh mode'),
+    '#options' => [
+      'always' => t('Refresh a shopping cart when it is loaded regardless of who it belongs to.'),
+      'owner_only' => t('Only refresh a shopping cart when it is loaded if it belongs to the current user.'),
+    ],
+    '#default_value' => $refreshMode,
+  ];
+  $form['commerce_cart']['refresh_frequency'] = [
+    '#type' => 'textfield',
+    '#title' => t('Shopping cart refresh frequency'),
+    '#description' => t('Shopping carts will only be refreshed if more than the specified number of seconds have passed since they were last refreshed.'),
+    '#default_value' => $refreshFrequency,
+    '#required' => TRUE,
+    '#size' => 10,
+    '#field_suffix' => t('seconds'),
+  ];
+  $form['actions']['submit']['#submit'][] = 'commerce_cart_order_type_form_submit';
+}
+
+/**
+ * Form submission handler for 'commerce_order_type_form'.
+ */
+function commerce_cart_order_type_form_submit($form, FormStateInterface $form_state) {
+  $settings = &$form_state->getValues('commerce_cart');
+  $orderType = $form_state->getFormObject()->getEntity();
+  $orderType->setThirdPartySetting('commerce_cart', 'refresh_mode', $settings['refresh_mode']);
+  $orderType->setThirdPartySetting('commerce_cart', 'refresh_frequency', $settings['refresh_frequency']);
+  $orderType->save();
+}

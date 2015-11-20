@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * Defines the Store entity and associated features.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_field_widget_form_alter().
+ */
+function commerce_store_field_widget_form_alter(&$element, FormStateInterface $form_state, $context) {
+  $field_definition = $context['items']->getFieldDefinition();
+  $field_name = $field_definition->getName();
+  $entity_type = $field_definition->getTargetEntityTypeId();
+  $widget_name = $context['widget']->getPluginId();
+  if ($field_name == 'billing_countries' && $entity_type == 'commerce_store' && $widget_name == 'options_select') {
+    $element['#options']['_none'] = t('- All countries -');
+    $element['#size'] = 5;
+  }
+}

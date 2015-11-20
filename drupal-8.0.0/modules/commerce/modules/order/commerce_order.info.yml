@@ -1,0 +1,26 @@
+name: Commerce Order
+type: module
+description: 'Defines the Order entity and associated features.'
+package: Commerce
+# core: 8.x
+dependencies:
+  - commerce
+  - commerce_price
+  - commerce_store
+  - entity_reference
+  - inline_entity_form
+  - options
+  - profile
+config_devel:
+  - views.view.commerce_orders
+  - commerce_order.commerce_order_type.default
+  - field.field.commerce_order.default.line_items
+  - field.storage.commerce_order.line_items
+  - core.entity_form_display.commerce_order.default.default
+  - core.entity_view_display.commerce_order.default.default
+
+# Information added by Drupal.org packaging script on 2015-11-18
+version: '8.x-2.x-dev'
+core: '8.x'
+project: 'commerce'
+datestamp: 1447866245
