@@ -21,7 +21,7 @@ function webform_boolean_webform_component_info() {
         'off_value' => 0,
       ),
       'features' => array(
-        'conditional' => FALSE,
+        'conditional' => TRUE,
         'email_address' => TRUE,
         'default_value' => TRUE,
       ),

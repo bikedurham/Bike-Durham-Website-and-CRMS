@@ -39,7 +39,7 @@ function _webform_render_boolean($component, $value = NULL) {
     '#weight' => $component['weight'],
     '#field_prefix' => empty($component['extra']['field_prefix']) ? NULL : _webform_filter_xss($component['extra']['field_prefix']),
     '#field_suffix' => empty($component['extra']['field_suffix']) ? NULL : _webform_filter_xss($component['extra']['field_suffix']),
-    '#theme_wrappers' => array('checkboxes', 'webform_element'),
+    '#theme_wrappers' => array('checkbox', 'webform_element'),
     '#translatable' => array('title', 'description'),
   );
   if (isset($value)) {
@@ -108,6 +108,56 @@ function _webform_theme_boolean() {
       'file' => 'components/boolean.inc',
     ),
   );
+}
+
+/**
+ * Implements _webform_table_component().
+ */
+function _webform_table_boolean($component, $value) {
+  return _webform_boolean_report_value($component, $value);
+}
+
+/**
+ * Implements _webform_csv_headers_component().
+ */
+function _webform_csv_headers_boolean($component, $export_options) {
+  $header = array();
+  $header[0] = '';
+  $header[1] = '';
+  $header[2] = $component['name'];
+  return $header;
+}
+
+/**
+ * Implements _webform_csv_data_component().
+ */
+function _webform_csv_data_boolean($component, $export_options, $value) {
+  return _webform_boolean_report_value($component, $value);
+}
+
+/**
+ * Helper function for generating ON/OFF value based on given user value.
+ * @param $component
+ *   A Webform component array.
+ * @param $value
+ *   An array of information containing the submission result, directly
+ *   correlating to the webform_submitted_data database schema.
+ * @return
+ *   An ON/OFF string value for being used in CSV export and table value.
+ */
+function _webform_boolean_report_value($component, $value) {
+  $return = '';
+  if(isset($value[0])) {
+
+    // In case of missing on/off values (optional setting), let's use standard
+    // numbers 1 and 0.
+    $on_value = empty($component['extra']['on_value']) ? '1' : $component['extra']['on_value'];
+    $off_value = empty($component['extra']['off_value']) ? '0' : $component['extra']['off_value'];
+
+    $return = $value[0] ? $on_value : $off_value;
+
+  }
+  return $return;
 }
 
 /**
